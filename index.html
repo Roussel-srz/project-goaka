@@ -1,0 +1,3504 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Enterprise Management Pro v2.3</title>
+    <!-- Bibliothèques externes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --background: #f8fafc;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--background);
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Personnalisation Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Classes utilitaires */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .sidebar-item {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-item.active {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .main-content { margin-bottom: 70px; }
+            .mobile-nav { display: flex; }
+            .desktop-sidebar { display: none !important; }
+        }
+        
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .invoice-preview {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 2px dashed #cbd5e1;
+        }
+
+        .badge-success { background-color: #dcfce7; color: #166534; }
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-danger { background-color: #fee2e2; color: #991b1b; }
+        .badge-info { background-color: #dbeafe; color: #1e40af; }
+
+        .signature-line {
+            border-top: 1px solid #1e293b;
+            width: 200px;
+            margin-top: 40px;
+        }
+        .trial-badge {
+            position: fixed;
+            bottom: 60px;
+            right: 20px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            z-index: 100;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="antialiased">
+
+<!-- 1. L'écran de verrouillage (Placé au tout début du body) -->
+<!-- Écran de Licence -->
+    <div id="license-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+        <div style="background: white; padding: 2.5rem; border-radius: 1.5rem; width: 90%; max-width: 480px; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+            <!-- Bouton fermer (X) -->
+            <button id="close-license" onclick="document.getElementById('license-overlay').style.display='none'" style="position: absolute; top: 1.25rem; right: 1.25rem; font-size: 1.5rem; color: #94a3b8; cursor: pointer; border: none; background: none;" class="hidden">✕</button>
+            
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.5rem; font-weight: bold; color: #111827;">Activation du logiciel</h2>
+                <p id="license-msg" style="color: #6b7280; margin-top: 0.5rem;">Enregistrez votre licence pour un accès illimité.</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div>
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase;">ID Matériel de cet ordinateur</label>
+                    <input type="text" id="device-id-display" readonly style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-family: monospace;">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase;">Clé de licence</label>
+                    <input type="text" id="license-key-input" placeholder="ENTREZ VOTRE CLÉ ICI" style="width: 100%; margin-top: 0.5rem; padding: 1rem; border: 2px solid #f3f4f6; border-radius: 0.75rem; text-align: center; font-weight: bold; outline: none;">
+                </div>
+                <button onclick="validateAndActivate()" style="width: 100%; background: #2563eb; color: white; padding: 1rem; border-radius: 0.75rem; font-weight: bold; cursor: pointer; border: none;">Activer maintenant</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Badge d'essai flottant -->
+    <div id="trial-info-badge" class="trial-badge" onclick="document.getElementById('license-overlay').style.display='flex'">
+        <span style="height: 10px; width: 10px; background: #3b82f6; border-radius: 50%; display: inline-block;"></span>
+        <span id="days-text" style="font-size: 0.85rem; font-weight: 600; color: #475569;">Calcul...</span>
+    </div>
+
+<!-- 2. Enveloppe de l'application (TRES IMPORTANT) -->
+<!-- Vous devez entourer TOUT votre code original (Sidebar, Main, etc.) par cette balise -->
+<div id="app-content" style="display: none;">
+    <!-- TOUT VOTRE CODE ORIGINAL VA ICI -->
+
+
+    <!-- APP WRAPPER -->
+    <div class="flex min-h-screen overflow-hidden">
+
+        <!-- DESKTOP SIDEBAR -->
+        <aside class="desktop-sidebar w-64 glass-card border-r flex flex-col z-50">
+            <div class="p-6">
+                <div class="flex items-center gap-3 text-blue-600 font-bold text-xl">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <i data-lucide="layout-grid"></i>
+                    </div>
+                    <span id="sidebar-company-name">Enterprise <span class="text-slate-400 font-light">Pro</span></span>
+                </div>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-2 py-4 overflow-y-auto">
+                <button onclick="switchTab('dashboard')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all active" id="btn-dashboard">
+                    <i data-lucide="home" class="w-5 h-5"></i> Dashboard
+                </button>
+                <button onclick="switchTab('stock')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-stock">
+                    <i data-lucide="package" class="w-5 h-5"></i> Matériel & Stock
+                </button>
+                <button onclick="switchTab('sales')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-sales">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i> Ventes & Facturation
+                </button>
+                <button onclick="switchTab('credits')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-credits">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i> Crédits Clients
+                </button>
+                <button onclick="switchTab('expenses')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-expenses">
+                    <i data-lucide="receipt" class="w-5 h-5"></i> Dépenses / Caisse
+                </button>
+                <button onclick="switchTab('logs')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-logs">
+                    <i data-lucide="history" class="w-5 h-5"></i> Logs Système
+                </button>
+            </nav>
+
+            <div class="p-4 border-t space-y-2">
+                <button onclick="switchTab('settings')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-settings">
+                    <i data-lucide="settings" class="w-5 h-5"></i> Paramètres
+                </button>
+                <div class="text-[10px] text-slate-400 text-center mt-2">v1.0.0 Goaka Edition</div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-screen overflow-hidden">
+            
+            <!-- HEADER -->
+            <header class="h-16 glass-card border-b px-6 flex items-center justify-between z-40">
+                <div class="flex items-center gap-4">
+                    <h2 id="current-tab-title" class="text-lg font-semibold text-slate-800">Tableau de bord</h2>
+                    <span id="header-alert" class="hidden text-xs px-2 py-1 rounded-full bg-red-100 text-red-600 font-semibold"></span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="hidden md:flex flex-col items-end">
+                        <span id="header-date" class="text-xs text-slate-500 font-medium">--/--/----</span>
+                        <span id="header-caisse" class="text-sm font-bold text-blue-600">0 Ar</span>
+                    </div>
+                    <button onclick="refreshData()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
+                        <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- CONTENT SCROLL AREA -->
+            <div id="scroll-area" class="flex-1 overflow-y-auto p-4 md:p-8 main-content">
+                
+                <!-- DASHBOARD TAB -->
+                <div id="tab-dashboard" class="tab-content active space-y-6">
+                    <div class="flex items-center justify-end gap-3">
+                        <select id="dashboard-period" onchange="onDashboardPeriodChange()" class="text-xs border rounded-lg px-3 py-1 outline-none">
+                            <option value="today">Aujourd'hui</option>
+                            <option value="week">7 derniers jours</option>
+                            <option value="month">30 derniers jours</option>
+                            <option value="year">Cette année</option>
+                            <option value="custom">Date précise</option>
+                        </select>
+                        <input id="dashboard-date" type="date" class="text-xs border rounded-lg px-3 py-1 outline-none hidden" onchange="updateDashboard(); updateMainChart();">
+                    </div>
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-slate-500 text-sm font-medium">Solde Caisse</p>
+                            <h3 id="stat-caisse" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
+                            <div class="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                                <i data-lucide="arrow-up-right" class="w-3 h-3"></i> Actif net
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                            <p class="text-slate-500 text-sm font-medium">Chiffre d'Affaires</p>
+                            <h3 id="stat-ca" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
+                            <div class="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                                <i data-lucide="trending-up" class="w-3 h-3"></i> Total ventes
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                            <p class="text-slate-500 text-sm font-medium">Total Dépenses</p>
+                            <h3 id="stat-depenses" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
+                            <div class="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                                <i data-lucide="arrow-down-right" class="w-3 h-3"></i> Sorties caisse
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-purple-500">
+                            <p class="text-slate-500 text-sm font-medium">Marge Estimée</p>
+                            <h3 id="stat-marge" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
+                            <div class="mt-2 text-xs text-purple-600 flex items-center gap-1">
+                                <i data-lucide="pie-chart" class="w-3 h-3"></i> Profit net
+                            </div>
+                        </div>
+                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                            <p class="text-slate-500 text-sm font-medium">Crédits en attente</p>
+                            <h3 id="stat-credits" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
+                            <div class="mt-2 text-xs text-rose-600 flex items-center gap-1">
+                                <i data-lucide="clock" class="w-3 h-3"></i> À recevoir
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-bold flex items-center gap-2">
+                                    <i data-lucide="trending-up" class="w-5 h-5 text-blue-500"></i> Flux de Trésorerie
+                                </h4>
+                                <select id="chart-period" onchange="updateMainChart()" class="text-xs border rounded-lg px-3 py-1 outline-none">
+                                    <option value="7">7 derniers jours</option>
+                                    <option value="30">30 derniers jours</option>
+                                    <option value="90">3 derniers mois</option>
+                                </select>
+                            </div>
+                            <div class="h-64"><canvas id="chart-main"></canvas></div>
+                        </div>
+                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-bold flex items-center gap-2">
+                                    <i data-lucide="alert-circle" class="w-5 h-5 text-amber-500"></i> Alertes & Notifications
+                                </h4>
+                                <span id="alert-count" class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">0</span>
+                            </div>
+                            <div id="stock-alerts" class="space-y-3 max-h-[250px] overflow-y-auto">
+                                <!-- JS Injection -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions & Recent Activities -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Quick Actions -->
+                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 flex items-center gap-2">
+                                <i data-lucide="zap" class="w-5 h-5 text-blue-500"></i> Actions Rapides
+                            </h4>
+                            <div class="space-y-3">
+                                <button onclick="openModal('modal-product')" class="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i>
+                                        <span class="font-medium text-slate-700">Nouveau produit</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-blue-300 group-hover:text-blue-500"></i>
+                                </button>
+                                <button onclick="openModal('modal-stock-adjust')" class="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="package-plus" class="w-5 h-5 text-emerald-600"></i>
+                                        <span class="font-medium text-slate-700">Ajustement stock</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-emerald-300 group-hover:text-emerald-500"></i>
+                                </button>
+                                <button onclick="switchTab('sales')" class="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="shopping-bag" class="w-5 h-5 text-purple-600"></i>
+                                        <span class="font-medium text-slate-700">Nouvelle facture</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-purple-300 group-hover:text-purple-500"></i>
+                                </button>
+                                <button onclick="openModal('modal-expense')" class="w-full flex items-center justify-between p-3 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="minus-circle" class="w-5 h-5 text-amber-600"></i>
+                                        <span class="font-medium text-slate-700">Nouvelle dépense</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-amber-300 group-hover:text-amber-500"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activities -->
+                        <div class="glass-card rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
+                            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
+                                <h4 class="font-bold">Dernières opérations</h4>
+                                <button onclick="switchTab('logs')" class="text-xs text-blue-600 font-semibold hover:underline">Voir tout</button>
+                            </div>
+                            <div id="recent-logs" class="divide-y text-sm max-h-[300px] overflow-y-auto">
+                                <!-- JS Injection -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STOCK TAB -->
+                <div id="tab-stock" class="tab-content space-y-6">
+                    <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+                            <div class="relative w-full md:w-64">
+                                <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                                <input type="text" id="search-stock" placeholder="Rechercher un matériel..." 
+                                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            </div>
+                            <select id="filter-category" onchange="renderStock()" class="w-full md:w-48 px-4 py-2.5 rounded-xl border border-slate-200 outline-none">
+                                <option value="">Toutes catégories</option>
+                                <!-- JS Injection -->
+                            </select>
+                            <select id="filter-stock-status" onchange="renderStock()" class="w-full md:w-48 px-4 py-2.5 rounded-xl border border-slate-200 outline-none">
+                                <option value="">Tous les stocks</option>
+                                <option value="critique">Stock critique</option>
+                                <option value="zero">Stock épuisé</option>
+                                <option value="normal">Stock normal</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="exportStockCSV()" class="px-4 py-2.5 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
+                                <i data-lucide="download" class="w-4 h-4"></i> Export
+                            </button>
+                            <button onclick="openModal('modal-product')" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i> Nouveau
+                            </button>
+                            <button onclick="openModal('modal-stock-adjust')" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all">
+                                <i data-lucide="package-plus" class="w-5 h-5"></i> Ajuster
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="glass-card rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Matériel</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Catégorie</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Fournisseur</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Achat (Ar)</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Vente (Ar)</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">En Stock</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Actions Stock</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table-body" class="divide-y divide-slate-100">
+                                <!-- JS Injection -->
+                            </tbody>
+                            <tfoot class="bg-slate-50 border-t">
+                                <tr>
+                                    <td colspan="7" class="px-6 py-4 text-right text-sm font-bold text-slate-700">
+                                        Valeur totale du stock :
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-lg font-bold text-blue-600" id="total-stock-value">
+                                        0 Ar
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Stock Movements History -->
+                    <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <h4 class="font-bold mb-4 flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5 text-blue-500"></i> Historique des mouvements de stock
+                        </h4>
+                        <div id="stock-movements" class="space-y-3 max-h-[300px] overflow-y-auto">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SALES TAB -->
+                <div id="tab-sales" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- POS Side -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h4 class="font-bold flex items-center gap-2">
+                                        <i data-lucide="shopping-bag" class="w-5 h-5 text-blue-500"></i> Nouvelle Facture
+                                    </h4>
+                                    <div class="text-sm text-slate-500">
+                                        <span id="invoice-number">Facture #001</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Client Information -->
+                                <div class="mb-6 p-4 bg-slate-50 rounded-xl">
+                                    <h5 class="font-bold text-sm mb-3 flex items-center gap-2">
+                                        <i data-lucide="user" class="w-4 h-4"></i> Informations Client
+                                    </h5>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom du Client *</label>
+                                            <input type="text" id="client-name" placeholder="Nom complet" 
+                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Téléphone</label>
+                                            <input type="text" id="client-phone" placeholder="+261 XX XX XXX XX" 
+                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cart Items -->
+                                <div class="mb-6">
+                                    <h5 class="font-bold text-sm mb-3 flex items-center gap-2">
+                                        <i data-lucide="shopping-cart" class="w-4 h-4"></i> Articles
+                                    </h5>
+                                    <div class="space-y-4" id="cart-items">
+                                        <!-- Cart items will be added here -->
+                                        <div class="text-center py-8 text-slate-400">
+                                            <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                                            <p>Aucun article ajouté</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Add Product Form -->
+                                <div class="p-4 bg-blue-50 rounded-xl mb-6">
+                                    <h6 class="font-bold text-sm mb-3 flex items-center gap-2">
+                                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Ajouter un article
+                                    </h6>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produit</label>
+                                            <select id="sale-product" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                                <!-- JS Injection -->
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
+                                            <input type="number" id="sale-qty" value="1" min="1" 
+                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix unitaire</label>
+                                            <div class="flex gap-2">
+                                                <input type="number" id="sale-price" readonly 
+                                                    class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                                                <button type="button" onclick="addToCart()" class="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Payment & Summary -->
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div class="space-y-4">
+                                        <div class="p-4 bg-slate-50 rounded-xl">
+                                            <h6 class="font-bold text-sm mb-3">Mode de Paiement</h6>
+                                            <div class="space-y-2">
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="payment-method" value="cash" checked class="rounded">
+                                                    <span class="text-sm">Espèces</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="payment-method" value="credit" class="rounded">
+                                                    <span class="text-sm">Crédit</span>
+                                                </label>
+                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                    <input type="radio" name="payment-method" value="mobile" class="rounded">
+                                                    <span class="text-sm">Mobile Money</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-4 bg-emerald-50 rounded-xl">
+                                        <h6 class="font-bold text-sm mb-3">Récapitulatif</h6>
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Sous-total :</span>
+                                                <span id="invoice-subtotal" class="font-bold">0 Ar</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Total :</span>
+                                                <span id="invoice-total" class="font-bold text-xl text-blue-600">0 Ar</span>
+                                            </div>
+                                            <div id="credit-info" class="hidden mt-3 p-2 bg-amber-100 text-amber-800 rounded text-xs">
+                                                <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>
+                                                La facture sera enregistrée comme crédit
+                                            </div>
+                                            <button onclick="completeSale()" class="w-full mt-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+                                                <i data-lucide="check-circle" class="w-5 h-5"></i> Finaliser la vente
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- History Side -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="glass-card p-6 rounded-2xl shadow-sm">
+                                <div class="flex items-center justify-between mb-6">
+                                    <h4 class="font-bold flex items-center gap-2">
+                                        <i data-lucide="list" class="w-5 h-5 text-slate-400"></i> Factures récentes
+                                    </h4>
+                                    <div class="text-xs text-slate-400">Aujourd'hui : <span id="sales-today-count" class="font-bold text-slate-600">0</span></div>
+                                </div>
+                                <div id="recent-invoices" class="space-y-3 max-h-[500px] overflow-y-auto">
+                                    <!-- JS Injection -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CREDITS TAB -->
+                <div id="tab-credits" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-rose-500">
+                                <h4 class="font-bold mb-6 flex items-center gap-2">
+                                    <i data-lucide="dollar-sign" class="w-5 h-5 text-rose-500"></i> Règlement Crédit
+                                </h4>
+                                <form id="form-credit-payment" class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Sélectionner crédit</label>
+                                        <select id="credit-select" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
+                                            <option value="">-- Choisir un crédit --</option>
+                                            <!-- JS Injection -->
+                                        </select>
+                                    </div>
+                                    <div id="credit-details" class="hidden p-3 bg-rose-50 rounded-lg">
+                                        <div class="text-sm space-y-1">
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Client :</span>
+                                                <span id="credit-client" class="font-bold"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Montant restant :</span>
+                                                <span id="credit-balance" class="font-bold text-rose-600"></span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Date :</span>
+                                                <span id="credit-date" class="text-slate-500 text-xs"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Montant payé (Ar)</label>
+                                        <input type="number" id="credit-payment-amount" required placeholder="0" 
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
+                                    </div>
+                                    <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all">
+                                        Enregistrer le paiement
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <div class="glass-card rounded-2xl overflow-hidden shadow-sm">
+                                <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                                    <h4 class="font-bold">Crédits en cours</h4>
+                                    <span id="total-credits" class="text-sm font-bold text-rose-600">0 Ar</span>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-white border-b">
+                                            <tr>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Client</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Facture</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Montant total</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Payé</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Reste</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Statut</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="credits-table-body" class="divide-y divide-slate-100 text-sm">
+                                            <!-- JS Injection -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EXPENSES TAB -->
+                <div id="tab-expenses" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-amber-500">
+                                <h4 class="font-bold mb-6 flex items-center gap-2">
+                                    <i data-lucide="minus-circle" class="w-5 h-5 text-amber-500"></i> Sortie de Caisse
+                                </h4>
+                                <form id="form-expense" class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Catégorie</label>
+                                        <select id="expense-category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                            <option value="">Sélectionner</option>
+                                            <option value="loyer">Loyer</option>
+                                            <option value="electricite">Électricité</option>
+                                            <option value="salaires">Salaires</option>
+                                            <option value="fournitures">Fournitures</option>
+                                            <option value="transport">Transport</option>
+                                            <option value="achat_stock">Achat Stock</option>
+                                            <option value="autre">Autre</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Motif / Description</label>
+                                        <input type="text" id="expense-motif" required placeholder="Ex: Loyer, Electricité..." 
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Montant (Ar)</label>
+                                        <input type="number" id="expense-amount" required placeholder="0" min="1"
+                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                    </div>
+                                    <button type="submit" class="w-full py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-all">
+                                        Enregistrer la dépense
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <div class="glass-card rounded-2xl overflow-hidden shadow-sm h-full">
+                                <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
+                                    <h4 class="font-bold">Journal des dépenses</h4>
+                                    <button onclick="exportExpensesCSV()" class="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1">
+                                        <i data-lucide="download" class="w-3 h-3"></i> Export
+                                    </button>
+                                </div>
+                                <div class="p-4 border-b flex gap-4">
+                                    <select id="expense-filter-category" onchange="renderExpenses()" class="px-3 py-1 border rounded text-sm outline-none">
+                                        <option value="">Toutes catégories</option>
+                                        <!-- JS Injection -->
+                                    </select>
+                                    <input type="month" id="expense-filter-month" onchange="renderExpenses()" class="px-3 py-1 border rounded text-sm outline-none">
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-white border-b">
+                                            <tr>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Catégorie</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Description</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Montant (Ar)</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="expenses-table-body" class="divide-y divide-slate-100 text-sm">
+                                            <!-- JS Injection -->
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="bg-slate-50">
+                                                <td colspan="3" class="px-6 py-4 text-right font-bold">Total :</td>
+                                                <td id="total-expenses" class="px-6 py-4 text-right font-bold text-amber-600">0 Ar</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOGS TAB -->
+                <div id="tab-logs" class="tab-content space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold flex items-center gap-2">
+                            <i data-lucide="database" class="w-5 h-5"></i> Journal système complet
+                        </h4>
+                        <div class="flex gap-2">
+                            <select id="log-filter-type" onchange="renderLogs()" class="text-xs border rounded px-2 py-1 outline-none">
+                                <option value="">Tous les types</option>
+                                <option value="info">Info</option>
+                                <option value="warning">Avertissement</option>
+                                <option value="error">Erreur</option>
+                                <option value="success">Succès</option>
+                            </select>
+                            <button onclick="clearLogs()" class="text-xs text-red-500 font-semibold hover:underline">Vider les logs</button>
+                        </div>
+                    </div>
+                    <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                        <div id="full-logs-list" class="divide-y max-h-[600px] overflow-y-auto">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETTINGS TAB -->
+                <div id="tab-settings" class="tab-content space-y-6">
+                    
+                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl mt-4">
+    <p class="text-sm text-blue-800 mb-3">Souhaitez-vous activer la version complète avant la fin de l'essai ?</p>
+    <button onclick="document.getElementById('license-overlay').style.display = 'flex'" 
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
+        Saisir une clé de licence
+    </button>
+</div>
+
+                    <!-- Company Information -->
+                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <h4 class="font-bold mb-6 flex items-center gap-2">
+                            <i data-lucide="building" class="w-5 h-5 text-blue-500"></i> Informations de l'Entreprise
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nom de l'entreprise *</label>
+                                    <input type="text" id="company-name" value="Enterprise Goaka" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Adresse</label>
+                                    <input type="text" id="company-address" placeholder="Adresse complète" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Téléphone</label>
+                                    <input type="text" id="company-phone" placeholder="+261 XX XX XXX XX" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">NIF/STAT</label>
+                                    <input type="text" id="company-nif" placeholder="N° NIF ou STAT" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email</label>
+                                    <input type="email" id="company-email" placeholder="contact@entreprise.mg" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Signature sur facture</label>
+                                <input type="text" id="company-signature" placeholder="Nom du responsable ou signature" 
+                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <button onclick="updateCompanyInfo()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all">
+                                Enregistrer les informations
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Authentication Section -->
+                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-purple-500">
+                        <h4 class="font-bold mb-6 flex items-center gap-2">
+                            <i data-lucide="lock" class="w-5 h-5 text-purple-500"></i> Authentification & Sécurité
+                        </h4>
+                        <div class="space-y-4">
+                            <div class="p-4 bg-blue-50 rounded-xl">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div>
+                                        <div class="font-bold text-slate-700">Protection des suppressions</div>
+                                        <div class="text-xs text-slate-500">Demande un mot de passe pour les suppressions importantes</div>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="auth-enabled" checked class="sr-only peer">
+                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div id="auth-config" class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mot de passe actuel</label>
+                                        <input type="password" id="current-password" 
+                                            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nouveau mot de passe</label>
+                                        <input type="password" id="new-password" 
+                                            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Confirmer nouveau mot de passe</label>
+                                    <input type="password" id="confirm-password" 
+                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                </div>
+                                <button onclick="updatePassword()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all">
+                                    Mettre à jour le mot de passe
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Data Management -->
+                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-6 flex items-center gap-2">
+                                <i data-lucide="hard-drive" class="w-5 h-5 text-blue-500"></i> Gestion des données
+                            </h4>
+                            <div class="space-y-4">
+                                <p class="text-sm text-slate-500 italic mb-4">Sauvegardez ou restaurez votre base locale.</p>
+                                <button onclick="exportData()" class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="download" class="w-5 h-5 text-blue-600"></i>
+                                        <div class="text-left">
+                                            <div class="font-bold text-slate-700">Exporter (Backup)</div>
+                                            <div class="text-[10px] text-slate-400">Télécharger le fichier .json</div>
+                                        </div>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
+                                </button>
+
+                                <label class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50 rounded-xl transition-all group cursor-pointer">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="upload" class="w-5 h-5 text-emerald-600"></i>
+                                        <div class="text-left">
+                                            <div class="font-bold text-slate-700 text-sm">Importer (Restauration)</div>
+                                            <div class="text-[10px] text-slate-400">Charger un fichier sauvegardé</div>
+                                        </div>
+                                    </div>
+                                    <input type="file" class="hidden" onchange="importData(event)" accept=".json">
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-emerald-400"></i>
+                                </label>
+
+                                <button onclick="triggerReset()" class="w-full flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all group">
+                                    <div class="flex items-center gap-3 text-red-600">
+                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        <div class="text-left">
+                                            <div class="font-bold">Réinitialisation complète</div>
+                                            <div class="text-[10px] text-red-400 opacity-70">Attention : irréversible</div>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- System Info -->
+                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-6 flex items-center gap-2 text-slate-800">
+                                <i data-lucide="info" class="w-5 h-5 text-slate-400"></i> À propos
+                            </h4>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center py-2 border-b">
+                                    <span class="text-slate-500 text-sm">Nom de l'application</span>
+                                    <span class="font-semibold text-sm">Enterprise Goaka Edition</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b">
+                                    <span class="text-slate-500 text-sm">Version</span>
+                                    <span class="font-semibold text-sm">1.0.0 Goaka</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b">
+                                    <span class="text-slate-500 text-sm">Dernière mise à jour</span>
+                                    <span class="font-semibold text-sm">26 Janvier 2026</span>
+                                </div>
+                                <div class="flex justify-between items-center py-2 border-b">
+                                    <span class="text-slate-500 text-sm">Stockage utilisé</span>
+                                    <span id="storage-size" class="font-semibold text-sm text-blue-600">0 KB</span>
+                                </div>
+                                <div class="mt-6 p-4 bg-slate-100 rounded-2xl text-center">
+                                    <div class="text-xl font-black text-slate-300 mb-2" id="settings-company-name">Enterprise Goaka</div>
+                                    <div class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Solution Premium de Gestion</div>
+                                    <div class="text-[8px] text-slate-400 mt-2">© 2024 - Tous droits réservés</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- End Scroll Area -->
+
+            <!-- MOBILE NAV BAR -->
+            <nav class="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-white border-t z-50 flex items-center justify-around px-2 md:hidden">
+                <button onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link active" data-tab="dashboard">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                    <span class="text-[10px]">Home</span>
+                </button>
+                <button onclick="switchTab('stock')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="stock">
+                    <i data-lucide="package" class="w-5 h-5"></i>
+                    <span class="text-[10px]">Stock</span>
+                </button>
+                <button onclick="switchTab('sales')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="sales">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    <span class="text-[10px]">Ventes</span>
+                </button>
+                <button onclick="switchTab('credits')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="credits">
+                    <i data-lucide="credit-card" class="w-5 h-5"></i>
+                    <span class="text-[10px]">Crédits</span>
+                </button>
+                <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="settings">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                    <span class="text-[10px]">Menu</span>
+                </button>
+            </nav>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    
+    <!-- Modal Produit -->
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="p-6 border-b flex justify-between items-center bg-white">
+                <h3 id="product-modal-title" class="text-xl font-bold text-slate-800">Nouveau Matériel</h3>
+                <button onclick="closeModal('modal-product')" class="p-2 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-product" class="p-6 space-y-4 bg-white">
+                <input type="hidden" id="edit-id">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nom du produit / matériel *</label>
+                        <input type="text" id="prod-nom" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Catégorie</label>
+                        <input type="text" id="prod-category" placeholder="Ex: Électronique" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Fournisseur</label>
+                        <input type="text" id="prod-fournisseur" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Prix Achat (Ar) *</label>
+                        <input type="number" id="prod-achat" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix Vente (Ar) *</label>
+                        <input type="number" id="prod-vente" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Stock Initial *</label>
+                        <input type="number" id="prod-stock" required min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alerte Mini</label>
+                        <input type="number" id="prod-min" value="5" min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="text-xs text-slate-400 italic">* Champs obligatoires</div>
+                <div id="product-error" class="hidden p-3 bg-red-50 text-red-600 rounded-lg text-sm"></div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-product')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ajustement Stock -->
+    <div id="modal-stock-adjust" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="p-6 border-b flex justify-between items-center bg-white">
+                <h3 class="text-xl font-bold text-slate-800">Ajustement de Stock</h3>
+                <button onclick="closeModal('modal-stock-adjust')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-stock-adjust" class="p-6 space-y-4 bg-white">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Produit</label>
+                    <select id="adjust-product" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Sélectionner un produit --</option>
+                        <!-- JS Injection -->
+                    </select>
+                </div>
+                <div id="product-cost-info" class="hidden p-3 bg-blue-50 rounded-lg">
+                    <div class="text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-slate-600">Prix d'achat :</span>
+                            <span id="product-cost" class="font-bold">0 Ar</span>
+                        </div>
+                        <div class="flex justify-between mt-1">
+                            <span class="text-slate-600">Coût total :</span>
+                            <span id="total-cost" class="font-bold text-blue-600">0 Ar</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Type d'ajustement</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-blue-50">
+                            <input type="radio" name="adjust-type" value="add" checked class="mr-2">
+                            <div>
+                                <div class="font-medium">Ajouter (Achat)</div>
+                                <div class="text-xs text-slate-500">Réapprovisionnement - Dépense</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-amber-50">
+                            <input type="radio" name="adjust-type" value="remove" class="mr-2">
+                            <div>
+                                <div class="font-medium">Retirer</div>
+                                <div class="text-xs text-slate-500">Perte, casse, etc.</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantité</label>
+                    <input type="number" id="adjust-qty" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Raison / Commentaire</label>
+                    <textarea id="adjust-reason" rows="2" placeholder="Ex: Réapprovisionnement, Casse, Perte..." class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-stock-adjust')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Dépense -->
+    <div id="modal-expense" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="p-6 border-b flex justify-between items-center bg-white">
+                <h3 class="text-xl font-bold text-slate-800">Nouvelle Dépense</h3>
+                <button onclick="closeModal('modal-expense')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+            </div>
+            <form id="form-expense-modal" class="p-6 space-y-4 bg-white">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Catégorie</label>
+                    <select id="expense-modal-category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="">Sélectionner</option>
+                        <option value="loyer">Loyer</option>
+                        <option value="electricite">Électricité</option>
+                        <option value="salaires">Salaires</option>
+                        <option value="fournitures">Fournitures</option>
+                        <option value="transport">Transport</option>
+                        <option value="achat_stock">Achat Stock</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Motif / Description</label>
+                    <input type="text" id="expense-modal-motif" required placeholder="Ex: Loyer, Electricité..." 
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Montant (Ar)</label>
+                    <input type="number" id="expense-modal-amount" required placeholder="0" min="1"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('modal-expense')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Authentification -->
+    <div id="modal-auth" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center animate-fadeIn">
+            <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="lock" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Authentification requise</h3>
+            <p id="auth-message" class="text-slate-500 text-sm mb-6">Cette action nécessite une authentification.</p>
+            <input type="password" id="auth-password" placeholder="Mot de passe administrateur" 
+                class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-blue-500">
+            <div id="auth-error" class="hidden text-red-500 text-sm mb-2"></div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-auth'); window.authCallback = null;" class="flex-1 px-4 py-3 font-bold text-slate-400">Annuler</button>
+                <button onclick="executeAuth()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reset Confirmation -->
+    <div id="modal-reset" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center animate-fadeIn">
+            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i data-lucide="trash-2" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">Réinitialisation</h3>
+            <p class="text-slate-500 text-sm mb-4">Toutes les données seront supprimées. Cette action est irréversible.</p>
+            <div class="text-xs text-slate-400 mb-2">Entrez le code administrateur configuré</div>
+            <input type="password" id="reset-pwd" placeholder="Entrez le code Admin" class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-red-500">
+            <div id="reset-error" class="hidden text-red-500 text-sm mb-2"></div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-reset')" class="flex-1 px-4 py-3 font-bold text-slate-400">Annuler</button>
+                <button onclick="confirmReset()" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmation Générique -->
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[105] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-fadeIn">
+            <div id="confirm-icon" class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="alert-circle" class="w-8 h-8"></i>
+            </div>
+            <h3 id="confirm-title" class="text-lg font-bold text-slate-800 mb-2">Confirmation</h3>
+            <p id="confirm-message" class="text-slate-600 text-sm mb-6"></p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modal-confirm'); window.confirmCallback = null;" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
+                <button onclick="executeConfirm()" id="confirm-action" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Facture -->
+    <div id="modal-invoice" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[80vh]">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-xl font-bold text-slate-800">Facture</h3>
+                <div class="flex gap-2">
+                    <button onclick="printInvoice()" class="px-4 py-2 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2">
+                        <i data-lucide="printer" class="w-4 h-4"></i> Imprimer
+                    </button>
+                    <button onclick="closeModal('modal-invoice')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+                </div>
+            </div>
+            <div class="p-8 overflow-auto">
+                <div id="invoice-content" class="invoice-preview p-8 rounded-xl">
+                    <!-- Invoice content will be injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION -->
+    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-slate-900 text-white rounded-full shadow-2xl flex items-center gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none">
+        <div id="toast-icon"></div>
+        <span id="toast-message" class="text-sm font-medium">Message</span>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[300] hidden flex items-center justify-center">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+            <div class="loader"></div>
+            <div class="text-sm font-medium text-slate-700">Chargement...</div>
+        </div>
+    </div>
+</div>
+    <!-- SCRIPT SECTION -->
+    <script>
+        // === CONFIGURATION ===
+        const STORAGE_KEY = "enterprise_pro_db_v2.3";
+        const ADMIN_PASSWORD = ""; // Mot de passe par défaut (à configurer via l'interface)
+        let mainChart = null;
+        let lucideInitialized = false;
+        window.confirmCallback = null;
+        window.authCallback = null;
+        let cart = [];
+        let currentInvoiceNumber = 1;
+
+        // === DATABASE ENGINE ===
+        let db = {
+            produits: [],
+            ventes: [],
+            depenses: [],
+            credits: [],
+            stockMovements: [],
+            logs: [],
+            config: {
+                version: "1.0.0",
+                currency: "Ar",
+                lastUpdate: new Date().toISOString(),
+                caisseMin: 0,
+                autoBackup: true,
+                authEnabled: true,
+                adminPassword: ADMIN_PASSWORD,
+                categories: ["Électronique", "Mobilier", "Fournitures", "Alimentaire", "Autre"],
+                invoiceCounter: 1,
+                company: {
+                    name: "Enterprise Goaka",
+                    address: "",
+                    phone: "",
+                    nif: "",
+                    email: "",
+                    signature: "Le Gérant"
+                }
+            }
+        };
+
+        // === INITIALIZATION ===
+        window.onload = function() {
+            showLoading();
+            loadDB();
+            initLucide();
+            switchTab('dashboard');
+            updateUI();
+            
+            // Set Date
+            document.getElementById('header-date').innerText = new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            // Update invoice number
+            currentInvoiceNumber = db.config.invoiceCounter || 1;
+            document.getElementById('invoice-number').innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
+
+            // Setup event listeners
+            setupEventListeners();
+
+            // Load company info in settings
+            loadCompanyInfo();
+
+            // Start Auto-save
+            setInterval(saveDB, 300000); // 5 minutes
+
+            hideLoading();
+            setTimeout(() => {
+                checkAlerts();
+            }, 500);
+        };
+
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+            document.getElementById('loading-overlay').classList.add('flex');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+            document.getElementById('loading-overlay').classList.remove('flex');
+        }
+
+        function initLucide() {
+            if (!lucideInitialized) {
+                lucide.createIcons();
+                lucideInitialized = true;
+            }
+        }
+
+        function setupEventListeners() {
+            // Payment method change
+            document.querySelectorAll('input[name="payment-method"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const creditInfo = document.getElementById('credit-info');
+                    if (this.value === 'credit') {
+                        creditInfo.classList.remove('hidden');
+                    } else {
+                        creditInfo.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Product select change for sale
+            document.getElementById('sale-product').addEventListener('change', function() {
+                const p = db.produits.find(x => x.id === this.value);
+                if(p) {
+                    document.getElementById('sale-price').value = p.vente;
+                }
+            });
+
+            // Product select change for stock adjustment
+            document.getElementById('adjust-product').addEventListener('change', function() {
+                const p = db.produits.find(x => x.id === this.value);
+                if(p) {
+                    document.getElementById('product-cost-info').classList.remove('hidden');
+                    document.getElementById('product-cost').innerText = formatMoney(p.achat);
+                    updateAdjustmentCost();
+                } else {
+                    document.getElementById('product-cost-info').classList.add('hidden');
+                }
+            });
+
+            // Quantity change for stock adjustment
+            document.getElementById('adjust-qty').addEventListener('input', updateAdjustmentCost);
+
+            // Adjust type change
+            document.querySelectorAll('input[name="adjust-type"]').forEach(radio => {
+                radio.addEventListener('change', updateAdjustmentCost);
+            });
+
+            // Credit select change
+            document.getElementById('credit-select').addEventListener('change', function() {
+                const credit = db.credits.find(c => c.id === this.value);
+                if(credit) {
+                    document.getElementById('credit-details').classList.remove('hidden');
+                    document.getElementById('credit-client').innerText = credit.clientName;
+                    document.getElementById('credit-balance').innerText = formatMoney(credit.balance);
+                    document.getElementById('credit-date').innerText = new Date(credit.date).toLocaleDateString('fr-FR');
+                    document.getElementById('credit-payment-amount').value = credit.balance;
+                    document.getElementById('credit-payment-amount').max = credit.balance;
+                } else {
+                    document.getElementById('credit-details').classList.add('hidden');
+                }
+            });
+        }
+
+        function updateAdjustmentCost() {
+            const productId = document.getElementById('adjust-product').value;
+            const qty = parseInt(document.getElementById('adjust-qty').value) || 0;
+            const type = document.querySelector('input[name="adjust-type"]:checked').value;
+            
+            const product = db.produits.find(p => p.id === productId);
+            if(product && qty > 0) {
+                const totalCost = product.achat * qty;
+                document.getElementById('total-cost').innerText = formatMoney(totalCost);
+                
+                if(type === 'add') {
+                    document.getElementById('total-cost').classList.remove('text-blue-600');
+                    document.getElementById('total-cost').classList.add('text-amber-600');
+                } else {
+                    document.getElementById('total-cost').classList.remove('text-amber-600');
+                    document.getElementById('total-cost').classList.add('text-blue-600');
+                }
+            }
+        }
+
+        function loadCompanyInfo() {
+            const company = db.config.company;
+            document.getElementById('company-name').value = company.name;
+            document.getElementById('company-address').value = company.address || '';
+            document.getElementById('company-phone').value = company.phone || '';
+            document.getElementById('company-nif').value = company.nif || '';
+            document.getElementById('company-email').value = company.email || '';
+            document.getElementById('company-signature').value = company.signature || 'Le Gérant';
+            
+            // Update sidebar
+            document.getElementById('sidebar-company-name').innerHTML = `
+                ${company.name.split(' ')[0]} <span class="text-slate-400 font-light">${company.name.split(' ').slice(1).join(' ') || 'Pro'}</span>
+            `;
+            
+            // Update settings display
+            document.getElementById('settings-company-name').innerText = company.name;
+        }
+
+        function updateCompanyInfo() {
+            db.config.company = {
+                name: document.getElementById('company-name').value.trim() || "Enterprise Goaka",
+                address: document.getElementById('company-address').value.trim(),
+                phone: document.getElementById('company-phone').value.trim(),
+                nif: document.getElementById('company-nif').value.trim(),
+                email: document.getElementById('company-email').value.trim(),
+                signature: document.getElementById('company-signature').value.trim() || "Le Gérant"
+            };
+            
+            saveDB();
+            loadCompanyInfo();
+            showToast("Informations de l'entreprise mises à jour", "success");
+        }
+
+        function loadDB() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if(saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    // Migration from older versions
+                    if(!parsed.config) parsed.config = db.config;
+                    if(!parsed.credits) parsed.credits = [];
+                    if(!parsed.stockMovements) parsed.stockMovements = [];
+                    if(!parsed.config.adminPassword) parsed.config.adminPassword = ADMIN_PASSWORD;
+                    if(!parsed.config.authEnabled) parsed.config.authEnabled = true;
+                    if(!parsed.config.invoiceCounter) parsed.config.invoiceCounter = 1;
+                    if(!parsed.config.company) parsed.config.company = db.config.company;
+                    
+                    // Ensure all products have category
+                    if(parsed.produits) {
+                        parsed.produits.forEach(p => {
+                            if(!p.category) p.category = "Non catégorisé";
+                        });
+                    }
+
+                    db = parsed;
+                    addLog("Base de données chargée", "success");
+                } catch(e) {
+                    console.error("DB Load Error", e);
+                    showToast("Erreur de chargement des données", "error");
+                }
+            } else {
+                addLog("Initialisation du système", "info");
+            }
+        }
+
+        function saveDB() {
+            try {
+                db.config.lastUpdate = new Date().toISOString();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+                updateStorageSize();
+                
+                if(db.config.autoBackup) {
+                    // Auto-backup to separate key
+                    localStorage.setItem(STORAGE_KEY + "_backup_" + Date.now(), JSON.stringify(db));
+                    // Keep only last 5 backups
+                    const backupKeys = Object.keys(localStorage).filter(key => key.startsWith(STORAGE_KEY + "_backup_"));
+                    if(backupKeys.length > 5) {
+                        localStorage.removeItem(backupKeys.sort()[0]);
+                    }
+                }
+            } catch(e) {
+                console.error("Save DB Error", e);
+                showToast("Erreur de sauvegarde", "error");
+            }
+        }
+
+        // === NAVIGATION ===
+        function switchTab(tabId) {
+            // Hide all
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            // Show target
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // Sidebar buttons
+            document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+            const desktopBtn = document.getElementById('btn-' + tabId);
+            if(desktopBtn) desktopBtn.classList.add('active');
+
+            // Mobile buttons
+            document.querySelectorAll('.mobile-link').forEach(b => {
+                b.classList.remove('text-blue-600');
+                b.classList.add('text-slate-400');
+                if(b.dataset.tab === tabId) b.classList.add('text-blue-600');
+            });
+
+            // Header Title
+            const titles = {
+                dashboard: 'Tableau de bord',
+                stock: 'Gestion du Stock',
+                sales: 'Ventes & Facturation',
+                credits: 'Crédits Clients',
+                expenses: 'Dépenses / Caisse',
+                logs: 'Journal du Système',
+                settings: 'Paramètres'
+            };
+            document.getElementById('current-tab-title').innerText = titles[tabId] || 'Application';
+
+            updateUI();
+            initLucide();
+            
+            // Scroll to top
+            document.getElementById('scroll-area').scrollTop = 0;
+        }
+
+        // === AUTHENTICATION SYSTEM ===
+        function requireAuth(action, message = "Cette action nécessite une authentification.") {
+            if(!db.config.authEnabled) {
+                if(action && typeof action === 'function') {
+                    action();
+                }
+                return true;
+            }
+            
+            showAuthModal(message, action);
+            return false;
+        }
+
+        function showAuthModal(message, callback) {
+            console.log('[showAuthModal] message:', message);
+            document.getElementById('auth-message').innerText = message;
+            document.getElementById('auth-password').value = '';
+            document.getElementById('auth-error').classList.add('hidden');
+            window.authCallback = callback;
+            openModal('modal-auth');
+        }
+
+        function executeAuth() {
+            console.log('[executeAuth] called');
+            const password = document.getElementById('auth-password').value;
+            console.log('[executeAuth] entered password length', password ? password.length : 0);
+            if(password === db.config.adminPassword) {
+                console.log('[executeAuth] password OK');
+                console.log('[executeAuth] authCallback exists?', !!window.authCallback);
+                // Capture callback before closing modal (closeModal may clear it)
+                const cb = window.authCallback;
+                try {
+                    closeModal('modal-auth');
+                } catch(e) { console.error('[executeAuth] closeModal error', e); }
+                if(cb) {
+                    try {
+                        console.log('[executeAuth] calling authCallback');
+                        cb();
+                        console.log('[executeAuth] authCallback returned');
+                    } catch(cbErr) {
+                        console.error('[executeAuth] authCallback error', cbErr);
+                    }
+                } else {
+                    console.warn('[executeAuth] no authCallback to call');
+                }
+                window.authCallback = null;
+            } else {
+                console.log('[executeAuth] password incorrect');
+                document.getElementById('auth-error').innerText = "Mot de passe incorrect";
+                document.getElementById('auth-error').classList.remove('hidden');
+            }
+        }
+
+        function updatePassword() {
+            const current = document.getElementById('current-password').value;
+            const newPass = document.getElementById('new-password').value;
+            const confirm = document.getElementById('confirm-password').value;
+
+            if(current !== db.config.adminPassword) {
+                showToast("Mot de passe actuel incorrect", "error");
+                return;
+            }
+
+            if(newPass.length < 4) {
+                showToast("Le mot de passe doit contenir au moins 4 caractères", "error");
+                return;
+            }
+
+            if(newPass !== confirm) {
+                showToast("Les mots de passe ne correspondent pas", "error");
+                return;
+            }
+
+            db.config.adminPassword = newPass;
+            saveDB();
+            showToast("Mot de passe mis à jour avec succès", "success");
+            
+            // Clear fields
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+        }
+
+        // === PRODUCT MANAGEMENT ===
+        document.getElementById('form-product').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const editId = document.getElementById('edit-id').value;
+            const data = {
+                id: editId || 'P' + Date.now() + Math.floor(Math.random() * 1000),
+                nom: document.getElementById('prod-nom').value.trim(),
+                category: document.getElementById('prod-category').value.trim() || "Non catégorisé",
+                fournisseur: document.getElementById('prod-fournisseur').value.trim() || 'Inconnu',
+                achat: parseFloat(document.getElementById('prod-achat').value),
+                vente: parseFloat(document.getElementById('prod-vente').value),
+                stock: parseInt(document.getElementById('prod-stock').value),
+                min: parseInt(document.getElementById('prod-min').value) || 5,
+                createdAt: editId ? db.produits.find(p => p.id === editId)?.createdAt || new Date().toISOString() : new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // Validation
+            const validationError = validateProduct(data);
+            if(validationError) {
+                document.getElementById('product-error').innerText = validationError;
+                document.getElementById('product-error').classList.remove('hidden');
+                return;
+            }
+
+            // Add category to config if new
+            if(data.category && !db.config.categories.includes(data.category)) {
+                db.config.categories.push(data.category);
+            }
+
+            if(editId) {
+                const idx = db.produits.findIndex(p => p.id === editId);
+                db.produits[idx] = data;
+                addLog(`Modification produit: ${data.nom}`, "info");
+            } else {
+                db.produits.push(data);
+                addLog(`Nouveau produit: ${data.nom}`, "info");
+            }
+
+            saveDB();
+            closeModal('modal-product');
+            showToast("Matériel enregistré avec succès", "success");
+            updateUI();
+        };
+
+        function validateProduct(data) {
+            if(!data.nom || data.nom.length < 2) return "Le nom doit contenir au moins 2 caractères";
+            if(isNaN(data.achat) || data.achat <= 0) return "Le prix d'achat doit être supérieur à 0";
+            if(isNaN(data.vente) || data.vente <= 0) return "Le prix de vente doit être supérieur à 0";
+            if(data.vente < data.achat) return "Le prix de vente doit être supérieur au prix d'achat";
+            if(isNaN(data.stock) || data.stock < 0) return "Le stock ne peut pas être négatif";
+            if(isNaN(data.min) || data.min < 0) return "Le seuil minimal ne peut pas être négatif";
+            return null;
+        }
+
+        function deleteProduct(id) {
+            const product = db.produits.find(p => p.id === id);
+            if(!product) return;
+            
+            requireAuth(() => {
+                showConfirm(
+                    "Supprimer le produit",
+                    `Êtes-vous sûr de vouloir supprimer "${product.nom}" ? Cette action est irréversible.`,
+                    "Supprimer",
+                    "error",
+                    () => {
+                        db.produits = db.produits.filter(x => x.id !== id);
+                        addLog(`Produit supprimé: ${product.nom}`, "warning");
+                        saveDB();
+                        updateUI();
+                        showToast("Produit supprimé", "success");
+                    }
+                );
+            }, "Supprimer un produit nécessite une authentification.");
+        }
+
+        function editProduct(id) {
+            const p = db.produits.find(x => x.id === id);
+            document.getElementById('edit-id').value = p.id;
+            document.getElementById('prod-nom').value = p.nom;
+            document.getElementById('prod-category').value = p.category || "";
+            document.getElementById('prod-fournisseur').value = p.fournisseur;
+            document.getElementById('prod-achat').value = p.achat;
+            document.getElementById('prod-vente').value = p.vente;
+            document.getElementById('prod-stock').value = p.stock;
+            document.getElementById('prod-min').value = p.min;
+            
+            document.getElementById('product-modal-title').innerText = "Modifier Matériel";
+            document.getElementById('product-error').classList.add('hidden');
+            openModal('modal-product');
+        }
+
+        // Open stock adjust modal and prefill form for a given product
+        function openStockAdjust(productId, qty = 1, type = 'add') {
+            try {
+                const select = document.getElementById('adjust-product');
+                // Ensure select exists
+                if (select) {
+                    // If option for productId is missing, try to add it from db.produits
+                    if (!select.querySelector(`option[value="${productId}"]`)) {
+                        const prod = (window.db && db.produits) ? db.produits.find(p => p.id === productId) : null;
+                        if (prod) {
+                            const opt = document.createElement('option');
+                            opt.value = prod.id;
+                            opt.textContent = `${prod.nom} (Stock: ${prod.stock})`;
+                            select.appendChild(opt);
+                        }
+                    }
+
+                    select.value = productId;
+                    const radio = document.querySelector(`input[name="adjust-type"][value="${type}"]`);
+                    if (radio) radio.checked = true;
+                    const q = document.getElementById('adjust-qty');
+                    if (q) q.value = qty;
+                } else {
+                    console.warn('openStockAdjust: adjust-product select not found');
+                }
+            } catch (err) {
+                console.error('openStockAdjust error', err);
+                try { showToast('Erreur interne (voir console)', 'error'); } catch(e){}
+            }
+            openModal('modal-stock-adjust');
+        }
+
+        // === STOCK ADJUSTMENT ===
+        document.getElementById('form-stock-adjust').onsubmit = function(e) {
+            e.preventDefault();
+            
+            console.log('[form-stock-adjust] submit');
+            const productId = document.getElementById('adjust-product').value;
+            const type = document.querySelector('input[name="adjust-type"]:checked').value;
+            const qty = parseInt(document.getElementById('adjust-qty').value);
+            const reason = document.getElementById('adjust-reason').value.trim() || "Ajustement manuel";
+            console.log('[form-stock-adjust] values', { productId, type, qty, reason });
+            
+            const product = db.produits.find(p => p.id === productId);
+            if(!product) {
+                showToast("Veuillez sélectionner un produit", "error");
+                return;
+            }
+            
+            if(isNaN(qty) || qty <= 0) {
+                showToast("Quantité invalide", "error");
+                return;
+            }
+            
+            const oldStock = product.stock;
+            if(type === 'add') {
+                product.stock += qty;
+                
+                // Create expense for stock purchase
+                const totalCost = product.achat * qty;
+                const expense = {
+                    id: 'EX' + Date.now(),
+                    date: new Date().toISOString(),
+                    category: 'achat_stock',
+                    motif: `Achat stock: ${product.nom} x${qty}`,
+                    amount: totalCost,
+                    productId: productId,
+                    productName: product.nom,
+                    quantity: qty,
+                    unitPrice: product.achat
+                };
+                
+                db.depenses.unshift(expense);
+                addLog(`Achat stock: ${product.nom} x${qty} = ${formatMoney(totalCost)}`, "info");
+                
+            } else {
+                if(product.stock < qty) {
+                    showToast(`Stock insuffisant ! Il reste ${product.stock} unité(s)`, "error");
+                    return;
+                }
+                product.stock -= qty;
+            }
+            
+            // Record stock movement
+            const movement = {
+                id: 'M' + Date.now(),
+                date: new Date().toISOString(),
+                productId: productId,
+                productName: product.nom,
+                type: type === 'add' ? 'achat' : 'retrait',
+                quantity: qty,
+                oldStock: oldStock,
+                newStock: product.stock,
+                reason: reason,
+                cost: type === 'add' ? product.achat * qty : 0
+            };
+            
+            db.stockMovements.unshift(movement);
+            addLog(`Ajustement stock: ${product.nom} (${type === 'add' ? '+' : '-'}${qty}) - ${reason}`, "info");
+            
+            saveDB();
+            console.log('[form-stock-adjust] saved movement', movement);
+            closeModal('modal-stock-adjust');
+            showToast("Stock ajusté avec succès", "success");
+            updateUI();
+        };
+
+        // === SALES & INVOICING ===
+        function addToCart() {
+            const productId = document.getElementById('sale-product').value;
+            const qty = parseInt(document.getElementById('sale-qty').value);
+            const price = parseFloat(document.getElementById('sale-price').value);
+            
+            const product = db.produits.find(p => p.id === productId);
+            if(!product) {
+                showToast("Veuillez sélectionner un produit", "error");
+                return;
+            }
+            
+            if(isNaN(qty) || qty <= 0) {
+                showToast("Quantité invalide", "error");
+                return;
+            }
+            
+            if(product.stock < qty) {
+                showToast(`Stock insuffisant ! Il reste ${product.stock} unité(s)`, "error");
+                return;
+            }
+            
+            // Check if product already in cart
+            const existingIndex = cart.findIndex(item => item.productId === productId);
+            if(existingIndex !== -1) {
+                cart[existingIndex].quantity += qty;
+                cart[existingIndex].total = cart[existingIndex].quantity * price;
+                cart[existingIndex].cost = product.achat * cart[existingIndex].quantity;
+            } else {
+                cart.push({
+                    productId: productId,
+                    productName: product.nom,
+                    price: price,
+                    quantity: qty,
+                    total: price * qty,
+                    cost: product.achat * qty
+                });
+            }
+            
+            updateCartDisplay();
+            document.getElementById('sale-qty').value = 1;
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cart-items');
+            const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+            
+            if(cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                        <p>Aucun article ajouté</p>
+                    </div>
+                `;
+            } else {
+                cartItems.innerHTML = cart.map((item, index) => `
+                    <div class="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <div class="flex-1">
+                            <div class="font-medium">${item.productName}</div>
+                            <div class="text-xs text-slate-500">${formatMoney(item.price)} x ${item.quantity}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-blue-600">${formatMoney(item.total)}</div>
+                            <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
+            document.getElementById('invoice-total').innerText = formatMoney(subtotal);
+        }
+
+        function completeSale() {
+            const clientName = document.getElementById('client-name').value.trim();
+            const clientPhone = document.getElementById('client-phone').value.trim();
+            const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+            
+            if(!clientName) {
+                showToast("Veuillez saisir le nom du client", "error");
+                return;
+            }
+            
+            if(cart.length === 0) {
+                showToast("Veuillez ajouter des articles au panier", "error");
+                return;
+            }
+            
+            const invoiceTotal = cart.reduce((sum, item) => sum + item.total, 0);
+            const invoiceProfit = cart.reduce((sum, item) => sum + (item.total - item.cost), 0);
+            
+            // Generate invoice ID
+            const invoiceId = 'INV' + String(currentInvoiceNumber).padStart(3, '0');
+            
+            // Update stock for each product
+            cart.forEach(item => {
+                const product = db.produits.find(p => p.id === item.productId);
+                if(product) {
+                    product.stock -= item.quantity;
+                }
+            });
+            
+            // Create invoice
+            const invoice = {
+                id: invoiceId,
+                number: currentInvoiceNumber,
+                date: new Date().toISOString(),
+                clientName: clientName,
+                clientPhone: clientPhone,
+                items: [...cart],
+                subtotal: invoiceTotal,
+                total: invoiceTotal,
+                paymentMethod: paymentMethod,
+                status: paymentMethod === 'credit' ? 'pending' : 'paid',
+                paidAmount: paymentMethod === 'credit' ? 0 : invoiceTotal,
+                profit: invoiceProfit
+            };
+            
+            db.ventes.unshift(invoice);
+            
+            // If credit, add to credits
+            if(paymentMethod === 'credit') {
+                const credit = {
+                    id: 'CR' + Date.now(),
+                    invoiceId: invoiceId,
+                    invoiceNumber: currentInvoiceNumber,
+                    date: new Date().toISOString(),
+                    clientName: clientName,
+                    clientPhone: clientPhone,
+                    totalAmount: invoiceTotal,
+                    paidAmount: 0,
+                    balance: invoiceTotal,
+                    status: 'pending'
+                };
+                db.credits.unshift(credit);
+                addLog(`Crédit créé: ${clientName} - ${formatMoney(invoiceTotal)}`, "warning");
+            }
+            
+            // Increment invoice counter
+            currentInvoiceNumber++;
+            db.config.invoiceCounter = currentInvoiceNumber;
+            
+            addLog(`Facture ${invoiceId}: ${clientName} - ${formatMoney(invoiceTotal)} (${paymentMethod})`, "success");
+            saveDB();
+            
+            // Show invoice preview
+            showInvoice(invoice);
+            
+            // Reset form
+            resetSaleForm();
+            showToast("Vente enregistrée avec succès", "success");
+            updateUI();
+        }
+
+        function showInvoice(invoice) {
+            const company = db.config.company;
+            const invoiceContent = document.getElementById('invoice-content');
+            
+            // Use escapeHtml to sanitize all user-provided values before injecting
+            invoiceContent.innerHTML = `
+                <div class="mb-8">
+                    <!-- Company Header -->
+                    <div class="mb-8">
+                        <h1 class="text-2xl font-bold text-slate-800 mb-2">${escapeHtml(company.name)}</h1>
+                        ${company.address ? `<div class="text-slate-600">${escapeHtml(company.address)}</div>` : ''}
+                        ${company.phone ? `<div class="text-slate-600">Tél: ${escapeHtml(company.phone)}</div>` : ''}
+                        ${company.email ? `<div class="text-slate-600">Email: ${escapeHtml(company.email)}</div>` : ''}
+                        ${company.nif ? `<div class="text-slate-600">NIF/STAT: ${escapeHtml(company.nif)}</div>` : ''}
+                    </div>
+                    
+                    <div class="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">FACTURE</h2>
+                            <div class="text-slate-600">${escapeHtml(invoice.id)}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-slate-600">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
+                            <div class="text-slate-600">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Client Info -->
+                    <div class="mb-8 p-4 bg-slate-50 rounded-lg">
+                        <h3 class="font-bold text-slate-700 mb-2">Client</h3>
+                        <div class="text-slate-600">${escapeHtml(invoice.clientName)}</div>
+                        ${invoice.clientPhone ? `<div class="text-slate-600">${escapeHtml(invoice.clientPhone)}</div>` : ''}
+                    </div>
+                    
+                    <!-- Items Table -->
+                    <table class="w-full mb-8">
+                        <thead>
+                            <tr class="border-b">
+                                <th class="text-left py-3 text-slate-600 font-medium">Produit</th>
+                                <th class="text-right py-3 text-slate-600 font-medium">Qté</th>
+                                <th class="text-right py-3 text-slate-600 font-medium">Prix Unitaire</th>
+                                <th class="text-right py-3 text-slate-600 font-medium">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invoice.items.map(item => `
+                                <tr class="border-b">
+                                    <td class="py-3">${escapeHtml(item.productName)}</td>
+                                    <td class="text-right py-3">${escapeHtml(item.quantity)}</td>
+                                    <td class="text-right py-3">${formatMoney(item.price)}</td>
+                                    <td class="text-right py-3">${formatMoney(item.total)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t">
+                                <td colspan="3" class="text-right py-3 font-bold">Total</td>
+                                <td class="text-right py-3 font-bold text-xl text-blue-600">${formatMoney(invoice.total)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    
+                    <!-- Payment Info -->
+                    <div class="mb-8 p-4 bg-slate-50 rounded-lg">
+                        <h3 class="font-bold text-slate-700 mb-2">Informations de paiement</h3>
+                        <div class="text-slate-600">
+                            Mode de paiement: <span class="font-bold">${escapeHtml(getPaymentMethodText(invoice.paymentMethod))}</span>
+                        </div>
+                        ${invoice.status === 'pending' ? `
+                            <div class="mt-2 text-amber-600 text-sm">
+                                <i data-lucide="alert-circle" class="w-4 h-4 inline mr-1"></i>
+                                Facture en crédit - Solde à payer: ${formatMoney(invoice.total)}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="mt-12 pt-8 border-t">
+                        <div class="flex justify-between">
+                            <div class="text-sm text-slate-500">
+                                <div>Merci pour votre confiance !</div>
+                                <div class="mt-4">Pour toute réclamation, contacter le service client.</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="signature-line"></div>
+                                <div class="mt-2 text-slate-600">${escapeHtml(company.signature)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Reinitialize lucide icons in the modal
+            setTimeout(() => {
+                const icons = invoiceContent.querySelectorAll('[data-lucide]');
+                icons.forEach(icon => {
+                    const iconName = icon.getAttribute('data-lucide');
+                    icon.innerHTML = '';
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('width', '16');
+                    svg.setAttribute('height', '16');
+                    svg.setAttribute('viewBox', '0 0 24 24');
+                    svg.setAttribute('fill', 'none');
+                    svg.setAttribute('stroke', 'currentColor');
+                    svg.setAttribute('stroke-width', '2');
+                    svg.setAttribute('stroke-linecap', 'round');
+                    svg.setAttribute('stroke-linejoin', 'round');
+                    
+                    // Simple icon representation
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
+                    svg.appendChild(path);
+                    icon.appendChild(svg);
+                });
+            }, 100);
+            
+            openModal('modal-invoice');
+        }
+
+        function getPaymentMethodText(method) {
+            switch(method) {
+                case 'cash': return 'Espèces';
+                case 'credit': return 'Crédit';
+                case 'mobile': return 'Mobile Money';
+                default: return method;
+            }
+        }
+
+        function printInvoice() {
+            const printWindow = window.open('', '_blank');
+            const invoiceContent = document.getElementById('invoice-content').innerHTML;
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Facture ${db.config.company.name}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .header { margin-bottom: 30px; }
+                        .company-name { font-size: 24px; font-weight: bold; }
+                        .invoice-title { font-size: 20px; font-weight: bold; margin: 20px 0; }
+                        .client-info { margin-bottom: 20px; padding: 10px; background: #f8fafc; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                        th { background-color: #f8fafc; }
+                        .total { font-size: 18px; font-weight: bold; text-align: right; }
+                        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
+                        .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 40px; }
+                        @media print { 
+                            button { display: none; } 
+                            body { margin: 0; padding: 20px; }
+                        }
+                            /* Styles Sécurité */
+#license-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.98);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.trial-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: white;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    z-index: 100;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+                    </style>
+                </head>
+                <body>
+                    ${invoiceContent}
+                    <div class="footer">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            Imprimer
+                        </button>
+                        <button onclick="window.close()" style="padding: 10px 20px; background: #64748b; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+                            Fermer
+                        </button>
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+        }
+
+        function resetSaleForm() {
+            cart = [];
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-phone').value = '';
+            document.querySelector('input[name="payment-method"][value="cash"]').checked = true;
+            document.getElementById('credit-info').classList.add('hidden');
+            document.getElementById('sale-product').selectedIndex = 0;
+            document.getElementById('sale-price').value = '';
+            document.getElementById('sale-qty').value = 1;
+            updateCartDisplay();
+            document.getElementById('invoice-number').innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
+        }
+
+        // === CREDIT MANAGEMENT ===
+        document.getElementById('form-credit-payment').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const creditId = document.getElementById('credit-select').value;
+            const amount = parseFloat(document.getElementById('credit-payment-amount').value);
+            
+            const credit = db.credits.find(c => c.id === creditId);
+            if(!credit) {
+                showToast("Veuillez sélectionner un crédit", "error");
+                return;
+            }
+            
+            if(isNaN(amount) || amount <= 0) {
+                showToast("Montant invalide", "error");
+                return;
+            }
+            
+            if(amount > credit.balance) {
+                showToast(`Le montant ne peut pas dépasser ${formatMoney(credit.balance)}`, "error");
+                return;
+            }
+            
+            credit.paidAmount += amount;
+            credit.balance -= amount;
+            
+            if(credit.balance === 0) {
+                credit.status = 'paid';
+                // Update corresponding invoice
+                const invoice = db.ventes.find(v => v.id === credit.invoiceId);
+                if(invoice) {
+                    invoice.status = 'paid';
+                    invoice.paidAmount = invoice.total;
+                }
+                addLog(`Crédit soldé: ${credit.clientName}`, "success");
+            } else {
+                addLog(`Paiement crédit: ${credit.clientName} - ${formatMoney(amount)}`, "info");
+            }
+            
+            saveDB();
+            this.reset();
+            document.getElementById('credit-details').classList.add('hidden');
+            showToast("Paiement enregistré avec succès", "success");
+            updateUI();
+        };
+
+        // === EXPENSES MANAGEMENT ===
+        document.getElementById('form-expense').onsubmit = function(e) {
+            e.preventDefault();
+            const category = document.getElementById('expense-category').value;
+            const motif = document.getElementById('expense-motif').value.trim();
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+
+            if(!category) return showToast("Veuillez sélectionner une catégorie", "error");
+            if(!motif) return showToast("Veuillez saisir un motif", "error");
+            if(isNaN(amount) || amount <= 0) return showToast("Montant invalide", "error");
+
+            db.depenses.unshift({
+                id: 'E' + Date.now() + Math.floor(Math.random() * 1000),
+                date: new Date().toISOString(),
+                category: category,
+                motif: motif,
+                amount: amount
+            });
+
+            addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
+            saveDB();
+            this.reset();
+            showToast("Dépense enregistrée", "success");
+            updateUI();
+        };
+
+        // Expense modal form
+        document.getElementById('form-expense-modal').onsubmit = function(e) {
+            e.preventDefault();
+            const category = document.getElementById('expense-modal-category').value;
+            const motif = document.getElementById('expense-modal-motif').value.trim();
+            const amount = parseFloat(document.getElementById('expense-modal-amount').value);
+
+            if(!category) return showToast("Veuillez sélectionner une catégorie", "error");
+            if(!motif) return showToast("Veuillez saisir un motif", "error");
+            if(isNaN(amount) || amount <= 0) return showToast("Montant invalide", "error");
+
+            db.depenses.unshift({
+                id: 'E' + Date.now() + Math.floor(Math.random() * 1000),
+                date: new Date().toISOString(),
+                category: category,
+                motif: motif,
+                amount: amount
+            });
+
+            addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
+            saveDB();
+            closeModal('modal-expense');
+            showToast("Dépense enregistrée", "success");
+            updateUI();
+        };
+
+        function deleteExpense(id) {
+            requireAuth(() => {
+                const expense = db.depenses.find(x => x.id === id);
+                if(!expense) return;
+                
+                showConfirm(
+                    "Supprimer la dépense",
+                    `Supprimer la dépense "${expense.motif}" de ${formatMoney(expense.amount)} ?`,
+                    "Supprimer",
+                    "error",
+                    () => {
+                        db.depenses = db.depenses.filter(x => x.id !== id);
+                        saveDB();
+                        updateUI();
+                        showToast("Dépense supprimée", "success");
+                    }
+                );
+            }, "Supprimer une dépense nécessite une authentification.");
+        }
+
+        // === UI UPDATERS ===
+        function updateUI() {
+            updateDashboard();
+            renderStock();
+            renderSales();
+            renderCredits();
+            renderExpenses();
+            renderLogs();
+            updateSelects();
+            updateHeaderInfo();
+            updateStorageSize();
+            checkAlerts();
+            initLucide();
+        }
+
+        function updateHeaderInfo() {
+            const caisse = calculateCaisse();
+            document.getElementById('header-caisse').innerText = formatMoney(caisse);
+            
+            // Check caisse alert
+            if(db.config.caisseMin > 0 && caisse < db.config.caisseMin) {
+                document.getElementById('header-alert').classList.remove('hidden');
+                document.getElementById('header-alert').innerText = `Caisse faible !`;
+            } else {
+                document.getElementById('header-alert').classList.add('hidden');
+            }
+        }
+
+        function calculateCaisse() {
+            const totalVentes = db.ventes.filter(v => v.status === 'paid').reduce((sum, s) => sum + s.total, 0);
+            const totalDepenses = db.depenses.reduce((sum, e) => sum + e.amount, 0);
+            return totalVentes - totalDepenses;
+        }
+
+        function updateDashboard() {
+            // Read dashboard filter
+            const period = (document.getElementById('dashboard-period') && document.getElementById('dashboard-period').value) || 'today';
+            const customDate = document.getElementById('dashboard-date') ? document.getElementById('dashboard-date').value : null;
+            const range = getRangeForPeriod(period, customDate);
+
+            const ventesFiltered = db.ventes.filter(v => dateInRange(v.date, range.start, range.end));
+            const depensesFiltered = db.depenses.filter(e => dateInRange(e.date, range.start, range.end));
+            const creditsFiltered = db.credits.filter(c => dateInRange(c.date, range.start, range.end));
+
+            const totalVentes = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.total||0), 0);
+            const totalDepenses = depensesFiltered.reduce((sum, e) => sum + (e.amount||0), 0);
+            const totalProfit = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.profit||0), 0) - totalDepenses;
+            const totalCredits = creditsFiltered.reduce((sum, c) => sum + (c.balance||0), 0);
+
+            const caisse = totalVentes - totalDepenses;
+
+            document.getElementById('stat-caisse').innerText = formatMoney(caisse);
+            document.getElementById('stat-ca').innerText = formatMoney(totalVentes);
+            document.getElementById('stat-depenses').innerText = formatMoney(totalDepenses);
+            document.getElementById('stat-marge').innerText = formatMoney(totalProfit);
+            document.getElementById('stat-credits').innerText = formatMoney(totalCredits);
+
+            // Stock Alerts
+            const alertsDiv = document.getElementById('stock-alerts');
+            const critical = db.produits.filter(p => p.stock <= p.min);
+            const zeroStock = db.produits.filter(p => p.stock === 0);
+            
+            const totalAlerts = critical.length + zeroStock.length;
+            document.getElementById('alert-count').innerText = totalAlerts;
+            
+            if(totalAlerts === 0) {
+                alertsDiv.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">
+                    <i data-lucide="check-circle-2" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
+                    Tout est en ordre
+                </div>`;
+            } else {
+                let alertsHTML = '';
+                
+                // Stock zero alerts
+                if(zeroStock.length > 0) {
+                    alertsHTML += zeroStock.map(p => `
+                        <div class="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100 hover:bg-red-100 transition-colors cursor-pointer" onclick="openStockAdjust('${p.id}')">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                <div>
+                                    <span class="text-sm font-semibold">${p.nom}</span>
+                                    <div class="text-xs text-red-600">Stock épuisé</div>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('adjust-product').value = '${p.id}'; document.querySelector('input[name=\"adjust-type\"][value=\"add\"]').checked = true; document.getElementById('adjust-qty').value = '10'; openModal('modal-stock-adjust'); event.stopPropagation();" class="text-xs px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200">
+                                Réapprovisionner
+                            </button>
+                        </div>
+                    `).join('');
+                }
+                
+                // Critical stock alerts
+                if(critical.length > 0) {
+                    alertsHTML += critical.map(p => `
+                        <div class="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100 hover:bg-amber-100 transition-colors cursor-pointer" onclick="openStockAdjust('${p.id}')">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
+                                <div>
+                                    <span class="text-sm font-semibold">${p.nom}</span>
+                                    <div class="text-xs text-amber-600">Stock critique: ${p.stock}</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-amber-700">${p.stock} restant(s)</span>
+                        </div>
+                    `).join('');
+                }
+                
+                alertsDiv.innerHTML = alertsHTML;
+            }
+
+            // Recent Logs (top 5)
+            const recentLogsDiv = document.getElementById('recent-logs');
+            recentLogsDiv.innerHTML = db.logs.slice(0, 5).map(log => `
+                <div class="p-4 flex gap-4 items-start hover:bg-slate-50 transition-colors">
+                    <div class="mt-1">${getLogIcon(log.type)}</div>
+                    <div class="flex-1">
+                        <div class="font-medium text-slate-700">${log.text}</div>
+                        <div class="text-[10px] text-slate-400">${new Date(log.time).toLocaleString('fr-FR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            updateMainChart();
+        }
+
+        function renderStock() {
+            const tbody = document.getElementById('stock-table-body');
+            const search = document.getElementById('search-stock').value.toLowerCase();
+            const categoryFilter = document.getElementById('filter-category').value;
+            const statusFilter = document.getElementById('filter-stock-status').value;
+            
+            // Update category filter options
+            const categorySelect = document.getElementById('filter-category');
+            const categories = [...new Set(db.produits.map(p => p.category).filter(c => c))];
+            const currentValue = categorySelect.value;
+            
+            categorySelect.innerHTML = '<option value="">Toutes catégories</option>' +
+                categories.map(cat => `<option value="${cat}" ${cat === currentValue ? 'selected' : ''}>${cat}</option>`).join('');
+            
+            // Update stock adjust select
+            const adjustSelect = document.getElementById('adjust-product');
+            adjustSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' +
+                db.produits.map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock})</option>`).join('');
+            
+            let filtered = db.produits.filter(p => {
+                const matchesSearch = p.nom.toLowerCase().includes(search) || 
+                                     p.fournisseur.toLowerCase().includes(search) ||
+                                     p.category.toLowerCase().includes(search);
+                const matchesCategory = !categoryFilter || p.category === categoryFilter;
+                let matchesStatus = true;
+                
+                if(statusFilter === 'critique') {
+                    matchesStatus = p.stock <= p.min && p.stock > 0;
+                } else if(statusFilter === 'zero') {
+                    matchesStatus = p.stock === 0;
+                } else if(statusFilter === 'normal') {
+                    matchesStatus = p.stock > p.min;
+                }
+                
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            // Calculate total stock value
+            const totalValue = filtered.reduce((sum, p) => sum + (p.stock * p.achat), 0);
+            document.getElementById('total-stock-value').innerText = formatMoney(totalValue);
+
+            tbody.innerHTML = filtered.map(p => {
+                const stockValue = p.stock * p.achat;
+                const margin = p.vente - p.achat;
+                const marginPercent = ((margin / p.achat) * 100).toFixed(1);
+                
+                let statusClass = '';
+                let statusText = '';
+                if(p.stock === 0) {
+                    statusClass = 'bg-red-100 text-red-600 pulse';
+                    statusText = 'Épuisé';
+                } else if(p.stock <= p.min) {
+                    statusClass = 'bg-amber-100 text-amber-600 pulse';
+                    statusText = 'Critique';
+                } else {
+                    statusClass = 'bg-emerald-100 text-emerald-600';
+                    statusText = 'Normal';
+                }
+                
+                return `
+                <tr class="hover:bg-slate-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-700">${p.nom}</div>
+                        <div class="text-xs text-slate-400">${p.category}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-500">${p.category || "—"}</td>
+                    <td class="px-6 py-4 text-slate-500">${p.fournisseur}</td>
+                    <td class="px-6 py-4 text-right text-slate-400">${formatMoney(p.achat)}</td>
+                    <td class="px-6 py-4 text-right font-semibold text-slate-700">
+                        ${formatMoney(p.vente)}
+                        <div class="text-xs text-emerald-600">+${marginPercent}%</div>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="status-badge ${statusClass}">
+                            ${p.stock}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex justify-center gap-1">
+                            <button onclick="document.getElementById('adjust-product').value = '${p.id}'; document.querySelector('input[name=\"adjust-type\"][value=\"add\"]').checked = true; document.getElementById('adjust-qty').value = '10'; openModal('modal-stock-adjust');" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Ajouter stock">
+                                <i data-lucide="plus" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="document.getElementById('adjust-product').value = '${p.id}'; document.querySelector('input[name=\"adjust-type\"][value=\"remove\"]').checked = true; document.getElementById('adjust-qty').value = '1'; openModal('modal-stock-adjust');" class="p-1 text-amber-600 hover:bg-amber-50 rounded" title="Retirer stock">
+                                <i data-lucide="minus" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button onclick="editProduct('${p.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Modifier">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('') || `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Aucun produit trouvé</td></tr>`;
+            
+            // Stock movements
+            const movementsDiv = document.getElementById('stock-movements');
+            const recentMovements = db.stockMovements.slice(0, 10);
+            
+            if(recentMovements.length === 0) {
+                movementsDiv.innerHTML = `<div class="text-center py-4 text-slate-400 text-sm">Aucun mouvement récent</div>`;
+            } else {
+                movementsDiv.innerHTML = recentMovements.map(m => `
+                    <div class="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="${m.type === 'achat' ? 'text-amber-600 bg-amber-50' : 'text-slate-600 bg-slate-50'} p-2 rounded-lg">
+                                <i data-lucide="${m.type === 'achat' ? 'package-plus' : 'package-minus'}" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-sm">${m.productName}</div>
+                                <div class="text-xs text-slate-500">${m.reason}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold ${m.type === 'achat' ? 'text-amber-600' : 'text-slate-600'}">
+                                ${m.type === 'achat' ? '+' : '-'}${m.quantity}
+                            </div>
+                            <div class="text-xs text-slate-400">${new Date(m.date).toLocaleDateString('fr-FR')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            initLucide();
+        }
+
+        document.getElementById('search-stock').oninput = renderStock;
+        document.getElementById('filter-category').onchange = renderStock;
+        document.getElementById('filter-stock-status').onchange = renderStock;
+
+        function renderSales() {
+            const recentInvoices = document.getElementById('recent-invoices');
+            const today = new Date().toDateString();
+            const todaySales = db.ventes.filter(v => new Date(v.date).toDateString() === today).length;
+            
+            document.getElementById('sales-today-count').innerText = todaySales;
+            
+            if(db.ventes.length === 0) {
+                recentInvoices.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                        <p>Aucune facture</p>
+                    </div>
+                `;
+            } else {
+                recentInvoices.innerHTML = db.ventes.slice(0, 10).map(invoice => `
+                    <div class="p-3 border rounded-lg hover:bg-slate-50 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-medium">${invoice.clientName}</div>
+                            <div class="text-xs px-2 py-1 rounded-full ${invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                                ${invoice.status === 'paid' ? 'Payé' : 'Crédit'}
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-xs text-slate-500">${new Date(invoice.date).toLocaleDateString('fr-FR')}</div>
+                            <div class="font-bold text-blue-600">${formatMoney(invoice.total)}</div>
+                        </div>
+                        <div class="mt-2 flex gap-1">
+                            <button onclick="showInvoice(${JSON.stringify(invoice).replace(/"/g, '&quot;')})" class="flex-1 text-xs px-2 py-1 border border-slate-200 rounded hover:bg-slate-100">
+                                Voir
+                            </button>
+                            ${invoice.status === 'pending' ? `
+                                <button onclick="requireAuth(() => {deleteCredit('${db.credits.find(c => c.invoiceId === invoice.id)?.id}')})" class="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                    Annuler
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            initLucide();
+        }
+
+        function renderCredits() {
+            const tbody = document.getElementById('credits-table-body');
+            const totalCredits = db.credits.reduce((sum, c) => sum + c.balance, 0);
+            const select = document.getElementById('credit-select');
+            
+            document.getElementById('total-credits').innerText = formatMoney(totalCredits);
+            
+            // Update credit select
+            const pendingCredits = db.credits.filter(c => c.status === 'pending');
+            select.innerHTML = '<option value="">-- Choisir un crédit --</option>' +
+                pendingCredits.map(c => `<option value="${c.id}">${c.clientName} - ${formatMoney(c.balance)} restant</option>`).join('');
+            
+            if(db.credits.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400">Aucun crédit en cours</td></tr>`;
+            } else {
+                tbody.innerHTML = db.credits.map(c => {
+                    let statusClass = '';
+                    let statusText = '';
+                    
+                    if(c.status === 'paid') {
+                        statusClass = 'badge-success';
+                        statusText = 'Soldé';
+                    } else {
+                        const days = Math.floor((new Date() - new Date(c.date)) / (1000 * 60 * 60 * 24));
+                        if(days > 30) {
+                            statusClass = 'badge-danger';
+                            statusText = 'En retard';
+                        } else {
+                            statusClass = 'badge-warning';
+                            statusText = 'En attente';
+                        }
+                    }
+                    
+                    return `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-6 py-4 font-medium">${c.clientName}</td>
+                        <td class="px-6 py-4 text-slate-500">#${String(c.invoiceNumber).padStart(3, '0')}</td>
+                        <td class="px-6 py-4 text-slate-400">${new Date(c.date).toLocaleDateString('fr-FR')}</td>
+                        <td class="px-6 py-4 text-right font-bold">${formatMoney(c.totalAmount)}</td>
+                        <td class="px-6 py-4 text-right text-emerald-600">${formatMoney(c.paidAmount)}</td>
+                        <td class="px-6 py-4 text-right font-bold text-rose-600">${formatMoney(c.balance)}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            ${c.status === 'pending' ? `
+                                <button onclick="openCreditPayment('${c.id}')" class="text-emerald-500 hover:text-emerald-700 mr-2 flex items-center gap-1 text-sm" title="Régler">
+                                    <i data-lucide="credit-card" class="w-4 h-4"></i>
+                                    <span>Régler</span>
+                                </button>
+                                <button onclick="requireAuth(() => {deleteCredit('${c.id}')})" class="text-red-400 hover:text-red-600" title="Supprimer">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+            
+            initLucide();
+        }
+
+        // Prefill the credit payment form for a given credit and focus the amount input
+        function openCreditPayment(creditId) {
+            const credit = db.credits.find(c => c.id === creditId);
+            if(!credit) {
+                try { showToast('Crédit introuvable', 'error'); } catch(e){}
+                return;
+            }
+
+            // Switch to credits tab so the payment form is visible
+            try { switchTab('credits'); } catch(e){}
+
+            // Small timeout to ensure DOM updated after tab switch
+            setTimeout(() => {
+                const select = document.getElementById('credit-select');
+                if(select) {
+                    select.value = creditId;
+                    select.dispatchEvent(new Event('change'));
+                }
+
+                const amt = document.getElementById('credit-payment-amount');
+                if(amt) {
+                    amt.value = credit.balance || 0;
+                    amt.focus();
+                }
+            }, 50);
+        }
+
+        function deleteCredit(creditId) {
+            const credit = db.credits.find(c => c.id === creditId);
+            if(!credit) return;
+            
+            showConfirm(
+                "Supprimer le crédit",
+                `Supprimer le crédit de ${credit.clientName} (${formatMoney(credit.balance)} restant) ?`,
+                "Supprimer",
+                "error",
+                () => {
+                    // Restore stock if invoice exists
+                    const invoice = db.ventes.find(v => v.id === credit.invoiceId);
+                    if(invoice) {
+                        invoice.items.forEach(item => {
+                            const product = db.produits.find(p => p.id === item.productId);
+                            if(product) {
+                                product.stock += item.quantity;
+                            }
+                        });
+                        db.ventes = db.ventes.filter(v => v.id !== credit.invoiceId);
+                    }
+                    
+                    db.credits = db.credits.filter(c => c.id !== creditId);
+                    addLog(`Crédit supprimé: ${credit.clientName}`, "warning");
+                    saveDB();
+                    updateUI();
+                    showToast("Crédit supprimé", "success");
+                }
+            );
+        }
+
+        function renderExpenses() {
+            const tbody = document.getElementById('expenses-table-body');
+            const categoryFilter = document.getElementById('expense-filter-category').value;
+            const monthFilter = document.getElementById('expense-filter-month').value;
+            
+            // Update category filter
+            const categorySelect = document.getElementById('expense-filter-category');
+            const categories = [...new Set(db.depenses.map(e => e.category).filter(c => c))];
+            const currentValue = categorySelect.value;
+            
+            categorySelect.innerHTML = '<option value="">Toutes catégories</option>' +
+                categories.map(cat => `<option value="${cat}" ${cat === currentValue ? 'selected' : ''}>${cat}</option>`).join('');
+            
+            let filteredExpenses = db.depenses;
+            
+            if(categoryFilter) {
+                filteredExpenses = filteredExpenses.filter(e => e.category === categoryFilter);
+            }
+            
+            if(monthFilter) {
+                const [year, month] = monthFilter.split('-');
+                filteredExpenses = filteredExpenses.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    return expenseDate.getFullYear() == year && 
+                           (expenseDate.getMonth() + 1) == month;
+                });
+            }
+            
+            // Calculate total
+            const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+            document.getElementById('total-expenses').innerText = formatMoney(totalExpenses);
+            
+            tbody.innerHTML = filteredExpenses.map(e => `
+                <tr class="hover:bg-slate-50">
+                    <td class="px-6 py-4 text-slate-400">
+                        ${new Date(e.date).toLocaleDateString('fr-FR', { 
+                            day: '2-digit', 
+                            month: '2-digit'
+                        })}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${e.category === 'achat_stock' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}">${e.category}</span>
+                    </td>
+                    <td class="px-6 py-4 font-medium">${e.motif}</td>
+                    <td class="px-6 py-4 text-right font-bold text-amber-600">-${formatMoney(e.amount)}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteExpense('${e.id}')" class="p-1 text-slate-300 hover:text-red-500 transition-colors" title="Supprimer">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') || `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Aucune dépense enregistrée</td></tr>`;
+            
+            initLucide();
+        }
+
+        function renderLogs() {
+            const list = document.getElementById('full-logs-list');
+            const typeFilter = document.getElementById('log-filter-type').value;
+            
+            let filteredLogs = db.logs;
+            if(typeFilter) {
+                filteredLogs = db.logs.filter(log => log.type === typeFilter);
+            }
+            
+            list.innerHTML = filteredLogs.map(log => `
+                <div class="p-4 flex gap-4 items-center bg-white hover:bg-slate-50 transition-colors">
+                    <div class="flex-shrink-0">${getLogIcon(log.type)}</div>
+                    <div class="flex-1">
+                        <div class="text-sm font-medium text-slate-800">${log.text}</div>
+                        <div class="text-[10px] text-slate-400 uppercase tracking-tighter font-bold">
+                            ${new Date(log.time).toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                            })}
+                        </div>
+                    </div>
+                </div>
+            `).join('') || `<div class="p-8 text-center text-slate-400">Aucun log disponible</div>`;
+            
+            initLucide();
+        }
+
+        // Helpers for dashboard/chart filtering
+        function getRangeForPeriod(period, customDateString) {
+            const now = new Date();
+            let start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            let end = new Date(start.getTime() + 24*60*60*1000 - 1);
+
+            if(period === 'today') {
+                // start/end already set
+            } else if(period === 'week') {
+                start.setDate(start.getDate() - 6); // last 7 days
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+            } else if(period === 'month') {
+                start.setDate(start.getDate() - 29); // last 30 days
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+            } else if(period === 'year') {
+                start.setFullYear(start.getFullYear() - 1);
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+            } else if(period === 'custom' && customDateString) {
+                const d = new Date(customDateString);
+                start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                end = new Date(start.getTime() + 24*60*60*1000 - 1);
+            }
+            return { start, end };
+        }
+
+        function dateInRange(dateStr, start, end) {
+            if(!dateStr) return false;
+            const d = new Date(dateStr);
+            return d >= start && d <= end;
+        }
+
+        function onDashboardPeriodChange() {
+            const sel = document.getElementById('dashboard-period');
+            const dateInput = document.getElementById('dashboard-date');
+            if(sel && dateInput) {
+                if(sel.value === 'custom') dateInput.classList.remove('hidden');
+                else dateInput.classList.add('hidden');
+            }
+            updateDashboard();
+            // update chart mapping: map dashboard period to chart days
+            const chartSel = document.getElementById('chart-period');
+            if(chartSel) {
+                if(sel.value === 'today') chartSel.value = '7';
+                else if(sel.value === 'week') chartSel.value = '7';
+                else if(sel.value === 'month') chartSel.value = '30';
+                else if(sel.value === 'year') chartSel.value = '90';
+                else if(sel.value === 'custom') chartSel.value = '7';
+                updateMainChart();
+            }
+        }
+
+        // === CHARTING ===
+        function updateMainChart() {
+            const ctx = document.getElementById('chart-main').getContext('2d');
+            const days = parseInt(document.getElementById('chart-period').value) || 7;
+
+            // Destroy existing chart
+            if (mainChart) {
+                mainChart.destroy();
+            }
+
+            // Build labels for the range
+            const labels = [...Array(days)].map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (days - 1 - i));
+                return days === 7 ? d.toLocaleDateString('fr-FR', { weekday: 'short' }) : d.getDate().toString();
+            });
+
+            const inD = Array(days).fill(0);
+            const outD = Array(days).fill(0);
+
+            const now = new Date();
+            const startOfRange = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
+
+            // Aggregate ventes (only paid) and depenses
+            db.ventes.forEach(v => {
+                if (v.status !== 'paid') return;
+                const vDate = new Date(v.date);
+                const diff = Math.floor((vDate - startOfRange) / (1000 * 60 * 60 * 24));
+                if (diff >= 0 && diff < days) inD[diff] += (v.total || 0);
+            });
+
+            db.depenses.forEach(d => {
+                const dDate = new Date(d.date);
+                const diff = Math.floor((dDate - startOfRange) / (1000 * 60 * 60 * 24));
+                if (diff >= 0 && diff < days) outD[diff] += (d.amount || 0);
+            });
+
+            // Create line chart similar to the initial version
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Recettes', data: inD, borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.05)', fill: true, tension: 0.4, borderWidth: 3, pointRadius: 2 },
+                        { label: 'Sorties', data: outD, borderColor: '#ef4444', backgroundColor: 'transparent', fill: false, tension: 0.4, borderDash: [5,5], borderWidth: 2, pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 9 }, callback: function(value) { return formatMoney(value, true); } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                    },
+                    interaction: { intersect: false, mode: 'index' }
+                }
+            });
+        }
+
+        // === TOOLS & HELPERS ===
+        function updateSelects() {
+            // Sale product select
+            const saleSelect = document.getElementById('sale-product');
+            saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
+                db.produits
+                    .filter(p => p.stock > 0)
+                    .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
+                    .join('');
+        }
+
+        function formatMoney(n, short = false) {
+            if(isNaN(n)) n = 0;
+            const currency = db.config.currency || "Ar";
+            const formatter = new Intl.NumberFormat('fr-FR');
+            
+            if(short && n >= 1000000) {
+                return (n / 1000000).toFixed(1) + 'M ' + currency;
+            } else if(short && n >= 1000) {
+                return (n / 1000).toFixed(0) + 'k ' + currency;
+            } else {
+                return formatter.format(n) + ' ' + currency;
+            }
+        }
+
+        // Échappe une chaîne pour éviter l'injection HTML
+        function escapeHtml(input) {
+            if(input === null || input === undefined) return '';
+            return String(input)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function addLog(text, type = "info") {
+            db.logs.unshift({
+                time: new Date().toISOString(),
+                text: text,
+                type: type
+            });
+            // Cap at 1000 logs
+            if(db.logs.length > 1000) db.logs.pop();
+        }
+
+        function getLogIcon(type) {
+            const icons = {
+                'info': '<div class="p-2 bg-blue-100 text-blue-600 rounded-lg"><i data-lucide="info" class="w-4 h-4"></i></div>',
+                'warning': '<div class="p-2 bg-amber-100 text-amber-600 rounded-lg"><i data-lucide="alert-triangle" class="w-4 h-4"></i></div>',
+                'error': '<div class="p-2 bg-red-100 text-red-600 rounded-lg"><i data-lucide="x-circle" class="w-4 h-4"></i></div>',
+                'success': '<div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="check-circle" class="w-4 h-4"></i></div>'
+            };
+            return icons[type] || icons['info'];
+        }
+
+        function openModal(id) {
+            try {
+                console.log('[openModal] opening', id);
+                const el = document.getElementById(id);
+                if (!el) { console.warn('[openModal] element not found', id); return; }
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+                document.body.style.overflow = 'hidden';
+                initLucide();
+            } catch (err) {
+                console.error('[openModal] error', err, id);
+            }
+        }
+
+        function closeModal(id) {
+            try {
+                console.log('[closeModal] closing', id);
+                console.trace('[closeModal] trace');
+                const el = document.getElementById(id);
+                if (!el) { console.warn('[closeModal] element not found', id); return; }
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+            } catch (err) { console.error('[closeModal] error', err, id); }
+            
+            if(id === 'modal-product') {
+                document.getElementById('form-product').reset();
+                document.getElementById('edit-id').value = "";
+                document.getElementById('product-modal-title').innerText = "Nouveau Matériel";
+                document.getElementById('product-error').classList.add('hidden');
+            }
+            if(id === 'modal-stock-adjust') {
+                document.getElementById('form-stock-adjust').reset();
+                document.getElementById('product-cost-info').classList.add('hidden');
+            }
+            if(id === 'modal-reset') {
+                document.getElementById('reset-pwd').value = "";
+                document.getElementById('reset-error').classList.add('hidden');
+            }
+            if(id === 'modal-auth') {
+                document.getElementById('auth-password').value = "";
+                document.getElementById('auth-error').classList.add('hidden');
+                window.authCallback = null;
+            }
+        }
+
+        function showConfirm(title, message, actionText, type = "info", callback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            document.getElementById('confirm-action').innerText = actionText;
+            
+            // Set icon based on type
+            const iconDiv = document.getElementById('confirm-icon');
+            iconDiv.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4';
+            
+            if(type === 'error') {
+                iconDiv.classList.add('bg-red-100', 'text-red-600');
+                iconDiv.innerHTML = '<i data-lucide="alert-circle" class="w-8 h-8"></i>';
+            } else if(type === 'warning') {
+                iconDiv.classList.add('bg-amber-100', 'text-amber-600');
+                iconDiv.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8"></i>';
+            } else {
+                iconDiv.classList.add('bg-blue-100', 'text-blue-600');
+                iconDiv.innerHTML = '<i data-lucide="help-circle" class="w-8 h-8"></i>';
+            }
+            
+            window.confirmCallback = callback;
+            openModal('modal-confirm');
+        }
+
+        function executeConfirm() {
+            if(window.confirmCallback) {
+                window.confirmCallback();
+            }
+            closeModal('modal-confirm');
+            window.confirmCallback = null;
+        }
+
+        function showToast(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            document.getElementById('toast-message').innerText = msg;
+
+            // Reset classes
+            toast.className = "fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 text-white rounded-full shadow-2xl flex items-center gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none";
+            
+            if(type === 'success') {
+                toast.classList.add('bg-emerald-600');
+                icon.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+            } else if(type === 'error') {
+                toast.classList.add('bg-red-600');
+                icon.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4"></i>';
+            } else if(type === 'warning') {
+                toast.classList.add('bg-amber-600');
+                icon.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i>';
+            } else {
+                toast.classList.add('bg-slate-900');
+                icon.innerHTML = '<i data-lucide="info" class="w-4 h-4"></i>';
+            }
+
+            initLucide();
+            toast.style.transform = "translate(-50%, 0)";
+            setTimeout(() => { 
+                toast.style.transform = "translate(-50%, -100px)"; 
+            }, 3000);
+        }
+
+        // === DATA MANAGEMENT ===
+        function exportData() {
+            try {
+                const dataStr = JSON.stringify(db, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `Enterprise_Backup_${new Date().toISOString().split('T')[0]}_v2.3.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                addLog("Backup exporté", "success");
+                showToast("Backup téléchargé avec succès", "success");
+            } catch(e) {
+                console.error("Export Error", e);
+                showToast("Erreur lors de l'export", "error");
+            }
+        }
+
+        function exportStockCSV() {
+            const headers = ['Nom', 'Catégorie', 'Fournisseur', 'Prix Achat', 'Prix Vente', 'Stock', 'Alerte Mini', 'Valeur Stock'];
+            const rows = db.produits.map(p => [
+                p.nom,
+                p.category,
+                p.fournisseur,
+                p.achat,
+                p.vente,
+                p.stock,
+                p.min,
+                p.stock * p.achat
+            ]);
+            
+            exportCSV(headers, rows, 'stock_inventaire');
+        }
+
+        function exportSalesCSV() {
+            const headers = ['Date', 'Facture', 'Client', 'Téléphone', 'Articles', 'Quantité Total', 'Total', 'Mode Paiement', 'Statut'];
+            const rows = db.ventes.map(s => [
+                new Date(s.date).toLocaleDateString('fr-FR'),
+                s.id,
+                s.clientName,
+                s.clientPhone || '',
+                s.items.map(i => i.productName).join('; '),
+                s.items.reduce((sum, i) => sum + i.quantity, 0),
+                s.total,
+                getPaymentMethodText(s.paymentMethod),
+                s.status === 'paid' ? 'Payé' : 'Crédit'
+            ]);
+            
+            exportCSV(headers, rows, 'ventes_historique');
+        }
+
+        function exportExpensesCSV() {
+            const headers = ['Date', 'Catégorie', 'Description', 'Montant'];
+            const rows = db.depenses.map(e => [
+                new Date(e.date).toLocaleDateString('fr-FR'),
+                e.category,
+                e.motif,
+                e.amount
+            ]);
+            
+            exportCSV(headers, rows, 'depenses_historique');
+        }
+
+        function exportCSV(headers, rows, filename) {
+            try {
+                const csvContent = [
+                    headers.join(','),
+                    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                addLog(`Export CSV: ${filename}`, "info");
+                showToast("Export CSV terminé", "success");
+            } catch(e) {
+                console.error("CSV Export Error", e);
+                showToast("Erreur lors de l'export CSV", "error");
+            }
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            requireAuth(() => {
+                showConfirm(
+                    "Importer des données",
+                    "Attention : cette action remplacera toutes vos données actuelles. Voulez-vous continuer ?",
+                    "Importer",
+                    "warning",
+                    () => {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            try {
+                                const imported = JSON.parse(e.target.result);
+                                if(imported.produits && imported.ventes) {
+                                    // Create backup before import
+                                    localStorage.setItem(STORAGE_KEY + "_pre_import_backup", JSON.stringify(db));
+                                    
+                                    db = imported;
+                                    addLog("Restauration complète effectuée", "info");
+                                    saveDB();
+                                    updateUI();
+                                    showToast("Données restaurées avec succès", "success");
+                                } else {
+                                    throw new Error("Format de fichier invalide");
+                                }
+                            } catch(err) {
+                                console.error("Import Error", err);
+                                showToast("Fichier invalide ou corrompu", "error");
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                );
+            }, "Importer des données nécessite une authentification.");
+        }
+
+        function triggerReset() { 
+            console.log('[triggerReset] invoked');
+            requireAuth(() => {
+                console.log('[triggerReset] auth success, showing final confirmation');
+                showConfirm(
+                    "Confirmation finale",
+                    "Êtes-vous ABSOLUMENT SÛR ? Toutes les données seront PERDUES définitivement.",
+                    "Je comprends, réinitialiser",
+                    "error",
+                    performFullReset
+                );
+            }, "Réinitialiser le système nécessite une authentification.");
+        }
+
+        function confirmReset() {
+            console.log('[confirmReset] start');
+            const pwd = document.getElementById('reset-pwd').value.trim();
+            console.log('[confirmReset] provided pwd length', pwd.length);
+            if(pwd === db.config.adminPassword) {
+                showConfirm(
+                    "Confirmation finale",
+                    "Êtes-vous ABSOLUMENT SÛR ? Toutes les données seront PERDUES définitivement.",
+                    "Je comprends, réinitialiser",
+                    "error",
+                    performFullReset
+                );
+            } else {
+                document.getElementById('reset-error').innerText = "Mot de passe incorrect";
+                document.getElementById('reset-error').classList.remove('hidden');
+            }
+        }
+
+        // Actual reset operation (called after final confirmation)
+        function performFullReset() {
+            try {
+                // Create downloadable pre-reset backup so user can recover if needed
+                try {
+                    const backupContent = JSON.stringify(db, null, 2);
+                    const blob = new Blob([backupContent], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Enterprise_pre_reset_backup_${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                } catch (e) {
+                    console.error('Pre-reset backup download failed', e);
+                }
+
+                // Clear all localStorage and sessionStorage to ensure a full reset
+                try { localStorage.clear(); } catch (e) { console.error('localStorage.clear failed', e); }
+                try { sessionStorage.clear(); } catch (e) { console.error('sessionStorage.clear failed', e); }
+
+                // Attempt to delete an IndexedDB database named like STORAGE_KEY
+                try {
+                    if (window.indexedDB && STORAGE_KEY) {
+                        indexedDB.deleteDatabase(STORAGE_KEY);
+                    }
+                } catch (e) { console.error('IndexedDB delete failed', e); }
+
+            } catch (e) {
+                console.error('Error during reset process', e);
+            }
+
+            // Reload app to initialize clean state
+            setTimeout(() => {
+                location.reload();
+            }, 800);
+        }
+
+        function clearLogs() {
+            requireAuth(() => {
+                showConfirm(
+                    "Vider le journal",
+                    "Voulez-vous vraiment vider tout le journal système ?",
+                    "Vider",
+                    "warning",
+                    () => {
+                        const backupLogs = db.logs.slice(0, 10); // Keep last 10 logs
+                        db.logs = [{time: new Date().toISOString(), text: "Journal vidé par l'utilisateur", type: "info"}, ...backupLogs];
+                        saveDB();
+                        updateUI();
+                        showToast("Journal vidé", "success");
+                    }
+                );
+            }, "Vider les logs nécessite une authentification.");
+        }
+
+        function updateStorageSize() {
+            try {
+                const size = (JSON.stringify(db).length / 1024).toFixed(2);
+                document.getElementById('storage-size').innerText = size + " KB";
+            } catch(e) {
+                document.getElementById('storage-size').innerText = "Erreur";
+            }
+        }
+
+        function refreshData() {
+            const icon = document.querySelector('[data-lucide="refresh-cw"]');
+            icon.classList.add('animate-spin');
+            setTimeout(() => {
+                updateUI();
+                icon.classList.remove('animate-spin');
+                showToast("Données actualisées", "success");
+            }, 500);
+        }
+
+        function checkAlerts() {
+            const criticalStock = db.produits.filter(p => p.stock <= p.min);
+            const zeroStock = db.produits.filter(p => p.stock === 0);
+            const caisse = calculateCaisse();
+            const lowCaisse = db.config.caisseMin > 0 && caisse < db.config.caisseMin;
+            const pendingCredits = db.credits.filter(c => c.status === 'pending').length;
+            
+            if(criticalStock.length > 0 || zeroStock.length > 0 || lowCaisse || pendingCredits > 0) {
+                let alertMessage = "";
+                if(criticalStock.length > 0) alertMessage += `${criticalStock.length} produit(s) en stock critique. `;
+                if(zeroStock.length > 0) alertMessage += `${zeroStock.length} produit(s) épuisé(s). `;
+                if(lowCaisse) alertMessage += `Caisse faible : ${formatMoney(caisse)}. `;
+                if(pendingCredits > 0) alertMessage += `${pendingCredits} crédit(s) en attente. `;
+                
+                if(alertMessage) {
+                    showToast(alertMessage, "warning");
+                }
+            }
+        }
+
+        // === KEYBOARD SHORTCUTS ===
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+S: Save
+            if((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveDB();
+                showToast("Sauvegarde effectuée", "success");
+            }
+            
+            // Ctrl+F: Focus search
+            if((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                const searchInput = document.getElementById('search-stock');
+                if(searchInput) {
+                    searchInput.focus();
+                }
+            }
+            
+            // Escape: Close modals
+            if(e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.fixed[style*="display: flex"]');
+                if(openModals.length > 0) {
+                    openModals.forEach(modal => {
+                        const modalId = modal.id;
+                        if(modalId && modalId.startsWith('modal-')) {
+                            closeModal(modalId);
+                        }
+                    });
+                }
+            }
+        });
+// === MODULE DE SÉCURITÉ (Étape 2) ===
+
+// 1. Configuration (Vous pouvez changer la phrase secrète)
+const TRIAL_DAYS = 7; 
+const SECRET_SALT = "MA_PHRASE_SEC_2024"; // Gardez cette phrase pour vous
+
+const SecurityManager = {
+    // Fonction pour créer l'identifiant unique de l'ordinateur
+    getDeviceId: function() {
+        const nav = window.navigator;
+        const screen = window.screen;
+        // On mélange les infos du matériel (écran, navigateur, processeur)
+        let str = nav.userAgent + nav.language + screen.colorDepth + screen.width + (nav.hardwareConcurrency || 4);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return "EMP-" + Math.abs(hash).toString(16).toUpperCase();
+    },
+
+    // Fonction qui génère la clé valide à partir d'un ID (Algorithme)
+    generateKey: function(deviceId) {
+        let combined = deviceId + SECRET_SALT;
+        let hash = 0;
+        for (let i = 0; i < combined.length; i++) {
+            hash = ((hash << 5) - hash) + combined.charCodeAt(i);
+            hash |= 0;
+        }
+        return "LIC-" + Math.abs(hash).toString(36).toUpperCase();
+    },
+
+    // Vérification de l'état (Activé, Essaye ou Expiré)
+    checkStatus: function() {
+        const deviceId = this.getDeviceId();
+        const storedKey = localStorage.getItem('_app_license_');
+        const firstRun = localStorage.getItem('_app_start_date_');
+
+        // A. Vérifier si une licence valide existe déjà sur l'ordinateur
+        if (storedKey && storedKey === this.generateKey(deviceId)) {
+            return { status: 'AUTHORIZED' };
+        }
+
+        // B. Gérer la période d'essaye
+        const now = new Date().getTime();
+        if (!firstRun) {
+            localStorage.setItem('_app_start_date_', now);
+            return { status: 'TRIAL', daysLeft: TRIAL_DAYS };
+        }
+
+        const diffDays = Math.floor((now - parseInt(firstRun)) / (1000 * 60 * 60 * 24));
+        if (diffDays < TRIAL_DAYS) {
+            return { status: 'TRIAL', daysLeft: TRIAL_DAYS - diffDays };
+        }
+
+        return { status: 'EXPIRED' };
+    }
+};
+
+// Fonction qui s'exécute au démarrage pour décider quoi afficher
+function runSecurityCheck() {
+    const result = SecurityManager.checkStatus();
+    const deviceId = SecurityManager.getDeviceId();
+    
+    document.getElementById('device-id-display').value = deviceId;
+
+    const trialBadge = document.getElementById('trial-info-badge');
+
+    if (result.status === 'AUTHORIZED') {
+        // --- ÉTAT : ACTIVÉ COMPLET ---
+        document.getElementById('license-overlay').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        
+        // On change le texte du badge au lieu de le cacher (Optionnel)
+        // Ou vous pouvez faire trialBadge.style.display = 'none';
+        trialBadge.style.display = 'flex';
+        trialBadge.classList.remove('bg-amber-100', 'border-amber-200');
+        trialBadge.classList.add('bg-green-100', 'border-green-200'); // Couleur verte
+        document.getElementById('days-text').innerHTML = '<span class="text-green-700 font-bold">Version Complète Activée</span>';
+        
+        // On cache l'icône d'alerte si nécessaire
+        const icon = trialBadge.querySelector('i');
+        if(icon) icon.style.color = '#10b981';
+    } 
+    else if (result.status === 'TRIAL') {
+        // --- ÉTAT : EN ESSAI ---
+        document.getElementById('license-overlay').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        
+        trialBadge.style.display = 'flex';
+        // Affichage dynamique du temps restant
+        document.getElementById('days-text').innerText = result.daysLeft + " jour(s) d'essai restants";
+        
+        document.getElementById('close-license').classList.remove('hidden');
+    } 
+    else {
+        // --- ÉTAT : EXPIRÉ ---
+        document.getElementById('license-overlay').style.display = 'flex';
+        document.getElementById('app-content').style.display = 'none';
+        trialBadge.style.display = 'none';
+        
+        document.getElementById('close-license').classList.add('hidden');
+        document.getElementById('license-msg').innerText = "Votre période d'essai est terminée. \n veuillez activer le logiciel pour continuer à l'utiliser.\n Alefa ** Mvola @ 034 18 420 13 ** : 20.000Ar";
+    }
+}
+
+
+// Fonction pour le bouton "Activer"
+function validateAndActivate() {
+    const inputKey = document.getElementById('license-key-input').value.trim();
+    const deviceId = SecurityManager.getDeviceId();
+    const correctKey = SecurityManager.generateKey(deviceId);
+
+    if (inputKey === correctKey) {
+        // Enregistrement de la licence dans le disque dure local (localStorage)
+        localStorage.setItem('_app_license_', inputKey);
+        alert("Activation réussie !");
+        
+        // On recharge pour que runSecurityCheck() détecte le statut 'AUTHORIZED'
+        location.reload(); 
+    } else {
+        alert("Clé invalide.");
+    }
+}
+
+// Lancement automatique du test de sécurité
+runSecurityCheck();
+    </script>
+    <div id="trial-info-badge" onclick="document.getElementById('license-overlay').style.display = 'flex'" 
+         class="fixed bottom-6 right-6 cursor-pointer flex items-center gap-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-full shadow-lg transition-all hover:scale-105 z-40">
+        <div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+        <span id="days-text" class="text-sm font-medium text-amber-800"></span>
+    </div>
+</body>
+</html>
