@@ -63,11 +63,164 @@
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
 
-        /* Mobile Adjustments */
+        /* Mobile Adjustments - IMPROVED */
         @media (max-width: 768px) {
-            .main-content { margin-bottom: 70px; }
-            .mobile-nav { display: flex; }
+            .main-content { 
+                margin-bottom: 70px;
+                padding: 12px !important;
+            }
+            
+            .mobile-nav { 
+                display: flex;
+                height: 60px;
+                backdrop-filter: blur(10px);
+                background: rgba(255, 255, 255, 0.95);
+                border-top: 1px solid rgba(226, 232, 240, 0.8);
+            }
+            
             .desktop-sidebar { display: none !important; }
+            
+            /* Improved header for mobile */
+            header {
+                padding: 12px 16px !important;
+                height: auto !important;
+                min-height: 56px;
+            }
+            
+            header h2 {
+                font-size: 16px !important;
+            }
+            
+            /* Better spacing for content */
+            .space-y-6 > * {
+                margin-bottom: 16px !important;
+            }
+            
+            /* Improved grid layouts */
+            .grid {
+                gap: 12px !important;
+            }
+            
+            /* Better card styling */
+            .glass-card {
+                border-radius: 16px !important;
+                padding: 16px !important;
+            }
+            
+            /* Table improvements */
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 12px !important;
+            }
+            
+            /* Button improvements */
+            button {
+                min-height: 44px; /* Better touch target */
+            }
+            
+            /* Form improvements */
+            input, select, textarea {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                min-height: 44px;
+            }
+            
+            /* Modal improvements */
+            .fixed.inset-0 {
+                padding: 12px !important;
+                align-items: flex-start !important;
+                padding-top: 40px;
+            }
+            
+            .fixed.inset-0 > div {
+                width: 100% !important;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            
+            /* Hide unnecessary elements on mobile */
+            .hidden-mobile {
+                display: none !important;
+            }
+            
+            /* Improved stats cards */
+            .grid-cols-5 {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            .grid-cols-5 > div:nth-child(5) {
+                grid-column: span 2;
+            }
+            
+            /* Better chart container */
+            .chart-container {
+                height: 200px !important;
+            }
+            
+            /* Invoice preview improvements */
+            #invoice-content {
+                padding: 16px !important;
+                font-size: 14px;
+            }
+            
+            /* Toast positioning */
+            #toast {
+                width: 90%;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            /* Trial badge positioning */
+            .trial-badge {
+                bottom: 80px !important;
+                right: 16px !important;
+                left: 16px !important;
+                width: auto;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .grid-cols-5 {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .grid-cols-5 > div {
+                grid-column: span 1 !important;
+            }
+            
+            .glass-card {
+                padding: 12px !important;
+            }
+            
+            h3 {
+                font-size: 20px !important;
+            }
+            
+            .text-2xl {
+                font-size: 1.5rem !important;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        /* Better hover states for touch */
+        @media (hover: none) {
+            button:hover, .hover\\:bg-slate-50:hover {
+                background-color: inherit !important;
+            }
+            
+            button:active, .hover\\:bg-slate-50:active {
+                background-color: rgba(0, 0, 0, 0.05) !important;
+            }
         }
         
         .status-badge {
@@ -145,6 +298,43 @@
             transition: all 0.2s;
         }
         .hidden { display: none !important; }
+        
+        /* New mobile-specific classes */
+        .mobile-only { display: none; }
+        @media (max-width: 768px) {
+            .mobile-only { display: block !important; }
+            .desktop-only { display: none !important; }
+        }
+        
+        /* Pull to refresh indicator */
+        .pull-to-refresh {
+            position: fixed;
+            top: -60px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        
+        /* Swipe gestures for tables */
+        .swipeable {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .swipe-actions {
+            position: absolute;
+            right: -100px;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            transition: right 0.3s;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -152,25 +342,25 @@
 <!-- 1. L'écran de verrouillage (Placé au tout début du body) -->
 <!-- Écran de Licence -->
     <div id="license-overlay" style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); z-index: 9999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
-        <div style="background: white; padding: 2.5rem; border-radius: 1.5rem; width: 90%; max-width: 480px; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+        <div style="background: white; padding: 1.5rem; border-radius: 1.5rem; width: 95%; max-width: 400px; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
             <!-- Bouton fermer (X) -->
-            <button id="close-license" onclick="document.getElementById('license-overlay').style.display='none'" style="position: absolute; top: 1.25rem; right: 1.25rem; font-size: 1.5rem; color: #94a3b8; cursor: pointer; border: none; background: none;" class="hidden">✕</button>
+            <button id="close-license" onclick="document.getElementById('license-overlay').style.display='none'" style="position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; color: #94a3b8; cursor: pointer; border: none; background: none;" class="hidden">✕</button>
             
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <h2 style="font-size: 1.5rem; font-weight: bold; color: #111827;">Activation du logiciel</h2>
-                <p id="license-msg" style="color: #6b7280; margin-top: 0.5rem;">Enregistrez votre licence pour un accès illimité.</p>
+                <h2 style="font-size: 1.25rem; font-weight: bold; color: #111827;">Activation du logiciel</h2>
+                <p id="license-msg" style="color: #6b7280; margin-top: 0.5rem; font-size: 0.875rem;">Enregistrez votre licence pour un accès illimité.</p>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
                 <div>
-                    <label style="font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase;">ID Matériel de cet ordinateur</label>
-                    <input type="text" id="device-id-display" readonly style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-family: monospace;">
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase;">ID Matériel</label>
+                    <input type="text" id="device-id-display" readonly style="width: 100%; margin-top: 0.5rem; padding: 0.75rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; font-family: monospace; font-size: 0.875rem;">
                 </div>
                 <div>
                     <label style="font-size: 0.75rem; font-weight: 600; color: #9ca3af; text-transform: uppercase;">Clé de licence</label>
-                    <input type="text" id="license-key-input" placeholder="ENTREZ VOTRE CLÉ ICI" style="width: 100%; margin-top: 0.5rem; padding: 1rem; border: 2px solid #f3f4f6; border-radius: 0.75rem; text-align: center; font-weight: bold; outline: none;">
+                    <input type="text" id="license-key-input" placeholder="ENTREZ VOTRE CLÉ ICI" style="width: 100%; margin-top: 0.5rem; padding: 1rem; border: 2px solid #f3f4f6; border-radius: 0.75rem; text-align: center; font-weight: bold; outline: none; font-size: 1rem;">
                 </div>
-                <button onclick="validateAndActivate()" style="width: 100%; background: #2563eb; color: white; padding: 1rem; border-radius: 0.75rem; font-weight: bold; cursor: pointer; border: none;">Activer maintenant</button>
+                <button onclick="validateAndActivate()" style="width: 100%; background: #2563eb; color: white; padding: 1rem; border-radius: 0.75rem; font-weight: bold; cursor: pointer; border: none; font-size: 1rem;">Activer maintenant</button>
             </div>
         </div>
     </div>
@@ -233,138 +423,189 @@
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col min-w-0 bg-slate-50 relative h-screen overflow-hidden">
             
-            <!-- HEADER -->
-            <header class="h-16 glass-card border-b px-6 flex items-center justify-between z-40">
-                <div class="flex items-center gap-4">
-                    <h2 id="current-tab-title" class="text-lg font-semibold text-slate-800">Tableau de bord</h2>
+            <!-- HEADER - IMPROVED FOR MOBILE -->
+            <header class="h-16 glass-card border-b px-4 md:px-6 flex items-center justify-between z-40">
+                <div class="flex items-center gap-3">
+                    <!-- Mobile menu button -->
+                    <button id="mobile-menu-btn" class="mobile-only p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                        <i data-lucide="menu" class="w-5 h-5"></i>
+                    </button>
+                    <h2 id="current-tab-title" class="text-lg font-semibold text-slate-800 truncate max-w-[150px] md:max-w-none">Tableau de bord</h2>
                     <span id="header-alert" class="hidden text-xs px-2 py-1 rounded-full bg-red-100 text-red-600 font-semibold"></span>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     <div class="hidden md:flex flex-col items-end">
                         <span id="header-date" class="text-xs text-slate-500 font-medium">--/--/----</span>
                         <span id="header-caisse" class="text-sm font-bold text-blue-600">0 Ar</span>
                     </div>
-                    <button onclick="refreshData()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
+                    <!-- Mobile caisse display -->
+                    <div class="mobile-only flex flex-col items-end">
+                        <span id="header-caisse-mobile" class="text-sm font-bold text-blue-600">0 Ar</span>
+                        <span class="text-[10px] text-slate-500">Caisse</span>
+                    </div>
+                    <button onclick="refreshData()" class="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors touch-target">
                         <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                     </button>
                 </div>
             </header>
 
+            <!-- MOBILE SIDEBAR MENU -->
+            <div id="mobile-sidebar" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[60] hidden md:hidden">
+                <div class="absolute right-0 top-0 bottom-0 w-64 bg-white shadow-xl">
+                    <div class="p-6 border-b">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3 text-blue-600 font-bold text-xl">
+                                <div class="p-2 bg-blue-100 rounded-lg">
+                                    <i data-lucide="layout-grid"></i>
+                                </div>
+                                <span id="mobile-sidebar-company-name">Enterprise Pro</span>
+                            </div>
+                            <button onclick="closeMobileMenu()" class="p-2 hover:bg-slate-100 rounded-full">
+                                <i data-lucide="x" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <nav class="p-4 space-y-2">
+                        <button onclick="switchTab('dashboard'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
+                            <i data-lucide="home" class="w-5 h-5"></i> Dashboard
+                        </button>
+                        <button onclick="switchTab('stock'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="package" class="w-5 h-5"></i> Matériel & Stock
+                        </button>
+                        <button onclick="switchTab('sales'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="shopping-cart" class="w-5 h-5"></i> Ventes & Facturation
+                        </button>
+                        <button onclick="switchTab('credits'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="credit-card" class="w-5 h-5"></i> Crédits Clients
+                        </button>
+                        <button onclick="switchTab('expenses'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="receipt" class="w-5 h-5"></i> Dépenses / Caisse
+                        </button>
+                        <button onclick="switchTab('logs'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="history" class="w-5 h-5"></i> Logs Système
+                        </button>
+                        <button onclick="switchTab('settings'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 mt-8">
+                            <i data-lucide="settings" class="w-5 h-5"></i> Paramètres
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
             <!-- CONTENT SCROLL AREA -->
             <div id="scroll-area" class="flex-1 overflow-y-auto p-4 md:p-8 main-content">
                 
-                <!-- DASHBOARD TAB -->
-                <div id="tab-dashboard" class="tab-content active space-y-6">
+                <!-- DASHBOARD TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-dashboard" class="tab-content active space-y-4 md:space-y-6">
                     <div class="flex items-center justify-end gap-3">
-                        <select id="dashboard-period" onchange="onDashboardPeriodChange()" class="text-xs border rounded-lg px-3 py-1 outline-none">
+                        <select id="dashboard-period" onchange="onDashboardPeriodChange()" class="text-xs md:text-sm border rounded-lg px-3 py-2 md:py-1 outline-none w-full md:w-auto">
                             <option value="today">Aujourd'hui</option>
                             <option value="week">7 derniers jours</option>
                             <option value="month">30 derniers jours</option>
                             <option value="year">Cette année</option>
                             <option value="custom">Date précise</option>
                         </select>
-                        <input id="dashboard-date" type="date" class="text-xs border rounded-lg px-3 py-1 outline-none hidden" onchange="updateDashboard(); updateMainChart();">
+                        <input id="dashboard-date" type="date" class="text-xs md:text-sm border rounded-lg px-3 py-2 md:py-1 outline-none hidden w-full md:w-auto">
                     </div>
-                    <!-- Stats Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-blue-500">
-                            <p class="text-slate-500 text-sm font-medium">Solde Caisse</p>
-                            <h3 id="stat-caisse" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
-                            <div class="mt-2 text-xs text-blue-600 flex items-center gap-1">
+                    <!-- Stats Cards - OPTIMIZED FOR MOBILE -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Solde Caisse</p>
+                            <h3 id="stat-caisse" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-blue-600 flex items-center gap-1">
                                 <i data-lucide="arrow-up-right" class="w-3 h-3"></i> Actif net
                             </div>
                         </div>
-                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-emerald-500">
-                            <p class="text-slate-500 text-sm font-medium">Chiffre d'Affaires</p>
-                            <h3 id="stat-ca" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
-                            <div class="mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Chiffre Affaires</p>
+                            <h3 id="stat-ca" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-emerald-600 flex items-center gap-1">
                                 <i data-lucide="trending-up" class="w-3 h-3"></i> Total ventes
                             </div>
                         </div>
-                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-amber-500">
-                            <p class="text-slate-500 text-sm font-medium">Total Dépenses</p>
-                            <h3 id="stat-depenses" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
-                            <div class="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-amber-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Total Dépenses</p>
+                            <h3 id="stat-depenses" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-amber-600 flex items-center gap-1">
                                 <i data-lucide="arrow-down-right" class="w-3 h-3"></i> Sorties caisse
                             </div>
                         </div>
-                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-purple-500">
-                            <p class="text-slate-500 text-sm font-medium">Marge Estimée</p>
-                            <h3 id="stat-marge" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
-                            <div class="mt-2 text-xs text-purple-600 flex items-center gap-1">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Marge Estimée</p>
+                            <h3 id="stat-marge" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-purple-600 flex items-center gap-1">
                                 <i data-lucide="pie-chart" class="w-3 h-3"></i> Profit net
                             </div>
                         </div>
-                        <div class="glass-card p-5 rounded-2xl shadow-sm border-l-4 border-rose-500">
-                            <p class="text-slate-500 text-sm font-medium">Crédits en attente</p>
-                            <h3 id="stat-credits" class="text-2xl font-bold mt-1 text-slate-800">0 Ar</h3>
-                            <div class="mt-2 text-xs text-rose-600 flex items-center gap-1">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-rose-500 col-span-2 md:col-span-1">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Crédits en attente</p>
+                            <h3 id="stat-credits" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-rose-600 flex items-center gap-1">
                                 <i data-lucide="clock" class="w-3 h-3"></i> À recevoir
                             </div>
                         </div>
                     </div>
 
-                    <!-- Charts Row -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                    <!-- Charts Row - OPTIMIZED -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
                             <div class="flex justify-between items-center mb-4">
-                                <h4 class="font-bold flex items-center gap-2">
-                                    <i data-lucide="trending-up" class="w-5 h-5 text-blue-500"></i> Flux de Trésorerie
+                                <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                                    <i data-lucide="trending-up" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Flux Trésorerie
                                 </h4>
-                                <select id="chart-period" onchange="updateMainChart()" class="text-xs border rounded-lg px-3 py-1 outline-none">
-                                    <option value="7">7 derniers jours</option>
-                                    <option value="30">30 derniers jours</option>
-                                    <option value="90">3 derniers mois</option>
+                                <select id="chart-period" onchange="updateMainChart()" class="text-xs border rounded-lg px-2 py-1 outline-none">
+                                    <option value="7">7 jours</option>
+                                    <option value="30">30 jours</option>
+                                    <option value="90">3 mois</option>
                                 </select>
                             </div>
-                            <div class="h-64"><canvas id="chart-main"></canvas></div>
+                            <div class="h-48 md:h-64"><canvas id="chart-main"></canvas></div>
                         </div>
-                        <div class="glass-card p-6 rounded-2xl shadow-sm">
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
                             <div class="flex justify-between items-center mb-4">
-                                <h4 class="font-bold flex items-center gap-2">
-                                    <i data-lucide="alert-circle" class="w-5 h-5 text-amber-500"></i> Alertes & Notifications
+                                <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 md:w-5 md:h-5 text-amber-500"></i> Alertes
                                 </h4>
                                 <span id="alert-count" class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">0</span>
                             </div>
-                            <div id="stock-alerts" class="space-y-3 max-h-[250px] overflow-y-auto">
+                            <div id="stock-alerts" class="space-y-2 md:space-y-3 max-h-[200px] md:max-h-[250px] overflow-y-auto">
                                 <!-- JS Injection -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Quick Actions & Recent Activities -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Quick Actions & Recent Activities - OPTIMIZED -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                         <!-- Quick Actions -->
-                        <div class="glass-card p-6 rounded-2xl shadow-sm">
-                            <h4 class="font-bold mb-4 flex items-center gap-2">
-                                <i data-lucide="zap" class="w-5 h-5 text-blue-500"></i> Actions Rapides
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="zap" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Actions Rapides
                             </h4>
-                            <div class="space-y-3">
-                                <button onclick="openModal('modal-product')" class="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all group">
+                            <div class="space-y-2 md:space-y-3">
+                                <button onclick="openModal('modal-product')" class="w-full flex items-center justify-between p-3 bg-blue-50 hover:bg-blue-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i>
-                                        <span class="font-medium text-slate-700">Nouveau produit</span>
+                                        <i data-lucide="plus-circle" class="w-4 h-4 md:w-5 md:h-5 text-blue-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Nouveau produit</span>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-blue-300 group-hover:text-blue-500"></i>
                                 </button>
-                                <button onclick="openModal('modal-stock-adjust')" class="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-all group">
+                                <button onclick="openModal('modal-stock-adjust')" class="w-full flex items-center justify-between p-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="package-plus" class="w-5 h-5 text-emerald-600"></i>
-                                        <span class="font-medium text-slate-700">Ajustement stock</span>
+                                        <i data-lucide="package-plus" class="w-4 h-4 md:w-5 md:h-5 text-emerald-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Ajustement stock</span>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-emerald-300 group-hover:text-emerald-500"></i>
                                 </button>
-                                <button onclick="switchTab('sales')" class="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition-all group">
+                                <button onclick="switchTab('sales')" class="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="shopping-bag" class="w-5 h-5 text-purple-600"></i>
-                                        <span class="font-medium text-slate-700">Nouvelle facture</span>
+                                        <i data-lucide="shopping-bag" class="w-4 h-4 md:w-5 md:h-5 text-purple-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Nouvelle facture</span>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-purple-300 group-hover:text-purple-500"></i>
                                 </button>
-                                <button onclick="openModal('modal-expense')" class="w-full flex items-center justify-between p-3 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all group">
+                                <button onclick="openModal('modal-expense')" class="w-full flex items-center justify-between p-3 bg-amber-50 hover:bg-amber-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="minus-circle" class="w-5 h-5 text-amber-600"></i>
-                                        <span class="font-medium text-slate-700">Nouvelle dépense</span>
+                                        <i data-lucide="minus-circle" class="w-4 h-4 md:w-5 md:h-5 text-amber-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Nouvelle dépense</span>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-amber-300 group-hover:text-amber-500"></i>
                                 </button>
@@ -372,52 +613,58 @@
                         </div>
 
                         <!-- Recent Activities -->
-                        <div class="glass-card rounded-2xl shadow-sm overflow-hidden lg:col-span-2">
-                            <div class="p-4 border-b bg-slate-50 flex justify-between items-center">
-                                <h4 class="font-bold">Dernières opérations</h4>
+                        <div class="glass-card rounded-xl md:rounded-2xl shadow-sm overflow-hidden md:col-span-2">
+                            <div class="p-3 md:p-4 border-b bg-slate-50 flex justify-between items-center">
+                                <h4 class="font-bold text-sm md:text-base">Dernières opérations</h4>
                                 <button onclick="switchTab('logs')" class="text-xs text-blue-600 font-semibold hover:underline">Voir tout</button>
                             </div>
-                            <div id="recent-logs" class="divide-y text-sm max-h-[300px] overflow-y-auto">
+                            <div id="recent-logs" class="divide-y text-xs md:text-sm max-h-[250px] md:max-h-[300px] overflow-y-auto">
                                 <!-- JS Injection -->
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- STOCK TAB -->
-                <div id="tab-stock" class="tab-content space-y-6">
-                    <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                            <div class="relative w-full md:w-64">
+                <!-- STOCK TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-stock" class="tab-content space-y-4 md:space-y-6">
+                    <div class="flex flex-col gap-3 md:gap-4">
+                        <div class="grid grid-cols-1 md:flex md:flex-row gap-3 md:gap-4">
+                            <div class="relative w-full">
                                 <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
-                                <input type="text" id="search-stock" placeholder="Rechercher un matériel..." 
-                                    class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                                <input type="text" id="search-stock" placeholder="Rechercher..." 
+                                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm md:text-base">
                             </div>
-                            <select id="filter-category" onchange="renderStock()" class="w-full md:w-48 px-4 py-2.5 rounded-xl border border-slate-200 outline-none">
+                            <select id="filter-category" onchange="renderStock()" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm md:text-base">
                                 <option value="">Toutes catégories</option>
                                 <!-- JS Injection -->
                             </select>
-                            <select id="filter-stock-status" onchange="renderStock()" class="w-full md:w-48 px-4 py-2.5 rounded-xl border border-slate-200 outline-none">
-                                <option value="">Tous les stocks</option>
-                                <option value="critique">Stock critique</option>
-                                <option value="zero">Stock épuisé</option>
-                                <option value="normal">Stock normal</option>
-                            </select>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="exportStockCSV()" class="px-4 py-2.5 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2">
-                                <i data-lucide="download" class="w-4 h-4"></i> Export
+                        <div class="grid grid-cols-3 gap-2 md:flex md:gap-2">
+                            <select id="filter-stock-status" onchange="renderStock()" class="col-span-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl border border-slate-200 outline-none text-sm">
+                                <option value="">Tous stocks</option>
+                                <option value="critique">Critique</option>
+                                <option value="zero">Épuisé</option>
+                                <option value="normal">Normal</option>
+                            </select>
+                            <button onclick="exportStockCSV()" class="px-2 py-2 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-1 text-sm">
+                                <i data-lucide="download" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden md:inline">Export</span>
                             </button>
-                            <button onclick="openModal('modal-product')" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
-                                <i data-lucide="plus-circle" class="w-5 h-5"></i> Nouveau
+                            <button onclick="openModal('modal-product')" class="px-3 py-2 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-1 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-sm">
+                                <i data-lucide="plus-circle" class="w-4 h-4"></i> <span class="hidden md:inline">Nouveau</span>
                             </button>
-                            <button onclick="openModal('modal-stock-adjust')" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all">
-                                <i data-lucide="package-plus" class="w-5 h-5"></i> Ajuster
+                            <button onclick="openModal('modal-stock-adjust')" class="px-3 py-2 bg-emerald-600 text-white rounded-xl font-semibold flex items-center justify-center gap-1 hover:bg-emerald-700 transition-all text-sm">
+                                <i data-lucide="package-plus" class="w-4 h-4"></i> <span class="hidden md:inline">Ajuster</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="glass-card rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
+                    <!-- Mobile-friendly stock table -->
+                    <div class="mobile-only space-y-3" id="mobile-stock-list">
+                        <!-- Will be populated by JavaScript for mobile -->
+                    </div>
+
+                    <!-- Desktop table (hidden on mobile) -->
+                    <div class="desktop-only glass-card rounded-2xl overflow-hidden shadow-sm overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-slate-50 border-b">
                                 <tr>
@@ -434,101 +681,102 @@
                             <tbody id="stock-table-body" class="divide-y divide-slate-100">
                                 <!-- JS Injection -->
                             </tbody>
-                            <tfoot class="bg-slate-50 border-t">
-                                <tr>
-                                    <td colspan="7" class="px-6 py-4 text-right text-sm font-bold text-slate-700">
-                                        Valeur totale du stock :
-                                    </td>
-                                    <td class="px-6 py-4 text-right text-lg font-bold text-blue-600" id="total-stock-value">
-                                        0 Ar
-                                    </td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
 
+                    <!-- Total value - visible on both -->
+                    <div class="glass-card p-4 rounded-xl shadow-sm">
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm font-bold text-slate-700">Valeur totale du stock :</div>
+                            <div class="text-lg font-bold text-blue-600" id="total-stock-value">0 Ar</div>
+                        </div>
+                    </div>
+
                     <!-- Stock Movements History -->
-                    <div class="glass-card p-6 rounded-2xl shadow-sm">
-                        <h4 class="font-bold mb-4 flex items-center gap-2">
-                            <i data-lucide="activity" class="w-5 h-5 text-blue-500"></i> Historique des mouvements de stock
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h4 class="font-bold mb-3 md:mb-4 flex items-center gap-2 text-sm md:text-base">
+                            <i data-lucide="activity" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Historique stock
                         </h4>
-                        <div id="stock-movements" class="space-y-3 max-h-[300px] overflow-y-auto">
+                        <div id="stock-movements" class="space-y-2 md:space-y-3 max-h-[200px] md:max-h-[300px] overflow-y-auto">
                             <!-- JS Injection -->
                         </div>
                     </div>
                 </div>
 
-                <!-- SALES TAB -->
-                <div id="tab-sales" class="tab-content space-y-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- SALES TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-sales" class="tab-content space-y-4 md:space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                         <!-- POS Side -->
-                        <div class="lg:col-span-2 space-y-4">
-                            <div class="glass-card p-6 rounded-2xl shadow-sm">
-                                <div class="flex justify-between items-center mb-6">
-                                    <h4 class="font-bold flex items-center gap-2">
-                                        <i data-lucide="shopping-bag" class="w-5 h-5 text-blue-500"></i> Nouvelle Facture
+                        <div class="md:col-span-2 space-y-4">
+                            <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                                <div class="flex justify-between items-center mb-4 md:mb-6">
+                                    <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                                        <i data-lucide="shopping-bag" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Nouvelle Facture
                                     </h4>
-                                    <div class="text-sm text-slate-500">
+                                    <div class="text-xs md:text-sm text-slate-500">
                                         <span id="invoice-number">Facture #001</span>
                                     </div>
                                 </div>
                                 
                                 <!-- Client Information -->
-                                <div class="mb-6 p-4 bg-slate-50 rounded-xl">
-                                    <h5 class="font-bold text-sm mb-3 flex items-center gap-2">
-                                        <i data-lucide="user" class="w-4 h-4"></i> Informations Client
+                                <div class="mb-4 md:mb-6 p-3 md:p-4 bg-slate-50 rounded-xl">
+                                    <h5 class="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center gap-2">
+                                        <i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> Client
                                     </h5>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom du Client *</label>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom *</label>
                                             <input type="text" id="client-name" placeholder="Nom complet" 
-                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                                class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Téléphone</label>
                                             <input type="text" id="client-phone" placeholder="+261 XX XX XXX XX" 
-                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                                class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Cart Items -->
-                                <div class="mb-6">
-                                    <h5 class="font-bold text-sm mb-3 flex items-center gap-2">
-                                        <i data-lucide="shopping-cart" class="w-4 h-4"></i> Articles
-                                    </h5>
-                                    <div class="space-y-4" id="cart-items">
+                                <div class="mb-4 md:mb-6">
+                                    <div class="flex justify-between items-center mb-2 md:mb-3">
+                                        <h5 class="font-bold text-xs md:text-sm flex items-center gap-2">
+                                            <i data-lucide="shopping-cart" class="w-3 h-3 md:w-4 md:h-4"></i> Articles
+                                        </h5>
+                                        <span class="text-xs text-slate-500" id="cart-count">0 article(s)</span>
+                                    </div>
+                                    <div class="space-y-2 md:space-y-4" id="cart-items">
                                         <!-- Cart items will be added here -->
-                                        <div class="text-center py-8 text-slate-400">
-                                            <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
-                                            <p>Aucun article ajouté</p>
+                                        <div class="text-center py-6 md:py-8 text-slate-400">
+                                            <i data-lucide="shopping-cart" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 opacity-30"></i>
+                                            <p class="text-sm">Aucun article ajouté</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- Add Product Form -->
-                                <div class="p-4 bg-blue-50 rounded-xl mb-6">
-                                    <h6 class="font-bold text-sm mb-3 flex items-center gap-2">
-                                        <i data-lucide="plus-circle" class="w-4 h-4"></i> Ajouter un article
+                                <div class="p-3 md:p-4 bg-blue-50 rounded-xl mb-4 md:mb-6">
+                                    <h6 class="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center gap-2">
+                                        <i data-lucide="plus-circle" class="w-3 h-3 md:w-4 md:h-4"></i> Ajouter article
                                     </h6>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produit</label>
-                                            <select id="sale-product" class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                            <select id="sale-product" class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                                 <!-- JS Injection -->
                                             </select>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
                                             <input type="number" id="sale-qty" value="1" min="1" 
-                                                class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none">
+                                                class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix unitaire</label>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix</label>
                                             <div class="flex gap-2">
                                                 <input type="number" id="sale-price" readonly 
-                                                    class="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
-                                                <button type="button" onclick="addToCart()" class="px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+                                                    class="flex-1 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base">
+                                                <button type="button" onclick="addToCart()" class="px-3 md:px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 touch-target">
                                                     <i data-lucide="plus" class="w-4 h-4"></i>
                                                 </button>
                                             </div>
@@ -537,44 +785,44 @@
                                 </div>
 
                                 <!-- Payment & Summary -->
-                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div class="space-y-4">
-                                        <div class="p-4 bg-slate-50 rounded-xl">
-                                            <h6 class="font-bold text-sm mb-3">Mode de Paiement</h6>
-                                            <div class="space-y-2">
-                                                <label class="flex items-center gap-2 cursor-pointer">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                    <div class="space-y-3 md:space-y-4">
+                                        <div class="p-3 md:p-4 bg-slate-50 rounded-xl">
+                                            <h6 class="font-bold text-xs md:text-sm mb-2">Paiement</h6>
+                                            <div class="grid grid-cols-3 gap-1 md:gap-2 md:space-y-2">
+                                                <label class="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border">
                                                     <input type="radio" name="payment-method" value="cash" checked class="rounded">
-                                                    <span class="text-sm">Espèces</span>
+                                                    <span class="text-xs text-center">Espèces</span>
                                                 </label>
-                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                <label class="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border">
                                                     <input type="radio" name="payment-method" value="credit" class="rounded">
-                                                    <span class="text-sm">Crédit</span>
+                                                    <span class="text-xs text-center">Crédit</span>
                                                 </label>
-                                                <label class="flex items-center gap-2 cursor-pointer">
+                                                <label class="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border">
                                                     <input type="radio" name="payment-method" value="mobile" class="rounded">
-                                                    <span class="text-sm">Mobile Money</span>
+                                                    <span class="text-xs text-center">Mobile</span>
                                                 </label>
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    <div class="p-4 bg-emerald-50 rounded-xl">
-                                        <h6 class="font-bold text-sm mb-3">Récapitulatif</h6>
-                                        <div class="space-y-2 text-sm">
+                                    <div class="p-3 md:p-4 bg-emerald-50 rounded-xl">
+                                        <h6 class="font-bold text-xs md:text-sm mb-2">Récapitulatif</h6>
+                                        <div class="space-y-1 md:space-y-2 text-xs md:text-sm">
                                             <div class="flex justify-between">
                                                 <span class="text-slate-600">Sous-total :</span>
                                                 <span id="invoice-subtotal" class="font-bold">0 Ar</span>
                                             </div>
                                             <div class="flex justify-between">
                                                 <span class="text-slate-600">Total :</span>
-                                                <span id="invoice-total" class="font-bold text-xl text-blue-600">0 Ar</span>
+                                                <span id="invoice-total" class="font-bold text-lg md:text-xl text-blue-600">0 Ar</span>
                                             </div>
-                                            <div id="credit-info" class="hidden mt-3 p-2 bg-amber-100 text-amber-800 rounded text-xs">
+                                            <div id="credit-info" class="hidden mt-2 p-2 bg-amber-100 text-amber-800 rounded text-xs">
                                                 <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>
-                                                La facture sera enregistrée comme crédit
+                                                Enregistré comme crédit
                                             </div>
-                                            <button onclick="completeSale()" class="w-full mt-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
-                                                <i data-lucide="check-circle" class="w-5 h-5"></i> Finaliser la vente
+                                            <button onclick="completeSale()" class="w-full mt-3 md:mt-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 touch-target">
+                                                <i data-lucide="check-circle" class="w-4 h-4 md:w-5 md:h-5"></i> Finaliser
                                             </button>
                                         </div>
                                     </div>
@@ -583,15 +831,15 @@
                         </div>
 
                         <!-- History Side -->
-                        <div class="lg:col-span-1 space-y-4">
-                            <div class="glass-card p-6 rounded-2xl shadow-sm">
-                                <div class="flex items-center justify-between mb-6">
-                                    <h4 class="font-bold flex items-center gap-2">
-                                        <i data-lucide="list" class="w-5 h-5 text-slate-400"></i> Factures récentes
+                        <div class="md:col-span-1 space-y-4">
+                            <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                                <div class="flex items-center justify-between mb-4 md:mb-6">
+                                    <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                                        <i data-lucide="list" class="w-4 h-4 md:w-5 md:h-5 text-slate-400"></i> Factures
                                     </h4>
-                                    <div class="text-xs text-slate-400">Aujourd'hui : <span id="sales-today-count" class="font-bold text-slate-600">0</span></div>
+                                    <div class="text-xs text-slate-400">Aujourd'hui: <span id="sales-today-count" class="font-bold text-slate-600">0</span></div>
                                 </div>
-                                <div id="recent-invoices" class="space-y-3 max-h-[500px] overflow-y-auto">
+                                <div id="recent-invoices" class="space-y-2 md:space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto">
                                     <!-- JS Injection -->
                                 </div>
                             </div>
@@ -599,63 +847,70 @@
                     </div>
                 </div>
 
-                <!-- CREDITS TAB -->
-                <div id="tab-credits" class="tab-content space-y-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-1 space-y-4">
-                            <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-rose-500">
-                                <h4 class="font-bold mb-6 flex items-center gap-2">
-                                    <i data-lucide="dollar-sign" class="w-5 h-5 text-rose-500"></i> Règlement Crédit
+                <!-- CREDITS TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-credits" class="tab-content space-y-4 md:space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div class="md:col-span-1 space-y-4">
+                            <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-rose-500">
+                                <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+                                    <i data-lucide="dollar-sign" class="w-4 h-4 md:w-5 md:h-5 text-rose-500"></i> Règlement
                                 </h4>
-                                <form id="form-credit-payment" class="space-y-4">
+                                <form id="form-credit-payment" class="space-y-3 md:space-y-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Sélectionner crédit</label>
-                                        <select id="credit-select" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
-                                            <option value="">-- Choisir un crédit --</option>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Sélectionner</label>
+                                        <select id="credit-select" required class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none text-sm md:text-base">
+                                            <option value="">-- Choisir --</option>
                                             <!-- JS Injection -->
                                         </select>
                                     </div>
-                                    <div id="credit-details" class="hidden p-3 bg-rose-50 rounded-lg">
-                                        <div class="text-sm space-y-1">
+                                    <div id="credit-details" class="hidden p-3 bg-rose-50 rounded-lg text-xs md:text-sm">
+                                        <div class="space-y-1">
                                             <div class="flex justify-between">
-                                                <span class="text-slate-600">Client :</span>
+                                                <span class="text-slate-600">Client:</span>
                                                 <span id="credit-client" class="font-bold"></span>
                                             </div>
                                             <div class="flex justify-between">
-                                                <span class="text-slate-600">Montant restant :</span>
+                                                <span class="text-slate-600">Reste:</span>
                                                 <span id="credit-balance" class="font-bold text-rose-600"></span>
                                             </div>
                                             <div class="flex justify-between">
-                                                <span class="text-slate-600">Date :</span>
+                                                <span class="text-slate-600">Date:</span>
                                                 <span id="credit-date" class="text-slate-500 text-xs"></span>
                                             </div>
                                         </div>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Montant payé (Ar)</label>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Montant (Ar)</label>
                                         <input type="number" id="credit-payment-amount" required placeholder="0" 
-                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
+                                            class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-rose-500 outline-none text-sm md:text-base">
                                     </div>
-                                    <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all">
-                                        Enregistrer le paiement
+                                    <button type="submit" class="w-full py-3 md:py-4 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-all touch-target">
+                                        Enregistrer
                                     </button>
                                 </form>
                             </div>
                         </div>
-                        <div class="lg:col-span-2">
-                            <div class="glass-card rounded-2xl overflow-hidden shadow-sm">
-                                <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
-                                    <h4 class="font-bold">Crédits en cours</h4>
+                        <div class="md:col-span-2">
+                            <div class="glass-card rounded-xl md:rounded-2xl overflow-hidden shadow-sm">
+                                <div class="p-3 md:p-4 bg-slate-50 border-b flex justify-between items-center">
+                                    <h4 class="font-bold text-sm md:text-base">Crédits en cours</h4>
                                     <span id="total-credits" class="text-sm font-bold text-rose-600">0 Ar</span>
                                 </div>
-                                <div class="overflow-x-auto">
+                                
+                                <!-- Mobile credits list -->
+                                <div class="mobile-only space-y-2 p-3" id="mobile-credits-list">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                                
+                                <!-- Desktop table -->
+                                <div class="desktop-only overflow-x-auto">
                                     <table class="w-full text-left">
                                         <thead class="bg-white border-b">
                                             <tr>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Client</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Facture</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Montant total</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Total</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Payé</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Reste</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Statut</th>
@@ -672,18 +927,18 @@
                     </div>
                 </div>
 
-                <!-- EXPENSES TAB -->
-                <div id="tab-expenses" class="tab-content space-y-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-1 space-y-4">
-                            <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-amber-500">
-                                <h4 class="font-bold mb-6 flex items-center gap-2">
-                                    <i data-lucide="minus-circle" class="w-5 h-5 text-amber-500"></i> Sortie de Caisse
+                <!-- EXPENSES TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-expenses" class="tab-content space-y-4 md:space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div class="md:col-span-1 space-y-4">
+                            <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-amber-500">
+                                <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+                                    <i data-lucide="minus-circle" class="w-4 h-4 md:w-5 md:h-5 text-amber-500"></i> Sortie Caisse
                                 </h4>
-                                <form id="form-expense" class="space-y-4">
+                                <form id="form-expense" class="space-y-3 md:space-y-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Catégorie</label>
-                                        <select id="expense-category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Catégorie</label>
+                                        <select id="expense-category" required class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
                                             <option value="">Sélectionner</option>
                                             <option value="loyer">Loyer</option>
                                             <option value="electricite">Électricité</option>
@@ -695,226 +950,234 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Motif / Description</label>
-                                        <input type="text" id="expense-motif" required placeholder="Ex: Loyer, Electricité..." 
-                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Motif</label>
+                                        <input type="text" id="expense-motif" required placeholder="Ex: Loyer..." 
+                                            class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Montant (Ar)</label>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Montant (Ar)</label>
                                         <input type="number" id="expense-amount" required placeholder="0" min="1"
-                                            class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none">
+                                            class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
                                     </div>
-                                    <button type="submit" class="w-full py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-all">
-                                        Enregistrer la dépense
+                                    <button type="submit" class="w-full py-3 md:py-4 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 transition-all touch-target">
+                                        Enregistrer
                                     </button>
                                 </form>
                             </div>
                         </div>
-                        <div class="lg:col-span-2">
-                            <div class="glass-card rounded-2xl overflow-hidden shadow-sm h-full">
-                                <div class="p-4 bg-slate-50 border-b flex justify-between items-center">
-                                    <h4 class="font-bold">Journal des dépenses</h4>
+                        <div class="md:col-span-2">
+                            <div class="glass-card rounded-xl md:rounded-2xl overflow-hidden shadow-sm">
+                                <div class="p-3 md:p-4 bg-slate-50 border-b flex justify-between items-center">
+                                    <h4 class="font-bold text-sm md:text-base">Dépenses</h4>
                                     <button onclick="exportExpensesCSV()" class="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1">
-                                        <i data-lucide="download" class="w-3 h-3"></i> Export
+                                        <i data-lucide="download" class="w-3 h-3"></i> <span class="hidden md:inline">Export</span>
                                     </button>
                                 </div>
-                                <div class="p-4 border-b flex gap-4">
-                                    <select id="expense-filter-category" onchange="renderExpenses()" class="px-3 py-1 border rounded text-sm outline-none">
+                                <div class="p-3 md:p-4 border-b flex gap-2 md:gap-4">
+                                    <select id="expense-filter-category" onchange="renderExpenses()" class="px-2 md:px-3 py-1 border rounded text-xs md:text-sm outline-none flex-1">
                                         <option value="">Toutes catégories</option>
                                         <!-- JS Injection -->
                                     </select>
-                                    <input type="month" id="expense-filter-month" onchange="renderExpenses()" class="px-3 py-1 border rounded text-sm outline-none">
+                                    <input type="month" id="expense-filter-month" onchange="renderExpenses()" class="px-2 md:px-3 py-1 border rounded text-xs md:text-sm outline-none">
                                 </div>
-                                <div class="overflow-x-auto">
+                                
+                                <!-- Mobile expenses list -->
+                                <div class="mobile-only space-y-2 p-3" id="mobile-expenses-list">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                                
+                                <!-- Desktop table -->
+                                <div class="desktop-only overflow-x-auto">
                                     <table class="w-full text-left">
                                         <thead class="bg-white border-b">
                                             <tr>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Catégorie</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Description</th>
-                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Montant (Ar)</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Montant</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="expenses-table-body" class="divide-y divide-slate-100 text-sm">
                                             <!-- JS Injection -->
                                         </tbody>
-                                        <tfoot>
-                                            <tr class="bg-slate-50">
-                                                <td colspan="3" class="px-6 py-4 text-right font-bold">Total :</td>
-                                                <td id="total-expenses" class="px-6 py-4 text-right font-bold text-amber-600">0 Ar</td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
                                     </table>
+                                </div>
+                                
+                                <!-- Total footer -->
+                                <div class="p-3 md:p-4 border-t bg-slate-50">
+                                    <div class="flex justify-between items-center">
+                                        <div class="font-bold text-sm md:text-base">Total :</div>
+                                        <div id="total-expenses" class="font-bold text-amber-600 text-lg md:text-xl">0 Ar</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- LOGS TAB -->
+                <!-- LOGS TAB - OPTIMIZED FOR MOBILE -->
                 <div id="tab-logs" class="tab-content space-y-4">
-                    <div class="flex justify-between items-center">
-                        <h4 class="font-bold flex items-center gap-2">
-                            <i data-lucide="database" class="w-5 h-5"></i> Journal système complet
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                        <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                            <i data-lucide="database" class="w-4 h-4 md:w-5 md:h-5"></i> Journal système
                         </h4>
                         <div class="flex gap-2">
-                            <select id="log-filter-type" onchange="renderLogs()" class="text-xs border rounded px-2 py-1 outline-none">
-                                <option value="">Tous les types</option>
+                            <select id="log-filter-type" onchange="renderLogs()" class="text-xs border rounded px-2 py-1 outline-none flex-1">
+                                <option value="">Tous types</option>
                                 <option value="info">Info</option>
                                 <option value="warning">Avertissement</option>
                                 <option value="error">Erreur</option>
                                 <option value="success">Succès</option>
                             </select>
-                            <button onclick="clearLogs()" class="text-xs text-red-500 font-semibold hover:underline">Vider les logs</button>
+                            <button onclick="clearLogs()" class="text-xs text-red-500 font-semibold hover:underline whitespace-nowrap">Vider</button>
                         </div>
                     </div>
-                    <div class="glass-card rounded-2xl shadow-sm overflow-hidden">
-                        <div id="full-logs-list" class="divide-y max-h-[600px] overflow-y-auto">
+                    <div class="glass-card rounded-xl md:rounded-2xl shadow-sm overflow-hidden">
+                        <div id="full-logs-list" class="divide-y max-h-[500px] md:max-h-[600px] overflow-y-auto">
                             <!-- JS Injection -->
                         </div>
                     </div>
                 </div>
 
-                <!-- SETTINGS TAB -->
-                <div id="tab-settings" class="tab-content space-y-6">
+                <!-- SETTINGS TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-settings" class="tab-content space-y-4 md:space-y-6">
                     
-                    <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl mt-4">
-    <p class="text-sm text-blue-800 mb-3">Souhaitez-vous activer la version complète avant la fin de l'essai ?</p>
-    <button onclick="document.getElementById('license-overlay').style.display = 'flex'" 
-            class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
-        Saisir une clé de licence
-    </button>
-</div>
+                    <div class="p-3 md:p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <p class="text-sm text-blue-800 mb-2 md:mb-3">Activer la version complète avant la fin de l'essai ?</p>
+                        <button onclick="document.getElementById('license-overlay').style.display = 'flex'" 
+                                class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 touch-target">
+                            Saisir clé de licence
+                        </button>
+                    </div>
 
                     <!-- Company Information -->
-                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-blue-500">
-                        <h4 class="font-bold mb-6 flex items-center gap-2">
-                            <i data-lucide="building" class="w-5 h-5 text-blue-500"></i> Informations de l'Entreprise
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-blue-500">
+                        <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+                            <i data-lucide="building" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Entreprise
                         </h4>
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3 md:space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nom de l'entreprise *</label>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Nom *</label>
                                     <input type="text" id="company-name" value="Enterprise Goaka" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Adresse</label>
-                                    <input type="text" id="company-address" placeholder="Adresse complète" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Adresse</label>
+                                    <input type="text" id="company-address" placeholder="Adresse" 
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Téléphone</label>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Téléphone</label>
                                     <input type="text" id="company-phone" placeholder="+261 XX XX XXX XX" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">NIF/STAT</label>
-                                    <input type="text" id="company-nif" placeholder="N° NIF ou STAT" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">NIF/STAT</label>
+                                    <input type="text" id="company-nif" placeholder="N° NIF/STAT" 
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email</label>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Email</label>
                                     <input type="email" id="company-email" placeholder="contact@entreprise.mg" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Signature sur facture</label>
-                                <input type="text" id="company-signature" placeholder="Nom du responsable ou signature" 
-                                    class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Signature</label>
+                                <input type="text" id="company-signature" placeholder="Nom du responsable" 
+                                    class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                             </div>
-                            <button onclick="updateCompanyInfo()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all">
-                                Enregistrer les informations
+                            <button onclick="updateCompanyInfo()" class="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all touch-target">
+                                Enregistrer
                             </button>
                         </div>
                     </div>
 
                     <!-- Authentication Section -->
-                    <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-purple-500">
-                        <h4 class="font-bold mb-6 flex items-center gap-2">
-                            <i data-lucide="lock" class="w-5 h-5 text-purple-500"></i> Authentification & Sécurité
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500">
+                        <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+                            <i data-lucide="lock" class="w-4 h-4 md:w-5 md:h-5 text-purple-500"></i> Sécurité
                         </h4>
-                        <div class="space-y-4">
-                            <div class="p-4 bg-blue-50 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
+                        <div class="space-y-3 md:space-y-4">
+                            <div class="p-3 md:p-4 bg-blue-50 rounded-xl">
+                                <div class="flex items-center justify-between">
                                     <div>
-                                        <div class="font-bold text-slate-700">Protection des suppressions</div>
-                                        <div class="text-xs text-slate-500">Demande un mot de passe pour les suppressions importantes</div>
+                                        <div class="font-bold text-slate-700 text-sm md:text-base">Protection suppressions</div>
+                                        <div class="text-xs text-slate-500">Mot de passe requis</div>
                                     </div>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" id="auth-enabled" checked class="sr-only peer">
-                                        <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        <div class="w-10 h-6 md:w-11 md:h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div id="auth-config" class="space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div id="auth-config" class="space-y-3 md:space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mot de passe actuel</label>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Mot de passe actuel</label>
                                         <input type="password" id="current-password" 
-                                            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                            class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none text-sm md:text-base">
                                     </div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nouveau mot de passe</label>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Nouveau</label>
                                         <input type="password" id="new-password" 
-                                            class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                            class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none text-sm md:text-base">
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Confirmer nouveau mot de passe</label>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Confirmer</label>
                                     <input type="password" id="confirm-password" 
-                                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 outline-none">
+                                        class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none text-sm md:text-base">
                                 </div>
-                                <button onclick="updatePassword()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all">
-                                    Mettre à jour le mot de passe
+                                <button onclick="updatePassword()" class="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all touch-target">
+                                    Mettre à jour
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <!-- Data Management -->
-                        <div class="glass-card p-6 rounded-2xl shadow-sm">
-                            <h4 class="font-bold mb-6 flex items-center gap-2">
-                                <i data-lucide="hard-drive" class="w-5 h-5 text-blue-500"></i> Gestion des données
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="hard-drive" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Données
                             </h4>
-                            <div class="space-y-4">
-                                <p class="text-sm text-slate-500 italic mb-4">Sauvegardez ou restaurez votre base locale.</p>
-                                <button onclick="exportData()" class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-blue-50 rounded-xl transition-all group">
+                            <div class="space-y-3 md:space-y-4">
+                                <p class="text-xs md:text-sm text-slate-500 italic mb-3 md:mb-4">Sauvegardez ou restaurez</p>
+                                <button onclick="exportData()" class="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="download" class="w-5 h-5 text-blue-600"></i>
+                                        <i data-lucide="download" class="w-4 h-4 md:w-5 md:h-5 text-blue-600"></i>
                                         <div class="text-left">
-                                            <div class="font-bold text-slate-700">Exporter (Backup)</div>
-                                            <div class="text-[10px] text-slate-400">Télécharger le fichier .json</div>
+                                            <div class="font-bold text-slate-700 text-sm md:text-base">Exporter</div>
+                                            <div class="text-[10px] md:text-xs text-slate-400">Backup .json</div>
                                         </div>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-blue-400"></i>
                                 </button>
 
-                                <label class="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-emerald-50 rounded-xl transition-all group cursor-pointer">
+                                <label class="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-emerald-50 rounded-lg md:rounded-xl transition-all group cursor-pointer touch-target">
                                     <div class="flex items-center gap-3">
-                                        <i data-lucide="upload" class="w-5 h-5 text-emerald-600"></i>
+                                        <i data-lucide="upload" class="w-4 h-4 md:w-5 md:h-5 text-emerald-600"></i>
                                         <div class="text-left">
-                                            <div class="font-bold text-slate-700 text-sm">Importer (Restauration)</div>
-                                            <div class="text-[10px] text-slate-400">Charger un fichier sauvegardé</div>
+                                            <div class="font-bold text-slate-700 text-sm md:text-base">Importer</div>
+                                            <div class="text-[10px] md:text-xs text-slate-400">Charger backup</div>
                                         </div>
                                     </div>
                                     <input type="file" class="hidden" onchange="importData(event)" accept=".json">
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300 group-hover:text-emerald-400"></i>
                                 </label>
 
-                                <button onclick="triggerReset()" class="w-full flex items-center justify-between p-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all group">
+                                <button onclick="triggerReset()" class="w-full flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3 text-red-600">
-                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        <i data-lucide="trash-2" class="w-4 h-4 md:w-5 md:h-5"></i>
                                         <div class="text-left">
-                                            <div class="font-bold">Réinitialisation complète</div>
-                                            <div class="text-[10px] text-red-400 opacity-70">Attention : irréversible</div>
+                                            <div class="font-bold text-sm md:text-base">Réinitialisation</div>
+                                            <div class="text-[10px] md:text-xs text-red-400 opacity-70">Attention</div>
                                         </div>
                                     </div>
                                 </button>
@@ -922,31 +1185,31 @@
                         </div>
 
                         <!-- System Info -->
-                        <div class="glass-card p-6 rounded-2xl shadow-sm">
-                            <h4 class="font-bold mb-6 flex items-center gap-2 text-slate-800">
-                                <i data-lucide="info" class="w-5 h-5 text-slate-400"></i> À propos
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 md:mb-6 flex items-center gap-2 text-slate-800 text-sm md:text-base">
+                                <i data-lucide="info" class="w-4 h-4 md:w-5 md:h-5 text-slate-400"></i> À propos
                             </h4>
-                            <div class="space-y-4">
+                            <div class="space-y-3 md:space-y-4">
                                 <div class="flex justify-between items-center py-2 border-b">
-                                    <span class="text-slate-500 text-sm">Nom de l'application</span>
-                                    <span class="font-semibold text-sm">Enterprise Goaka Edition</span>
+                                    <span class="text-slate-500 text-xs md:text-sm">Application</span>
+                                    <span class="font-semibold text-xs md:text-sm">Enterprise Goaka</span>
                                 </div>
                                 <div class="flex justify-between items-center py-2 border-b">
-                                    <span class="text-slate-500 text-sm">Version</span>
-                                    <span class="font-semibold text-sm">1.0.0 Goaka</span>
+                                    <span class="text-slate-500 text-xs md:text-sm">Version</span>
+                                    <span class="font-semibold text-xs md:text-sm">1.0.0 Goaka</span>
                                 </div>
                                 <div class="flex justify-between items-center py-2 border-b">
-                                    <span class="text-slate-500 text-sm">Dernière mise à jour</span>
-                                    <span class="font-semibold text-sm">26 Janvier 2026</span>
+                                    <span class="text-slate-500 text-xs md:text-sm">Mise à jour</span>
+                                    <span class="font-semibold text-xs md:text-sm">26 Jan 2026</span>
                                 </div>
                                 <div class="flex justify-between items-center py-2 border-b">
-                                    <span class="text-slate-500 text-sm">Stockage utilisé</span>
-                                    <span id="storage-size" class="font-semibold text-sm text-blue-600">0 KB</span>
+                                    <span class="text-slate-500 text-xs md:text-sm">Stockage</span>
+                                    <span id="storage-size" class="font-semibold text-xs md:text-sm text-blue-600">0 KB</span>
                                 </div>
-                                <div class="mt-6 p-4 bg-slate-100 rounded-2xl text-center">
-                                    <div class="text-xl font-black text-slate-300 mb-2" id="settings-company-name">Enterprise Goaka</div>
-                                    <div class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Solution Premium de Gestion</div>
-                                    <div class="text-[8px] text-slate-400 mt-2">© 2024 - Tous droits réservés</div>
+                                <div class="mt-4 md:mt-6 p-3 md:p-4 bg-slate-100 rounded-xl md:rounded-2xl text-center">
+                                    <div class="text-lg md:text-xl font-black text-slate-300 mb-2" id="settings-company-name">Enterprise Goaka</div>
+                                    <div class="text-[10px] md:text-xs uppercase tracking-widest font-bold text-slate-400">Gestion Premium</div>
+                                    <div class="text-[8px] md:text-[10px] text-slate-400 mt-2">© 2024 - Tous droits réservés</div>
                                 </div>
                             </div>
                         </div>
@@ -955,25 +1218,25 @@
 
             </div> <!-- End Scroll Area -->
 
-            <!-- MOBILE NAV BAR -->
-            <nav class="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-white border-t z-50 flex items-center justify-around px-2 md:hidden">
-                <button onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link active" data-tab="dashboard">
+            <!-- MOBILE NAV BAR - IMPROVED -->
+            <nav class="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-sm border-t z-50 flex items-center justify-around px-2 md:hidden">
+                <button onclick="switchTab('dashboard')" class="flex flex-col items-center gap-1 text-slate-400 px-2 py-1 mobile-link active touch-target" data-tab="dashboard">
                     <i data-lucide="home" class="w-5 h-5"></i>
-                    <span class="text-[10px]">Home</span>
+                    <span class="text-[10px]">Accueil</span>
                 </button>
-                <button onclick="switchTab('stock')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="stock">
+                <button onclick="switchTab('stock')" class="flex flex-col items-center gap-1 text-slate-400 px-2 py-1 mobile-link touch-target" data-tab="stock">
                     <i data-lucide="package" class="w-5 h-5"></i>
                     <span class="text-[10px]">Stock</span>
                 </button>
-                <button onclick="switchTab('sales')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="sales">
+                <button onclick="switchTab('sales')" class="flex flex-col items-center gap-1 text-slate-400 px-2 py-1 mobile-link touch-target" data-tab="sales">
                     <i data-lucide="shopping-cart" class="w-5 h-5"></i>
                     <span class="text-[10px]">Ventes</span>
                 </button>
-                <button onclick="switchTab('credits')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="credits">
+                <button onclick="switchTab('credits')" class="flex flex-col items-center gap-1 text-slate-400 px-2 py-1 mobile-link touch-target" data-tab="credits">
                     <i data-lucide="credit-card" class="w-5 h-5"></i>
                     <span class="text-[10px]">Crédits</span>
                 </button>
-                <button onclick="switchTab('settings')" class="flex flex-col items-center gap-1 text-slate-400 px-3 py-1 mobile-link" data-tab="settings">
+                <button id="mobile-menu-btn-bottom" class="flex flex-col items-center gap-1 text-slate-400 px-2 py-1 touch-target" data-tab="menu">
                     <i data-lucide="menu" class="w-5 h-5"></i>
                     <span class="text-[10px]">Menu</span>
                 </button>
@@ -982,52 +1245,52 @@
         </main>
     </div>
 
-    <!-- MODALS -->
+    <!-- MODALS - OPTIMIZED FOR MOBILE -->
     
     <!-- Modal Produit -->
     <div id="modal-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="p-6 border-b flex justify-between items-center bg-white">
-                <h3 id="product-modal-title" class="text-xl font-bold text-slate-800">Nouveau Matériel</h3>
-                <button onclick="closeModal('modal-product')" class="p-2 hover:bg-slate-100 rounded-full transition-colors"><i data-lucide="x"></i></button>
+        <div class="glass-card w-full max-w-lg rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center bg-white sticky top-0">
+                <h3 id="product-modal-title" class="text-lg md:text-xl font-bold text-slate-800">Nouveau Matériel</h3>
+                <button onclick="closeModal('modal-product')" class="p-2 hover:bg-slate-100 rounded-full transition-colors touch-target"><i data-lucide="x"></i></button>
             </div>
-            <form id="form-product" class="p-6 space-y-4 bg-white">
+            <form id="form-product" class="p-4 md:p-6 space-y-4 bg-white">
                 <input type="hidden" id="edit-id">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nom du produit / matériel *</label>
-                        <input type="text" id="prod-nom" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nom *</label>
+                        <input type="text" id="prod-nom" required class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Catégorie</label>
-                        <input type="text" id="prod-category" placeholder="Ex: Électronique" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="prod-category" placeholder="Ex: Électronique" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Fournisseur</label>
-                        <input type="text" id="prod-fournisseur" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="prod-fournisseur" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Prix Achat (Ar) *</label>
-                        <input type="number" id="prod-achat" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Prix Achat *</label>
+                        <input type="number" id="prod-achat" required min="1" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix Vente (Ar) *</label>
-                        <input type="number" id="prod-vente" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix Vente *</label>
+                        <input type="number" id="prod-vente" required min="1" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Stock Initial *</label>
-                        <input type="number" id="prod-stock" required min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Stock *</label>
+                        <input type="number" id="prod-stock" required min="0" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alerte Mini</label>
-                        <input type="number" id="prod-min" value="5" min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="number" id="prod-min" value="5" min="0" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                 </div>
                 <div class="text-xs text-slate-400 italic">* Champs obligatoires</div>
                 <div id="product-error" class="hidden p-3 bg-red-50 text-red-600 rounded-lg text-sm"></div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModal('modal-product')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all">Annuler</button>
-                    <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Enregistrer</button>
+                    <button type="button" onclick="closeModal('modal-product')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all touch-target">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all touch-target">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -1035,16 +1298,16 @@
 
     <!-- Modal Ajustement Stock -->
     <div id="modal-stock-adjust" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="p-6 border-b flex justify-between items-center bg-white">
-                <h3 class="text-xl font-bold text-slate-800">Ajustement de Stock</h3>
-                <button onclick="closeModal('modal-stock-adjust')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+        <div class="glass-card w-full max-w-md rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center bg-white sticky top-0">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800">Ajustement Stock</h3>
+                <button onclick="closeModal('modal-stock-adjust')" class="p-2 hover:bg-slate-100 rounded-full touch-target"><i data-lucide="x"></i></button>
             </div>
-            <form id="form-stock-adjust" class="p-6 space-y-4 bg-white">
+            <form id="form-stock-adjust" class="p-4 md:p-6 space-y-4 bg-white">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Produit</label>
-                    <select id="adjust-product" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">-- Sélectionner un produit --</option>
+                    <select id="adjust-product" required class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <option value="">-- Sélectionner --</option>
                         <!-- JS Injection -->
                     </select>
                 </div>
@@ -1061,35 +1324,35 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Type d'ajustement</label>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Type</label>
                     <div class="grid grid-cols-2 gap-2">
                         <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-blue-50">
                             <input type="radio" name="adjust-type" value="add" checked class="mr-2">
                             <div>
-                                <div class="font-medium">Ajouter (Achat)</div>
-                                <div class="text-xs text-slate-500">Réapprovisionnement - Dépense</div>
+                                <div class="font-medium text-sm">Ajouter</div>
+                                <div class="text-xs text-slate-500">Réapprovisionnement</div>
                             </div>
                         </label>
                         <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-amber-50">
                             <input type="radio" name="adjust-type" value="remove" class="mr-2">
                             <div>
-                                <div class="font-medium">Retirer</div>
-                                <div class="text-xs text-slate-500">Perte, casse, etc.</div>
+                                <div class="font-medium text-sm">Retirer</div>
+                                <div class="text-xs text-slate-500">Perte, casse</div>
                             </div>
                         </label>
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantité</label>
-                    <input type="number" id="adjust-qty" required min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="adjust-qty" required min="1" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Raison / Commentaire</label>
-                    <textarea id="adjust-reason" rows="2" placeholder="Ex: Réapprovisionnement, Casse, Perte..." class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Raison</label>
+                    <textarea id="adjust-reason" rows="2" placeholder="Ex: Réapprovisionnement..." class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"></textarea>
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModal('modal-stock-adjust')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
-                    <button type="submit" class="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700">Enregistrer</button>
+                    <button type="button" onclick="closeModal('modal-stock-adjust')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 touch-target">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 touch-target">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -1097,15 +1360,15 @@
 
     <!-- Modal Dépense -->
     <div id="modal-expense" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="p-6 border-b flex justify-between items-center bg-white">
-                <h3 class="text-xl font-bold text-slate-800">Nouvelle Dépense</h3>
-                <button onclick="closeModal('modal-expense')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+        <div class="glass-card w-full max-w-md rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center bg-white sticky top-0">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800">Nouvelle Dépense</h3>
+                <button onclick="closeModal('modal-expense')" class="p-2 hover:bg-slate-100 rounded-full touch-target"><i data-lucide="x"></i></button>
             </div>
-            <form id="form-expense-modal" class="p-6 space-y-4 bg-white">
+            <form id="form-expense-modal" class="p-4 md:p-6 space-y-4 bg-white">
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Catégorie</label>
-                    <select id="expense-modal-category" required class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                    <select id="expense-modal-category" required class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
                         <option value="">Sélectionner</option>
                         <option value="loyer">Loyer</option>
                         <option value="electricite">Électricité</option>
@@ -1117,18 +1380,18 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Motif / Description</label>
-                    <input type="text" id="expense-modal-motif" required placeholder="Ex: Loyer, Electricité..." 
-                        class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Motif</label>
+                    <input type="text" id="expense-modal-motif" required placeholder="Ex: Loyer..." 
+                        class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Montant (Ar)</label>
                     <input type="number" id="expense-modal-amount" required placeholder="0" min="1"
-                        class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500">
+                        class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModal('modal-expense')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
-                    <button type="submit" class="flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700">Enregistrer</button>
+                    <button type="button" onclick="closeModal('modal-expense')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 touch-target">Annuler</button>
+                    <button type="submit" class="flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 touch-target">Enregistrer</button>
                 </div>
             </form>
         </div>
@@ -1136,69 +1399,69 @@
 
     <!-- Modal Authentification -->
     <div id="modal-auth" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center animate-fadeIn">
-            <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i data-lucide="lock" class="w-10 h-10"></i>
+        <div class="bg-white w-full max-w-sm rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 text-center animate-fadeIn">
+            <div class="w-16 h-16 md:w-20 md:h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+                <i data-lucide="lock" class="w-8 h-8 md:w-10 md:h-10"></i>
             </div>
-            <h3 class="text-xl font-bold text-slate-800 mb-2">Authentification requise</h3>
-            <p id="auth-message" class="text-slate-500 text-sm mb-6">Cette action nécessite une authentification.</p>
-            <input type="password" id="auth-password" placeholder="Mot de passe administrateur" 
-                class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-blue-500">
+            <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-2">Authentification</h3>
+            <p id="auth-message" class="text-slate-500 text-sm mb-4 md:mb-6">Action nécessite authentification</p>
+            <input type="password" id="auth-password" placeholder="Mot de passe" 
+                class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
             <div id="auth-error" class="hidden text-red-500 text-sm mb-2"></div>
             <div class="flex gap-3">
-                <button onclick="closeModal('modal-auth'); window.authCallback = null;" class="flex-1 px-4 py-3 font-bold text-slate-400">Annuler</button>
-                <button onclick="executeAuth()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold">Valider</button>
+                <button onclick="closeModal('modal-auth'); window.authCallback = null;" class="flex-1 px-4 py-3 font-bold text-slate-400 touch-target">Annuler</button>
+                <button onclick="executeAuth()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold touch-target">Valider</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Reset Confirmation -->
     <div id="modal-reset" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center animate-fadeIn">
-            <div class="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i data-lucide="trash-2" class="w-10 h-10"></i>
+        <div class="bg-white w-full max-w-sm rounded-2xl md:rounded-3xl shadow-2xl p-6 md:p-8 text-center animate-fadeIn">
+            <div class="w-16 h-16 md:w-20 md:h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+                <i data-lucide="trash-2" class="w-8 h-8 md:w-10 md:h-10"></i>
             </div>
-            <h3 class="text-xl font-bold text-slate-800 mb-2">Réinitialisation</h3>
-            <p class="text-slate-500 text-sm mb-4">Toutes les données seront supprimées. Cette action est irréversible.</p>
-            <div class="text-xs text-slate-400 mb-2">Entrez le code administrateur configuré</div>
-            <input type="password" id="reset-pwd" placeholder="Entrez le code Admin" class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-red-500">
+            <h3 class="text-lg md:text-xl font-bold text-slate-800 mb-2">Réinitialisation</h3>
+            <p class="text-slate-500 text-sm mb-4">Toutes les données seront supprimées.</p>
+            <div class="text-xs text-slate-400 mb-2">Code administrateur</div>
+            <input type="password" id="reset-pwd" placeholder="Code Admin" class="w-full px-4 py-3 rounded-xl border mb-4 text-center outline-none focus:ring-2 focus:ring-red-500 text-sm md:text-base">
             <div id="reset-error" class="hidden text-red-500 text-sm mb-2"></div>
             <div class="flex gap-3">
-                <button onclick="closeModal('modal-reset')" class="flex-1 px-4 py-3 font-bold text-slate-400">Annuler</button>
-                <button onclick="confirmReset()" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold">Confirmer</button>
+                <button onclick="closeModal('modal-reset')" class="flex-1 px-4 py-3 font-bold text-slate-400 touch-target">Annuler</button>
+                <button onclick="confirmReset()" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-bold touch-target">Confirmer</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Confirmation Générique -->
     <div id="modal-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[105] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center animate-fadeIn">
-            <div id="confirm-icon" class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="alert-circle" class="w-8 h-8"></i>
+        <div class="bg-white w-full max-w-sm rounded-2xl md:rounded-3xl shadow-2xl p-6 text-center animate-fadeIn">
+            <div id="confirm-icon" class="w-12 h-12 md:w-16 md:h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="alert-circle" class="w-6 h-6 md:w-8 md:h-8"></i>
             </div>
-            <h3 id="confirm-title" class="text-lg font-bold text-slate-800 mb-2">Confirmation</h3>
+            <h3 id="confirm-title" class="text-base md:text-lg font-bold text-slate-800 mb-2">Confirmation</h3>
             <p id="confirm-message" class="text-slate-600 text-sm mb-6"></p>
             <div class="flex gap-3">
-                <button onclick="closeModal('modal-confirm'); window.confirmCallback = null;" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50">Annuler</button>
-                <button onclick="executeConfirm()" id="confirm-action" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold">Confirmer</button>
+                <button onclick="closeModal('modal-confirm'); window.confirmCallback = null;" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 touch-target">Annuler</button>
+                <button onclick="executeConfirm()" id="confirm-action" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold touch-target">Confirmer</button>
             </div>
         </div>
     </div>
 
     <!-- Modal Facture -->
     <div id="modal-invoice" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[80vh]">
-            <div class="p-6 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-slate-800">Facture</h3>
+        <div class="bg-white w-full max-w-4xl rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[80vh]">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800">Facture</h3>
                 <div class="flex gap-2">
-                    <button onclick="printInvoice()" class="px-4 py-2 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2">
-                        <i data-lucide="printer" class="w-4 h-4"></i> Imprimer
+                    <button onclick="printInvoice()" class="px-3 md:px-4 py-2 border border-slate-200 rounded-lg font-medium text-slate-600 hover:bg-slate-50 flex items-center gap-2 touch-target">
+                        <i data-lucide="printer" class="w-4 h-4"></i> <span class="hidden md:inline">Imprimer</span>
                     </button>
-                    <button onclick="closeModal('modal-invoice')" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x"></i></button>
+                    <button onclick="closeModal('modal-invoice')" class="p-2 hover:bg-slate-100 rounded-full touch-target"><i data-lucide="x"></i></button>
                 </div>
             </div>
-            <div class="p-8 overflow-auto">
-                <div id="invoice-content" class="invoice-preview p-8 rounded-xl">
+            <div class="p-4 md:p-8 overflow-auto">
+                <div id="invoice-content" class="invoice-preview p-4 md:p-8 rounded-xl text-sm md:text-base">
                     <!-- Invoice content will be injected here -->
                 </div>
             </div>
@@ -1206,14 +1469,14 @@
     </div>
 
     <!-- NOTIFICATION -->
-    <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 bg-slate-900 text-white rounded-full shadow-2xl flex items-center gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none">
+    <div id="toast" class="fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-[200] px-4 md:px-6 py-2 md:py-3 bg-slate-900 text-white rounded-full shadow-2xl flex items-center gap-2 md:gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none max-w-[90%]">
         <div id="toast-icon"></div>
-        <span id="toast-message" class="text-sm font-medium">Message</span>
+        <span id="toast-message" class="text-xs md:text-sm font-medium truncate">Message</span>
     </div>
 
     <!-- LOADING OVERLAY -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[300] hidden flex items-center justify-center">
-        <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-3 md:gap-4">
             <div class="loader"></div>
             <div class="text-sm font-medium text-slate-700">Chargement...</div>
         </div>
@@ -1279,6 +1542,9 @@
 
             // Setup event listeners
             setupEventListeners();
+            
+            // Setup mobile menu
+            setupMobileMenu();
 
             // Load company info in settings
             loadCompanyInfo();
@@ -1291,6 +1557,30 @@
                 checkAlerts();
             }, 500);
         };
+
+        // Mobile menu functions
+        function setupMobileMenu() {
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const menuBtnBottom = document.getElementById('mobile-menu-btn-bottom');
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            
+            if(menuBtn) {
+                menuBtn.addEventListener('click', () => {
+                    mobileSidebar.classList.remove('hidden');
+                });
+            }
+            
+            if(menuBtnBottom) {
+                menuBtnBottom.addEventListener('click', () => {
+                    mobileSidebar.classList.remove('hidden');
+                });
+            }
+        }
+        
+        function closeMobileMenu() {
+            const mobileSidebar = document.getElementById('mobile-sidebar');
+            mobileSidebar.classList.add('hidden');
+        }
 
         function showLoading() {
             document.getElementById('loading-overlay').classList.remove('hidden');
@@ -1364,6 +1654,12 @@
                     document.getElementById('credit-details').classList.add('hidden');
                 }
             });
+            
+            // Search input for mobile
+            document.getElementById('search-stock').addEventListener('input', function() {
+                renderStock();
+                renderMobileStockList();
+            });
         }
 
         function updateAdjustmentCost() {
@@ -1399,6 +1695,9 @@
             document.getElementById('sidebar-company-name').innerHTML = `
                 ${company.name.split(' ')[0]} <span class="text-slate-400 font-light">${company.name.split(' ').slice(1).join(' ') || 'Pro'}</span>
             `;
+            
+            // Update mobile sidebar
+            document.getElementById('mobile-sidebar-company-name').innerText = company.name;
             
             // Update settings display
             document.getElementById('settings-company-name').innerText = company.name;
@@ -1486,9 +1785,11 @@
 
             // Mobile buttons
             document.querySelectorAll('.mobile-link').forEach(b => {
-                b.classList.remove('text-blue-600');
+                b.classList.remove('text-blue-600', 'active');
                 b.classList.add('text-slate-400');
-                if(b.dataset.tab === tabId) b.classList.add('text-blue-600');
+                if(b.dataset.tab === tabId) {
+                    b.classList.add('text-blue-600', 'active');
+                }
             });
 
             // Header Title
@@ -1508,6 +1809,292 @@
             
             // Scroll to top
             document.getElementById('scroll-area').scrollTop = 0;
+            
+            // Update mobile-specific displays
+            if(tabId === 'stock') {
+                renderMobileStockList();
+            } else if(tabId === 'credits') {
+                renderMobileCreditsList();
+            } else if(tabId === 'expenses') {
+                renderMobileExpensesList();
+            }
+        }
+
+        // === MOBILE-SPECIFIC RENDER FUNCTIONS ===
+        function renderMobileStockList() {
+            const container = document.getElementById('mobile-stock-list');
+            if(!container) return;
+            
+            const search = document.getElementById('search-stock')?.value.toLowerCase() || '';
+            const categoryFilter = document.getElementById('filter-category')?.value || '';
+            const statusFilter = document.getElementById('filter-stock-status')?.value || '';
+            
+            let filtered = db.produits.filter(p => {
+                const matchesSearch = p.nom.toLowerCase().includes(search) || 
+                                     p.fournisseur.toLowerCase().includes(search) ||
+                                     p.category.toLowerCase().includes(search);
+                const matchesCategory = !categoryFilter || p.category === categoryFilter;
+                let matchesStatus = true;
+                
+                if(statusFilter === 'critique') {
+                    matchesStatus = p.stock <= p.min && p.stock > 0;
+                } else if(statusFilter === 'zero') {
+                    matchesStatus = p.stock === 0;
+                } else if(statusFilter === 'normal') {
+                    matchesStatus = p.stock > p.min;
+                }
+                
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+            
+            if(filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i data-lucide="package" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                        <p class="text-sm">Aucun produit trouvé</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filtered.map(p => {
+                let statusClass = '';
+                let statusText = '';
+                if(p.stock === 0) {
+                    statusClass = 'bg-red-100 text-red-600';
+                    statusText = 'Épuisé';
+                } else if(p.stock <= p.min) {
+                    statusClass = 'bg-amber-100 text-amber-600';
+                    statusText = 'Critique';
+                } else {
+                    statusClass = 'bg-emerald-100 text-emerald-600';
+                    statusText = 'Normal';
+                }
+                
+                const margin = ((p.vente - p.achat) / p.achat * 100).toFixed(1);
+                
+                return `
+                <div class="glass-card p-4 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-700 text-sm">${p.nom}</div>
+                            <div class="text-xs text-slate-500">${p.category}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editProduct('${p.id}')" class="p-1 text-blue-600">
+                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" class="p-1 text-red-500">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div class="text-xs">
+                            <div class="text-slate-500">Fournisseur</div>
+                            <div class="font-medium">${p.fournisseur}</div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Stock</div>
+                            <div class="font-medium"><span class="px-2 py-0.5 rounded-full text-xs ${statusClass}">${p.stock}</span></div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Achat</div>
+                            <div class="font-medium">${formatMoney(p.achat)}</div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Vente</div>
+                            <div class="font-medium">${formatMoney(p.vente)} <span class="text-emerald-600">+${margin}%</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="openStockAdjust('${p.id}', 10, 'add')" class="flex-1 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
+                        </button>
+                        <button onclick="openStockAdjust('${p.id}', 1, 'remove')" class="flex-1 px-3 py-2 bg-amber-50 text-amber-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1">
+                            <i data-lucide="minus" class="w-3 h-3"></i> Retirer
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            initLucide();
+        }
+        
+        function renderMobileCreditsList() {
+            const container = document.getElementById('mobile-credits-list');
+            if(!container) return;
+            
+            if(db.credits.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i data-lucide="credit-card" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                        <p class="text-sm">Aucun crédit en cours</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = db.credits.map(c => {
+                let statusClass = '';
+                let statusText = '';
+                
+                if(c.status === 'paid') {
+                    statusClass = 'badge-success';
+                    statusText = 'Soldé';
+                } else {
+                    const days = Math.floor((new Date() - new Date(c.date)) / (1000 * 60 * 60 * 24));
+                    if(days > 30) {
+                        statusClass = 'badge-danger';
+                        statusText = 'En retard';
+                    } else {
+                        statusClass = 'badge-warning';
+                        statusText = 'En attente';
+                    }
+                }
+                
+                return `
+                <div class="glass-card p-4 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-700 text-sm">${c.clientName}</div>
+                            <div class="text-xs text-slate-500">Facture #${String(c.invoiceNumber).padStart(3, '0')}</div>
+                        </div>
+                        <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div class="text-xs">
+                            <div class="text-slate-500">Date</div>
+                            <div class="font-medium">${new Date(c.date).toLocaleDateString('fr-FR')}</div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Total</div>
+                            <div class="font-medium">${formatMoney(c.totalAmount)}</div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Payé</div>
+                            <div class="font-medium text-emerald-600">${formatMoney(c.paidAmount)}</div>
+                        </div>
+                        <div class="text-xs">
+                            <div class="text-slate-500">Reste</div>
+                            <div class="font-medium text-rose-600">${formatMoney(c.balance)}</div>
+                        </div>
+                    </div>
+                    
+                    ${c.status === 'pending' ? `
+                    <div class="flex gap-2">
+                        <button onclick="openCreditPayment('${c.id}')" class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1">
+                            <i data-lucide="credit-card" class="w-3 h-3"></i> Régler
+                        </button>
+                        <button onclick="requireAuth(() => {deleteCredit('${c.id}')})" class="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-medium">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+                `;
+            }).join('');
+            
+            initLucide();
+        }
+        
+        function renderMobileExpensesList() {
+            const container = document.getElementById('mobile-expenses-list');
+            if(!container) return;
+            
+            const categoryFilter = document.getElementById('expense-filter-category')?.value || '';
+            const monthFilter = document.getElementById('expense-filter-month')?.value || '';
+            
+            let filteredExpenses = db.depenses;
+            
+            if(categoryFilter) {
+                filteredExpenses = filteredExpenses.filter(e => e.category === categoryFilter);
+            }
+            
+            if(monthFilter) {
+                const [year, month] = monthFilter.split('-');
+                filteredExpenses = filteredExpenses.filter(e => {
+                    const expenseDate = new Date(e.date);
+                    return expenseDate.getFullYear() == year && 
+                           (expenseDate.getMonth() + 1) == month;
+                });
+            }
+            
+            if(filteredExpenses.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i data-lucide="receipt" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                        <p class="text-sm">Aucune dépense</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = filteredExpenses.map(e => {
+                return `
+                <div class="glass-card p-4 rounded-xl shadow-sm">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-700 text-sm">${e.motif}</div>
+                            <div class="text-xs text-slate-500">${new Date(e.date).toLocaleDateString('fr-FR', { 
+                                day: '2-digit', 
+                                month: '2-digit'
+                            })}</div>
+                        </div>
+                        <button onclick="deleteExpense('${e.id}')" class="p-1 text-slate-300 hover:text-red-500">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="px-2 py-1 text-xs rounded-full ${e.category === 'achat_stock' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}">${e.category}</span>
+                        <div class="font-bold text-amber-600">-${formatMoney(e.amount)}</div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            initLucide();
+        }
+
+        // Update cart count for mobile
+        function updateCartDisplay() {
+            const cartItems = document.getElementById('cart-items');
+            const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+            
+            // Update cart count
+            document.getElementById('cart-count').innerText = `${cart.length} article(s)`;
+            
+            if(cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="text-center py-6 md:py-8 text-slate-400">
+                        <i data-lucide="shopping-cart" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 opacity-30"></i>
+                        <p class="text-sm">Aucun article ajouté</p>
+                    </div>
+                `;
+            } else {
+                cartItems.innerHTML = cart.map((item, index) => `
+                    <div class="flex items-center justify-between p-3 bg-white border rounded-lg">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${item.productName}</div>
+                            <div class="text-xs text-slate-500">${formatMoney(item.price)} x ${item.quantity}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-blue-600 text-sm">${formatMoney(item.total)}</div>
+                            <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
+            document.getElementById('invoice-total').innerText = formatMoney(subtotal);
         }
 
         // === AUTHENTICATION SYSTEM ===
@@ -1637,6 +2224,11 @@
             closeModal('modal-product');
             showToast("Matériel enregistré avec succès", "success");
             updateUI();
+            
+            // Update mobile display if on stock tab
+            if(document.getElementById('tab-stock').classList.contains('active')) {
+                renderMobileStockList();
+            }
         };
 
         function validateProduct(data) {
@@ -1841,38 +2433,6 @@
             updateCartDisplay();
         }
 
-        function updateCartDisplay() {
-            const cartItems = document.getElementById('cart-items');
-            const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-            
-            if(cart.length === 0) {
-                cartItems.innerHTML = `
-                    <div class="text-center py-8 text-slate-400">
-                        <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
-                        <p>Aucun article ajouté</p>
-                    </div>
-                `;
-            } else {
-                cartItems.innerHTML = cart.map((item, index) => `
-                    <div class="flex items-center justify-between p-3 bg-white border rounded-lg">
-                        <div class="flex-1">
-                            <div class="font-medium">${item.productName}</div>
-                            <div class="text-xs text-slate-500">${formatMoney(item.price)} x ${item.quantity}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-blue-600">${formatMoney(item.total)}</div>
-                            <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
-            document.getElementById('invoice-total').innerText = formatMoney(subtotal);
-        }
-
         function completeSale() {
             const clientName = document.getElementById('client-name').value.trim();
             const clientPhone = document.getElementById('client-phone').value.trim();
@@ -1960,86 +2520,86 @@
             
             // Use escapeHtml to sanitize all user-provided values before injecting
             invoiceContent.innerHTML = `
-                <div class="mb-8">
+                <div class="mb-6 md:mb-8">
                     <!-- Company Header -->
-                    <div class="mb-8">
-                        <h1 class="text-2xl font-bold text-slate-800 mb-2">${escapeHtml(company.name)}</h1>
-                        ${company.address ? `<div class="text-slate-600">${escapeHtml(company.address)}</div>` : ''}
-                        ${company.phone ? `<div class="text-slate-600">Tél: ${escapeHtml(company.phone)}</div>` : ''}
-                        ${company.email ? `<div class="text-slate-600">Email: ${escapeHtml(company.email)}</div>` : ''}
-                        ${company.nif ? `<div class="text-slate-600">NIF/STAT: ${escapeHtml(company.nif)}</div>` : ''}
+                    <div class="mb-4 md:mb-8">
+                        <h1 class="text-xl md:text-2xl font-bold text-slate-800 mb-2">${escapeHtml(company.name)}</h1>
+                        ${company.address ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(company.address)}</div>` : ''}
+                        ${company.phone ? `<div class="text-slate-600 text-sm md:text-base">Tél: ${escapeHtml(company.phone)}</div>` : ''}
+                        ${company.email ? `<div class="text-slate-600 text-sm md:text-base">Email: ${escapeHtml(company.email)}</div>` : ''}
+                        ${company.nif ? `<div class="text-slate-600 text-sm md:text-base">NIF/STAT: ${escapeHtml(company.nif)}</div>` : ''}
                     </div>
                     
-                    <div class="flex justify-between items-start mb-8">
+                    <div class="flex justify-between items-start mb-4 md:mb-8">
                         <div>
-                            <h2 class="text-2xl font-bold text-slate-800">FACTURE</h2>
-                            <div class="text-slate-600">${escapeHtml(invoice.id)}</div>
+                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">FACTURE</h2>
+                            <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.id)}</div>
                         </div>
                         <div class="text-right">
-                            <div class="text-slate-600">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
-                            <div class="text-slate-600">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
+                            <div class="text-slate-600 text-sm md:text-base">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
+                            <div class="text-slate-600 text-sm md:text-base">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
                         </div>
                     </div>
                     
                     <!-- Client Info -->
-                    <div class="mb-8 p-4 bg-slate-50 rounded-lg">
-                        <h3 class="font-bold text-slate-700 mb-2">Client</h3>
-                        <div class="text-slate-600">${escapeHtml(invoice.clientName)}</div>
-                        ${invoice.clientPhone ? `<div class="text-slate-600">${escapeHtml(invoice.clientPhone)}</div>` : ''}
+                    <div class="mb-4 md:mb-8 p-3 md:p-4 bg-slate-50 rounded-lg">
+                        <h3 class="font-bold text-slate-700 mb-2 text-sm md:text-base">Client</h3>
+                        <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.clientName)}</div>
+                        ${invoice.clientPhone ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.clientPhone)}</div>` : ''}
                     </div>
                     
                     <!-- Items Table -->
-                    <table class="w-full mb-8">
+                    <table class="w-full mb-4 md:mb-8">
                         <thead>
                             <tr class="border-b">
-                                <th class="text-left py-3 text-slate-600 font-medium">Produit</th>
-                                <th class="text-right py-3 text-slate-600 font-medium">Qté</th>
-                                <th class="text-right py-3 text-slate-600 font-medium">Prix Unitaire</th>
-                                <th class="text-right py-3 text-slate-600 font-medium">Total</th>
+                                <th class="text-left py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Produit</th>
+                                <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Qté</th>
+                                <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Prix</th>
+                                <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${invoice.items.map(item => `
                                 <tr class="border-b">
-                                    <td class="py-3">${escapeHtml(item.productName)}</td>
-                                    <td class="text-right py-3">${escapeHtml(item.quantity)}</td>
-                                    <td class="text-right py-3">${formatMoney(item.price)}</td>
-                                    <td class="text-right py-3">${formatMoney(item.total)}</td>
+                                    <td class="py-2 md:py-3 text-sm md:text-base">${escapeHtml(item.productName)}</td>
+                                    <td class="text-right py-2 md:py-3 text-sm md:text-base">${escapeHtml(item.quantity)}</td>
+                                    <td class="text-right py-2 md:py-3 text-sm md:text-base">${formatMoney(item.price)}</td>
+                                    <td class="text-right py-2 md:py-3 text-sm md:text-base">${formatMoney(item.total)}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                         <tfoot>
                             <tr class="border-t">
-                                <td colspan="3" class="text-right py-3 font-bold">Total</td>
-                                <td class="text-right py-3 font-bold text-xl text-blue-600">${formatMoney(invoice.total)}</td>
+                                <td colspan="3" class="text-right py-2 md:py-3 font-bold text-sm md:text-base">Total</td>
+                                <td class="text-right py-2 md:py-3 font-bold text-lg md:text-xl text-blue-600">${formatMoney(invoice.total)}</td>
                             </tr>
                         </tfoot>
                     </table>
                     
                     <!-- Payment Info -->
-                    <div class="mb-8 p-4 bg-slate-50 rounded-lg">
-                        <h3 class="font-bold text-slate-700 mb-2">Informations de paiement</h3>
-                        <div class="text-slate-600">
-                            Mode de paiement: <span class="font-bold">${escapeHtml(getPaymentMethodText(invoice.paymentMethod))}</span>
+                    <div class="mb-4 md:mb-8 p-3 md:p-4 bg-slate-50 rounded-lg">
+                        <h3 class="font-bold text-slate-700 mb-2 text-sm md:text-base">Paiement</h3>
+                        <div class="text-slate-600 text-sm md:text-base">
+                            Mode: <span class="font-bold">${escapeHtml(getPaymentMethodText(invoice.paymentMethod))}</span>
                         </div>
                         ${invoice.status === 'pending' ? `
-                            <div class="mt-2 text-amber-600 text-sm">
-                                <i data-lucide="alert-circle" class="w-4 h-4 inline mr-1"></i>
-                                Facture en crédit - Solde à payer: ${formatMoney(invoice.total)}
+                            <div class="mt-2 text-amber-600 text-xs md:text-sm">
+                                <i data-lucide="alert-circle" class="w-3 h-3 md:w-4 md:h-4 inline mr-1"></i>
+                                Facture en crédit - Solde: ${formatMoney(invoice.total)}
                             </div>
                         ` : ''}
                     </div>
                     
                     <!-- Footer -->
-                    <div class="mt-12 pt-8 border-t">
-                        <div class="flex justify-between">
-                            <div class="text-sm text-slate-500">
+                    <div class="mt-6 md:mt-12 pt-4 md:pt-8 border-t">
+                        <div class="flex flex-col md:flex-row md:justify-between">
+                            <div class="text-xs md:text-sm text-slate-500 mb-4 md:mb-0">
                                 <div>Merci pour votre confiance !</div>
-                                <div class="mt-4">Pour toute réclamation, contacter le service client.</div>
+                                <div class="mt-2 md:mt-4">Pour toute réclamation, contacter le service client.</div>
                             </div>
-                            <div class="text-right">
-                                <div class="signature-line"></div>
-                                <div class="mt-2 text-slate-600">${escapeHtml(company.signature)}</div>
+                            <div class="text-center md:text-right">
+                                <div class="signature-line mx-auto md:mx-0"></div>
+                                <div class="mt-2 text-slate-600 text-sm md:text-base">${escapeHtml(company.signature)}</div>
                             </div>
                         </div>
                     </div>
@@ -2092,49 +2652,22 @@
                 <head>
                     <title>Facture ${db.config.company.name}</title>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
                         .header { margin-bottom: 30px; }
-                        .company-name { font-size: 24px; font-weight: bold; }
-                        .invoice-title { font-size: 20px; font-weight: bold; margin: 20px 0; }
+                        .company-name { font-size: 20px; font-weight: bold; }
+                        .invoice-title { font-size: 18px; font-weight: bold; margin: 20px 0; }
                         .client-info { margin-bottom: 20px; padding: 10px; background: #f8fafc; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+                        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
+                        th, td { padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
                         th { background-color: #f8fafc; }
-                        .total { font-size: 18px; font-weight: bold; text-align: right; }
+                        .total { font-size: 16px; font-weight: bold; text-align: right; }
                         .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
                         .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 40px; }
                         @media print { 
                             button { display: none; } 
                             body { margin: 0; padding: 20px; }
+                            @page { size: auto; margin: 0mm; }
                         }
-                            /* Styles Sécurité */
-#license-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.98);
-    z-index: 9999;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(10px);
-}
-
-.trial-badge {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: white;
-    padding: 8px 16px;
-    border-radius: 9999px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    z-index: 100;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s;
-}
                     </style>
                 </head>
                 <body>
@@ -2212,6 +2745,66 @@
             showToast("Paiement enregistré avec succès", "success");
             updateUI();
         };
+
+        // Prefill the credit payment form for a given credit and focus the amount input
+        function openCreditPayment(creditId) {
+            const credit = db.credits.find(c => c.id === creditId);
+            if(!credit) {
+                try { showToast('Crédit introuvable', 'error'); } catch(e){}
+                return;
+            }
+
+            // Switch to credits tab so the payment form is visible
+            try { switchTab('credits'); } catch(e){}
+
+            // Small timeout to ensure DOM updated after tab switch
+            setTimeout(() => {
+                const select = document.getElementById('credit-select');
+                if(select) {
+                    select.value = creditId;
+                    select.dispatchEvent(new Event('change'));
+                }
+
+                const amt = document.getElementById('credit-payment-amount');
+                if(amt) {
+                    amt.value = credit.balance || 0;
+                    amt.focus();
+                }
+            }, 50);
+        }
+
+        function deleteCredit(creditId) {
+            const credit = db.credits.find(c => c.id === creditId);
+            if(!credit) return;
+            
+            requireAuth(() => {
+                showConfirm(
+                    "Supprimer le crédit",
+                    `Supprimer le crédit de ${credit.clientName} (${formatMoney(credit.balance)} restant) ?`,
+                    "Supprimer",
+                    "error",
+                    () => {
+                        // Restore stock if invoice exists
+                        const invoice = db.ventes.find(v => v.id === credit.invoiceId);
+                        if(invoice) {
+                            invoice.items.forEach(item => {
+                                const product = db.produits.find(p => p.id === item.productId);
+                                if(product) {
+                                    product.stock += item.quantity;
+                                }
+                            });
+                            db.ventes = db.ventes.filter(v => v.id !== credit.invoiceId);
+                        }
+                        
+                        db.credits = db.credits.filter(c => c.id !== creditId);
+                        addLog(`Crédit supprimé: ${credit.clientName}`, "warning");
+                        saveDB();
+                        updateUI();
+                        showToast("Crédit supprimé", "success");
+                    }
+                );
+            }, "Supprimer un crédit nécessite une authentification.");
+        }
 
         // === EXPENSES MANAGEMENT ===
         document.getElementById('form-expense').onsubmit = function(e) {
@@ -2298,11 +2891,23 @@
             updateStorageSize();
             checkAlerts();
             initLucide();
+            
+            // Update mobile-specific displays
+            if(document.getElementById('tab-stock')?.classList.contains('active')) {
+                renderMobileStockList();
+            }
+            if(document.getElementById('tab-credits')?.classList.contains('active')) {
+                renderMobileCreditsList();
+            }
+            if(document.getElementById('tab-expenses')?.classList.contains('active')) {
+                renderMobileExpensesList();
+            }
         }
 
         function updateHeaderInfo() {
             const caisse = calculateCaisse();
             document.getElementById('header-caisse').innerText = formatMoney(caisse);
+            document.getElementById('header-caisse-mobile').innerText = formatMoney(caisse);
             
             // Check caisse alert
             if(db.config.caisseMin > 0 && caisse < db.config.caisseMin) {
@@ -2351,7 +2956,7 @@
             document.getElementById('alert-count').innerText = totalAlerts;
             
             if(totalAlerts === 0) {
-                alertsDiv.innerHTML = `<div class="p-8 text-center text-slate-400 text-sm">
+                alertsDiv.innerHTML = `<div class="p-6 md:p-8 text-center text-slate-400 text-sm">
                     <i data-lucide="check-circle-2" class="w-8 h-8 mx-auto mb-2 opacity-20"></i>
                     Tout est en ordre
                 </div>`;
@@ -2398,10 +3003,10 @@
             // Recent Logs (top 5)
             const recentLogsDiv = document.getElementById('recent-logs');
             recentLogsDiv.innerHTML = db.logs.slice(0, 5).map(log => `
-                <div class="p-4 flex gap-4 items-start hover:bg-slate-50 transition-colors">
+                <div class="p-3 md:p-4 flex gap-3 md:gap-4 items-start hover:bg-slate-50 transition-colors">
                     <div class="mt-1">${getLogIcon(log.type)}</div>
                     <div class="flex-1">
-                        <div class="font-medium text-slate-700">${log.text}</div>
+                        <div class="font-medium text-slate-700 text-sm">${log.text}</div>
                         <div class="text-[10px] text-slate-400">${new Date(log.time).toLocaleString('fr-FR', {
                             day: '2-digit',
                             month: '2-digit',
@@ -2548,10 +3153,6 @@
             initLucide();
         }
 
-        document.getElementById('search-stock').oninput = renderStock;
-        document.getElementById('filter-category').onchange = renderStock;
-        document.getElementById('filter-stock-status').onchange = renderStock;
-
         function renderSales() {
             const recentInvoices = document.getElementById('recent-invoices');
             const today = new Date().toDateString();
@@ -2561,23 +3162,23 @@
             
             if(db.ventes.length === 0) {
                 recentInvoices.innerHTML = `
-                    <div class="text-center py-8 text-slate-400">
-                        <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
-                        <p>Aucune facture</p>
+                    <div class="text-center py-6 md:py-8 text-slate-400">
+                        <i data-lucide="file-text" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 opacity-30"></i>
+                        <p class="text-sm">Aucune facture</p>
                     </div>
                 `;
             } else {
                 recentInvoices.innerHTML = db.ventes.slice(0, 10).map(invoice => `
                     <div class="p-3 border rounded-lg hover:bg-slate-50 transition-colors">
                         <div class="flex justify-between items-start mb-2">
-                            <div class="font-medium">${invoice.clientName}</div>
+                            <div class="font-medium text-sm">${invoice.clientName}</div>
                             <div class="text-xs px-2 py-1 rounded-full ${invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                                 ${invoice.status === 'paid' ? 'Payé' : 'Crédit'}
                             </div>
                         </div>
                         <div class="flex justify-between items-center">
                             <div class="text-xs text-slate-500">${new Date(invoice.date).toLocaleDateString('fr-FR')}</div>
-                            <div class="font-bold text-blue-600">${formatMoney(invoice.total)}</div>
+                            <div class="font-bold text-blue-600 text-sm">${formatMoney(invoice.total)}</div>
                         </div>
                         <div class="mt-2 flex gap-1">
                             <button onclick="showInvoice(${JSON.stringify(invoice).replace(/"/g, '&quot;')})" class="flex-1 text-xs px-2 py-1 border border-slate-200 rounded hover:bg-slate-100">
@@ -2659,64 +3260,6 @@
             initLucide();
         }
 
-        // Prefill the credit payment form for a given credit and focus the amount input
-        function openCreditPayment(creditId) {
-            const credit = db.credits.find(c => c.id === creditId);
-            if(!credit) {
-                try { showToast('Crédit introuvable', 'error'); } catch(e){}
-                return;
-            }
-
-            // Switch to credits tab so the payment form is visible
-            try { switchTab('credits'); } catch(e){}
-
-            // Small timeout to ensure DOM updated after tab switch
-            setTimeout(() => {
-                const select = document.getElementById('credit-select');
-                if(select) {
-                    select.value = creditId;
-                    select.dispatchEvent(new Event('change'));
-                }
-
-                const amt = document.getElementById('credit-payment-amount');
-                if(amt) {
-                    amt.value = credit.balance || 0;
-                    amt.focus();
-                }
-            }, 50);
-        }
-
-        function deleteCredit(creditId) {
-            const credit = db.credits.find(c => c.id === creditId);
-            if(!credit) return;
-            
-            showConfirm(
-                "Supprimer le crédit",
-                `Supprimer le crédit de ${credit.clientName} (${formatMoney(credit.balance)} restant) ?`,
-                "Supprimer",
-                "error",
-                () => {
-                    // Restore stock if invoice exists
-                    const invoice = db.ventes.find(v => v.id === credit.invoiceId);
-                    if(invoice) {
-                        invoice.items.forEach(item => {
-                            const product = db.produits.find(p => p.id === item.productId);
-                            if(product) {
-                                product.stock += item.quantity;
-                            }
-                        });
-                        db.ventes = db.ventes.filter(v => v.id !== credit.invoiceId);
-                    }
-                    
-                    db.credits = db.credits.filter(c => c.id !== creditId);
-                    addLog(`Crédit supprimé: ${credit.clientName}`, "warning");
-                    saveDB();
-                    updateUI();
-                    showToast("Crédit supprimé", "success");
-                }
-            );
-        }
-
         function renderExpenses() {
             const tbody = document.getElementById('expenses-table-body');
             const categoryFilter = document.getElementById('expense-filter-category').value;
@@ -2783,7 +3326,7 @@
             }
             
             list.innerHTML = filteredLogs.map(log => `
-                <div class="p-4 flex gap-4 items-center bg-white hover:bg-slate-50 transition-colors">
+                <div class="p-3 md:p-4 flex gap-3 md:gap-4 items-center bg-white hover:bg-slate-50 transition-colors">
                     <div class="flex-shrink-0">${getLogIcon(log.type)}</div>
                     <div class="flex-1">
                         <div class="text-sm font-medium text-slate-800">${log.text}</div>
@@ -3024,17 +3567,17 @@
             
             // Set icon based on type
             const iconDiv = document.getElementById('confirm-icon');
-            iconDiv.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4';
+            iconDiv.className = 'w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mx-auto mb-4';
             
             if(type === 'error') {
                 iconDiv.classList.add('bg-red-100', 'text-red-600');
-                iconDiv.innerHTML = '<i data-lucide="alert-circle" class="w-8 h-8"></i>';
+                iconDiv.innerHTML = '<i data-lucide="alert-circle" class="w-6 h-6 md:w-8 md:h-8"></i>';
             } else if(type === 'warning') {
                 iconDiv.classList.add('bg-amber-100', 'text-amber-600');
-                iconDiv.innerHTML = '<i data-lucide="alert-triangle" class="w-8 h-8"></i>';
+                iconDiv.innerHTML = '<i data-lucide="alert-triangle" class="w-6 h-6 md:w-8 md:h-8"></i>';
             } else {
                 iconDiv.classList.add('bg-blue-100', 'text-blue-600');
-                iconDiv.innerHTML = '<i data-lucide="help-circle" class="w-8 h-8"></i>';
+                iconDiv.innerHTML = '<i data-lucide="help-circle" class="w-6 h-6 md:w-8 md:h-8"></i>';
             }
             
             window.confirmCallback = callback;
@@ -3055,20 +3598,20 @@
             document.getElementById('toast-message').innerText = msg;
 
             // Reset classes
-            toast.className = "fixed top-6 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 text-white rounded-full shadow-2xl flex items-center gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none";
+            toast.className = "fixed top-4 md:top-6 left-1/2 -translate-x-1/2 z-[200] px-4 md:px-6 py-2 md:py-3 text-white rounded-full shadow-2xl flex items-center gap-2 md:gap-3 transform translate-y-[-100px] transition-transform duration-300 pointer-events-none max-w-[90%]";
             
             if(type === 'success') {
                 toast.classList.add('bg-emerald-600');
-                icon.innerHTML = '<i data-lucide="check" class="w-4 h-4"></i>';
+                icon.innerHTML = '<i data-lucide="check" class="w-3 h-3 md:w-4 md:h-4"></i>';
             } else if(type === 'error') {
                 toast.classList.add('bg-red-600');
-                icon.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4"></i>';
+                icon.innerHTML = '<i data-lucide="alert-circle" class="w-3 h-3 md:w-4 md:h-4"></i>';
             } else if(type === 'warning') {
                 toast.classList.add('bg-amber-600');
-                icon.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4"></i>';
+                icon.innerHTML = '<i data-lucide="alert-triangle" class="w-3 h-3 md:w-4 md:h-4"></i>';
             } else {
                 toast.classList.add('bg-slate-900');
-                icon.innerHTML = '<i data-lucide="info" class="w-4 h-4"></i>';
+                icon.innerHTML = '<i data-lucide="info" class="w-3 h-3 md:w-4 md:h-4"></i>';
             }
 
             initLucide();
@@ -3495,10 +4038,5 @@ function validateAndActivate() {
 // Lancement automatique du test de sécurité
 runSecurityCheck();
     </script>
-    <div id="trial-info-badge" onclick="document.getElementById('license-overlay').style.display = 'flex'" 
-         class="fixed bottom-6 right-6 cursor-pointer flex items-center gap-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-full shadow-lg transition-all hover:scale-105 z-40">
-        <div class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-        <span id="days-text" class="text-sm font-medium text-amber-800"></span>
-    </div>
 </body>
 </html>
