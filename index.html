@@ -6,8 +6,10 @@
     <title>Enterprise Management Pro v2.3</title>
     <!-- Bibliothèques externes -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
         
@@ -410,6 +412,9 @@
                 <button onclick="switchTab('logs')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-logs">
                     <i data-lucide="history" class="w-5 h-5"></i> Logs Système
                 </button>
+                <button onclick="switchTab('reports')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50" id="btn-reports">
+                    <i data-lucide="file-text" class="w-5 h-5"></i> Rapports
+                </button>
             </nav>
 
             <div class="p-4 border-t space-y-2">
@@ -484,6 +489,9 @@
                         <button onclick="switchTab('logs'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
                             <i data-lucide="history" class="w-5 h-5"></i> Logs Système
                         </button>
+                        <button onclick="switchTab('reports'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                            <i data-lucide="file-text" class="w-5 h-5"></i> Rapports
+                        </button>
                         <button onclick="switchTab('settings'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 mt-8">
                             <i data-lucide="settings" class="w-5 h-5"></i> Paramètres
                         </button>
@@ -502,6 +510,7 @@
                             <option value="week">7 derniers jours</option>
                             <option value="month">30 derniers jours</option>
                             <option value="year">Cette année</option>
+                            <option value="all" selected>Tous</option>
                             <option value="custom">Date précise</option>
                         </select>
                         <input id="dashboard-date" type="date" class="text-xs md:text-sm border rounded-lg px-3 py-2 md:py-1 outline-none hidden w-full md:w-auto">
@@ -649,6 +658,10 @@
                             <button onclick="exportStockCSV()" class="px-2 py-2 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-1 text-sm">
                                 <i data-lucide="download" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden md:inline">Export</span>
                             </button>
+                            <button onclick="document.getElementById('import-stock-file').click()" class="px-2 py-2 border border-slate-200 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-1 text-sm">
+                                <i data-lucide="upload" class="w-3 h-3 md:w-4 md:h-4"></i> <span class="hidden md:inline">Import</span>
+                            </button>
+                            <input type="file" id="import-stock-file" accept=".csv" style="display: none;" onchange="importStockCSV(event)">
                             <button onclick="openModal('modal-product')" class="px-3 py-2 bg-blue-600 text-white rounded-xl font-semibold flex items-center justify-center gap-1 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 text-sm">
                                 <i data-lucide="plus-circle" class="w-4 h-4"></i> <span class="hidden md:inline">Nouveau</span>
                             </button>
@@ -674,8 +687,7 @@
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Achat (Ar)</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Vente (Ar)</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">En Stock</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Actions Stock</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="stock-table-body" class="divide-y divide-slate-100">
@@ -721,12 +733,12 @@
                                 <!-- Client Information -->
                                 <div class="mb-4 md:mb-6 p-3 md:p-4 bg-slate-50 rounded-xl">
                                     <h5 class="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center gap-2">
-                                        <i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> Client
+                                        <i data-lucide="user" class="w-3 h-3 md:w-4 md:h-4"></i> Client (Optionnel)
                                     </h5>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                         <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom *</label>
-                                            <input type="text" id="client-name" placeholder="Nom complet" 
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom</label>
+                                            <input type="text" id="client-name" placeholder="Nom complet ou laisser vide" 
                                                 class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
                                         <div>
@@ -743,7 +755,14 @@
                                         <h5 class="font-bold text-xs md:text-sm flex items-center gap-2">
                                             <i data-lucide="shopping-cart" class="w-3 h-3 md:w-4 md:h-4"></i> Articles
                                         </h5>
-                                        <span class="text-xs text-slate-500" id="cart-count">0 article(s)</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-slate-500" id="cart-count">0 article(s)</span>
+                                            <span class="text-xs text-slate-400">|</span>
+                                            <span class="text-xs font-medium text-slate-600">Actions</span>
+                                            <button onclick="clearCart()" id="clear-cart-btn" class="hidden text-xs text-red-500 hover:text-red-700 font-medium transition-colors">
+                                                <i data-lucide="x-circle" class="w-3 h-3 inline mr-1"></i>Vider
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="space-y-2 md:space-y-4" id="cart-items">
                                         <!-- Cart items will be added here -->
@@ -759,26 +778,41 @@
                                     <h6 class="font-bold text-xs md:text-sm mb-2 md:mb-3 flex items-center gap-2">
                                         <i data-lucide="plus-circle" class="w-3 h-3 md:w-4 md:h-4"></i> Ajouter article
                                     </h6>
-                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produit</label>
-                                            <select id="sale-product" class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
-                                                <!-- JS Injection -->
-                                            </select>
+                                    <div class="space-y-3 md:space-y-4">
+                                        <!-- Recherche de produit -->
+                                        <div class="relative">
+                                            <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                                            <input type="text" id="product-search" placeholder="Rechercher un produit..." 
+                                                class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
-                                            <input type="number" id="sale-qty" value="1" min="1" 
-                                                class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
+                                        
+                                        <!-- Sélection rapide -->
+                                        <div id="quick-products" class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                            <!-- Produits populaires seront injectés ici -->
                                         </div>
-                                        <div>
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix</label>
-                                            <div class="flex gap-2">
-                                                <input type="number" id="sale-price" readonly 
-                                                    class="flex-1 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base">
-                                                <button type="button" onclick="addToCart()" class="px-3 md:px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 touch-target">
-                                                    <i data-lucide="plus" class="w-4 h-4"></i>
-                                                </button>
+                                        
+                                        <!-- Formulaire détaillé -->
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produit</label>
+                                                <select id="sale-product" onchange="updateSalePrice()" class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
+                                                    <!-- JS Injection -->
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
+                                                <input type="number" id="sale-qty" value="1" min="1" onchange="updateSalePrice()" 
+                                                    class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix</label>
+                                                <div class="flex gap-2">
+                                                    <input type="number" id="sale-price" readonly 
+                                                        class="flex-1 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base">
+                                                    <button type="button" onclick="addToCart()" class="px-3 md:px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 touch-target">
+                                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -955,6 +989,11 @@
                                             class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
                                     </div>
                                     <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Date</label>
+                                        <input type="date" id="expense-date" required
+                                            class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
+                                    </div>
+                                    <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Montant (Ar)</label>
                                         <input type="number" id="expense-amount" required placeholder="0" min="1"
                                             class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
@@ -1036,6 +1075,117 @@
                     <div class="glass-card rounded-xl md:rounded-2xl shadow-sm overflow-hidden">
                         <div id="full-logs-list" class="divide-y max-h-[500px] md:max-h-[600px] overflow-y-auto">
                             <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTS TAB - OPTIMIZED FOR MOBILE -->
+                <div id="tab-reports" class="tab-content space-y-4 md:space-y-6">
+                    <div class="flex items-center justify-end gap-3">
+                        <select id="reports-period" onchange="onReportsPeriodChange()" class="text-xs md:text-sm border rounded-lg px-3 py-2 md:py-1 outline-none w-full md:w-auto">
+                            <option value="today">Aujourd'hui</option>
+                            <option value="week">7 derniers jours</option>
+                            <option value="month">30 derniers jours</option>
+                            <option value="year">Cette année</option>
+                            <option value="all" selected>Tous</option>
+                            <option value="custom">Date précise</option>
+                        </select>
+                        <input id="reports-date" type="date" class="text-xs md:text-sm border rounded-lg px-3 py-2 md:py-1 outline-none hidden w-full md:w-auto">
+                        <button onclick="generatePDFReport()" class="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-semibold hover:bg-blue-700 touch-target">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-1"></i> PDF
+                        </button>
+                    </div>
+
+                    <!-- Report Summary Cards -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Total Ventes</p>
+                            <h3 id="report-total-sales" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-blue-600 flex items-center gap-1">
+                                <i data-lucide="shopping-cart" class="w-3 h-3"></i> Factures
+                            </div>
+                        </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-emerald-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Total Dépenses</p>
+                            <h3 id="report-total-expenses" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-emerald-600 flex items-center gap-1">
+                                <i data-lucide="receipt" class="w-3 h-3"></i> Sorties
+                            </div>
+                        </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Bénéfice Net</p>
+                            <h3 id="report-net-profit" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-purple-600 flex items-center gap-1">
+                                <i data-lucide="trending-up" class="w-3 h-3"></i> Profit
+                            </div>
+                        </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-amber-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Crédits Restants</p>
+                            <h3 id="report-credits" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-amber-600 flex items-center gap-1">
+                                <i data-lucide="credit-card" class="w-3 h-3"></i> À recevoir
+                            </div>
+                        </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-rose-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Meilleur Client</p>
+                            <h3 id="report-best-customer" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">-</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-rose-600 flex items-center gap-1">
+                                <i data-lucide="award" class="w-3 h-3"></i> Top acheteur
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Reports -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <!-- Sales Report -->
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="shopping-cart" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Détail Ventes
+                            </h4>
+                            <div class="space-y-2 max-h-[300px] overflow-y-auto">
+                                <div id="report-sales-list">
+                                    <!-- JS Injection -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expenses Report -->
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="receipt" class="w-4 h-4 md:w-5 md:h-5 text-emerald-500"></i> Détail Dépenses
+                            </h4>
+                            <div class="space-y-2 max-h-[300px] overflow-y-auto">
+                                <div id="report-expenses-list">
+                                    <!-- JS Injection -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Products Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                        <!-- Top Products by Revenue -->
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="trending-up" class="w-4 h-4 md:w-5 md:h-5 text-purple-500"></i> Produits les plus vendus (par revenus)
+                            </h4>
+                            <div class="grid grid-cols-1 gap-3 md:gap-4">
+                                <div id="report-top-products-revenue">
+                                    <!-- JS Injection -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Products by Quantity -->
+                        <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                            <h4 class="font-bold mb-4 flex items-center gap-2 text-sm md:text-base">
+                                <i data-lucide="package" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Produits les plus vendus (par quantité)
+                            </h4>
+                            <div class="grid grid-cols-1 gap-3 md:gap-4">
+                                <div id="report-top-products-quantity">
+                                    <!-- JS Injection -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1362,8 +1512,8 @@
     <div id="modal-expense" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-md rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div class="p-4 md:p-6 border-b flex justify-between items-center bg-white sticky top-0">
-                <h3 class="text-lg md:text-xl font-bold text-slate-800">Nouvelle Dépense</h3>
-                <button onclick="closeModal('modal-expense')" class="p-2 hover:bg-slate-100 rounded-full touch-target"><i data-lucide="x"></i></button>
+                <h3 id="expense-modal-title" class="text-lg md:text-xl font-bold text-slate-800">Nouvelle Dépense</h3>
+                <button onclick="closeModal('modal-expense'); resetExpenseForm();" class="p-2 hover:bg-slate-100 rounded-full touch-target"><i data-lucide="x"></i></button>
             </div>
             <form id="form-expense-modal" class="p-4 md:p-6 space-y-4 bg-white">
                 <div>
@@ -1389,8 +1539,13 @@
                     <input type="number" id="expense-modal-amount" required placeholder="0" min="1"
                         class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Date</label>
+                    <input type="date" id="expense-modal-date" required
+                        class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
+                </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="closeModal('modal-expense')" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 touch-target">Annuler</button>
+                    <button type="button" onclick="closeModal('modal-expense'); resetExpenseForm();" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 touch-target">Annuler</button>
                     <button type="submit" class="flex-1 px-4 py-3 bg-amber-600 text-white rounded-xl font-bold hover:bg-amber-700 touch-target">Enregistrer</button>
                 </div>
             </form>
@@ -1526,37 +1681,56 @@
         // === INITIALIZATION ===
         window.onload = function() {
             showLoading();
-            loadDB();
-            initLucide();
-            switchTab('dashboard');
-            updateUI();
             
-            // Set Date
-            document.getElementById('header-date').innerText = new Date().toLocaleDateString('fr-FR', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-            });
-
-            // Update invoice number
-            currentInvoiceNumber = db.config.invoiceCounter || 1;
-            document.getElementById('invoice-number').innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
-
-            // Setup event listeners
-            setupEventListeners();
+            // Add timeout to prevent infinite loading
+            const loadingTimeout = setTimeout(() => {
+                hideLoading();
+                showToast("Chargement terminé avec timeout", "warning");
+            }, 10000); // 10 seconds timeout
             
-            // Setup mobile menu
-            setupMobileMenu();
+            try {
+                loadDB();
+                initLucide();
+                switchTab('dashboard');
+                updateUI();
+                
+                // Initialiser les dates par défaut
+                document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('expense-modal-date').value = new Date().toISOString().split('T')[0];
+                
+                // Safe rendering functions - only existing ones
+                safeRender(renderStock, 'stock');
+                safeRender(renderSales, 'sales');
+                safeRender(renderCredits, 'credits');
+                safeRender(renderExpenses, 'expenses');
+                safeRender(updateReports, 'reports'); // Changed from renderReports
+                safeRender(updateDashboard, 'dashboard'); // Changed from renderDashboard
+                safeRender(checkAlerts, 'alerts'); // Changed from renderAlerts
+                
+                loadCompanyInfo();
 
-            // Load company info in settings
-            loadCompanyInfo();
+                // Start Auto-save
+                setInterval(saveDB, 300000); // 5 minutes
 
-            // Start Auto-save
-            setInterval(saveDB, 300000); // 5 minutes
-
-            hideLoading();
-            setTimeout(() => {
-                checkAlerts();
-            }, 500);
+                clearTimeout(loadingTimeout);
+                hideLoading();
+            } catch(e) {
+                console.error("Initialization Error", e);
+                clearTimeout(loadingTimeout);
+                hideLoading();
+                showToast("Erreur lors de l'initialisation: " + e.message, "error");
+            }
         };
+
+        // Safe render function to prevent errors
+        function safeRender(renderFunc, name) {
+            try {
+                renderFunc();
+            } catch(e) {
+                console.error(`Error rendering ${name}:`, e);
+                // Continue with other renders even if one fails
+            }
+        }
 
         // Mobile menu functions
         function setupMobileMenu() {
@@ -1645,7 +1819,7 @@
                 const credit = db.credits.find(c => c.id === this.value);
                 if(credit) {
                     document.getElementById('credit-details').classList.remove('hidden');
-                    document.getElementById('credit-client').innerText = credit.clientName;
+                    document.getElementById('credit-client').innerText = credit.clientName || 'Client Passager';
                     document.getElementById('credit-balance').innerText = formatMoney(credit.balance);
                     document.getElementById('credit-date').innerText = new Date(credit.date).toLocaleDateString('fr-FR');
                     document.getElementById('credit-payment-amount').value = credit.balance;
@@ -1719,9 +1893,9 @@
         }
 
         function loadDB() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if(saved) {
-                try {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if(saved) {
                     const parsed = JSON.parse(saved);
                     // Migration from older versions
                     if(!parsed.config) parsed.config = db.config;
@@ -1741,12 +1915,14 @@
 
                     db = parsed;
                     addLog("Base de données chargée", "success");
-                } catch(e) {
-                    console.error("DB Load Error", e);
-                    showToast("Erreur de chargement des données", "error");
+                } else {
+                    addLog("Initialisation du système", "info");
                 }
-            } else {
-                addLog("Initialisation du système", "info");
+            } catch(e) {
+                console.error("DB Load Error", e);
+                showToast("Erreur de chargement des données", "error");
+                // Initialize with default data on error
+                addLog("Initialisation avec les données par défaut", "warning");
             }
         }
 
@@ -1800,6 +1976,7 @@
                 credits: 'Crédits Clients',
                 expenses: 'Dépenses / Caisse',
                 logs: 'Journal du Système',
+                reports: 'Rapports',
                 settings: 'Paramètres'
             };
             document.getElementById('current-tab-title').innerText = titles[tabId] || 'Application';
@@ -1881,11 +2058,15 @@
                             <div class="text-xs text-slate-500">${p.category}</div>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="editProduct('${p.id}')" class="p-1 text-blue-600">
-                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                            <button onclick="editProduct('${p.id}')" class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
                             </button>
-                            <button onclick="deleteProduct('${p.id}')" class="p-1 text-red-500">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <button onclick="deleteProduct('${p.id}')" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
                             </button>
                         </div>
                     </div>
@@ -1897,7 +2078,10 @@
                         </div>
                         <div class="text-xs">
                             <div class="text-slate-500">Stock</div>
-                            <div class="font-medium"><span class="px-2 py-0.5 rounded-full text-xs ${statusClass}">${p.stock}</span></div>
+                            <div class="flex flex-col gap-1">
+                                <span class="px-2 py-0.5 rounded-full text-xs ${statusClass}">${statusText}</span>
+                                <div class="font-bold text-slate-600">${p.stock} unité(s)</div>
+                            </div>
                         </div>
                         <div class="text-xs">
                             <div class="text-slate-500">Achat</div>
@@ -1960,7 +2144,7 @@
                 <div class="glass-card p-4 rounded-xl shadow-sm">
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex-1">
-                            <div class="font-bold text-slate-700 text-sm">${c.clientName}</div>
+                            <div class="font-bold text-slate-700 text-sm">${c.clientName || 'Client Passager'}</div>
                             <div class="text-xs text-slate-500">Facture #${String(c.invoiceNumber).padStart(3, '0')}</div>
                         </div>
                         <span class="px-2 py-1 text-xs rounded-full ${statusClass}">${statusText}</span>
@@ -2045,9 +2229,18 @@
                                 month: '2-digit'
                             })}</div>
                         </div>
-                        <button onclick="deleteExpense('${e.id}')" class="p-1 text-slate-300 hover:text-red-500">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="editExpense('${e.id}')" class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteExpense('${e.id}')" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="flex justify-between items-center">
@@ -2064,10 +2257,18 @@
         // Update cart count for mobile
         function updateCartDisplay() {
             const cartItems = document.getElementById('cart-items');
+            const clearBtn = document.getElementById('clear-cart-btn');
             const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
             
             // Update cart count
             document.getElementById('cart-count').innerText = `${cart.length} article(s)`;
+            
+            // Show/hide clear cart button
+            if(cart.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
             
             if(cart.length === 0) {
                 cartItems.innerHTML = `
@@ -2077,24 +2278,37 @@
                     </div>
                 `;
             } else {
-                cartItems.innerHTML = cart.map((item, index) => `
-                    <div class="flex items-center justify-between p-3 bg-white border rounded-lg">
-                        <div class="flex-1">
-                            <div class="font-medium text-sm">${item.productName}</div>
-                            <div class="text-xs text-slate-500">${formatMoney(item.price)} x ${item.quantity}</div>
+                cartItems.innerHTML = cart.map((item, index) => {
+                    const product = db.produits.find(p => p.id === item.productId);
+                    const stockStatus = product ? (product.stock <= 0 ? 'text-red-500' : product.stock < 5 ? 'text-amber-500' : 'text-green-500') : 'text-slate-500';
+                    const stockText = product ? `Stock: ${product.stock}` : 'Stock: ?';
+                    
+                    return `
+                        <div class="flex items-center justify-between p-2 md:p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-slate-800 truncate">${product ? product.nom : 'Produit inconnu'}</div>
+                                <div class="flex items-center gap-3 text-xs text-slate-500">
+                                    <span>${item.quantity} × ${formatMoney(item.price)}</span>
+                                    <span class="${stockStatus}">${stockText}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-blue-600 text-sm">${formatMoney(item.total)}</div>
+                                <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <div class="font-bold text-blue-600 text-sm">${formatMoney(item.total)}</div>
-                            <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
             
+            // Update totals
             document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
             document.getElementById('invoice-total').innerText = formatMoney(subtotal);
+            
+            // Re-initialize lucide icons
+            setTimeout(() => initLucide(), 100);
         }
 
         // === AUTHENTICATION SYSTEM ===
@@ -2402,15 +2616,31 @@
                 return;
             }
             
+            // Enhanced stock validation
+            if(product.stock <= 0) {
+                showToast("Produit en rupture de stock", "error");
+                return;
+            }
+            
             if(product.stock < qty) {
-                showToast(`Stock insuffisant ! Il reste ${product.stock} unité(s)`, "error");
+                showToast(`Stock insuffisant ! Disponible: ${product.stock} unité(s), Demandé: ${qty}`, "error");
+                // Auto-adjust quantity to available stock
+                document.getElementById('sale-qty').value = product.stock;
                 return;
             }
             
             // Check if product already in cart
             const existingIndex = cart.findIndex(item => item.productId === productId);
             if(existingIndex !== -1) {
-                cart[existingIndex].quantity += qty;
+                const newQuantity = cart[existingIndex].quantity + qty;
+                
+                // Check if combined quantity exceeds stock
+                if(newQuantity > product.stock) {
+                    showToast(`Stock insuffisant ! Total dans panier: ${newQuantity}, Disponible: ${product.stock}`, "error");
+                    return;
+                }
+                
+                cart[existingIndex].quantity = newQuantity;
                 cart[existingIndex].total = cart[existingIndex].quantity * price;
                 cart[existingIndex].cost = product.achat * cart[existingIndex].quantity;
             } else {
@@ -2433,16 +2663,28 @@
             updateCartDisplay();
         }
 
+        function clearCart() {
+            if(cart.length === 0) return;
+            
+            showConfirm(
+                "Vider le panier",
+                "Êtes-vous sûr de vouloir vider complètement le panier ?",
+                "Vider",
+                "warning",
+                () => {
+                    cart = [];
+                    updateCartDisplay();
+                    showToast("Panier vidé avec succès", "success");
+                }
+            );
+        }
+
         function completeSale() {
             const clientName = document.getElementById('client-name').value.trim();
             const clientPhone = document.getElementById('client-phone').value.trim();
             const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
             
-            if(!clientName) {
-                showToast("Veuillez saisir le nom du client", "error");
-                return;
-            }
-            
+            // Le nom du client est maintenant facultatif
             if(cart.length === 0) {
                 showToast("Veuillez ajouter des articles au panier", "error");
                 return;
@@ -2454,11 +2696,32 @@
             // Generate invoice ID
             const invoiceId = 'INV' + String(currentInvoiceNumber).padStart(3, '0');
             
+            // Check stock availability before completing sale
+            let stockError = false;
+            let errorMessage = "";
+            
+            cart.forEach(item => {
+                const product = db.produits.find(p => p.id === item.productId);
+                if(product) {
+                    if(product.stock < item.quantity) {
+                        stockError = true;
+                        errorMessage = `Stock insuffisant pour ${product.nom}. Disponible: ${product.stock}, Demandé: ${item.quantity}`;
+                    }
+                }
+            });
+            
+            if(stockError) {
+                showToast(errorMessage, "error");
+                return;
+            }
+            
             // Update stock for each product
             cart.forEach(item => {
                 const product = db.produits.find(p => p.id === item.productId);
                 if(product) {
                     product.stock -= item.quantity;
+                    // Ensure stock never goes below 0
+                    if(product.stock < 0) product.stock = 0;
                 }
             });
             
@@ -2467,7 +2730,7 @@
                 id: invoiceId,
                 number: currentInvoiceNumber,
                 date: new Date().toISOString(),
-                clientName: clientName,
+                client: clientName || 'Client Passager', // Utiliser Client Passager si pas de nom
                 clientPhone: clientPhone,
                 items: [...cart],
                 subtotal: invoiceTotal,
@@ -2544,7 +2807,7 @@
                     <!-- Client Info -->
                     <div class="mb-4 md:mb-8 p-3 md:p-4 bg-slate-50 rounded-lg">
                         <h3 class="font-bold text-slate-700 mb-2 text-sm md:text-base">Client</h3>
-                        <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.clientName)}</div>
+                        <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.client || 'Client Passager')}</div>
                         ${invoice.clientPhone ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.clientPhone)}</div>` : ''}
                     </div>
                     
@@ -2696,6 +2959,7 @@
             document.getElementById('sale-product').selectedIndex = 0;
             document.getElementById('sale-price').value = '';
             document.getElementById('sale-qty').value = 1;
+            updateSalePrice(); // Réinitialiser l'affichage du prix
             updateCartDisplay();
             document.getElementById('invoice-number').innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
         }
@@ -2812,6 +3076,7 @@
             const category = document.getElementById('expense-category').value;
             const motif = document.getElementById('expense-motif').value.trim();
             const amount = parseFloat(document.getElementById('expense-amount').value);
+            const date = document.getElementById('expense-date').value;
 
             if(!category) return showToast("Veuillez sélectionner une catégorie", "error");
             if(!motif) return showToast("Veuillez saisir un motif", "error");
@@ -2819,7 +3084,7 @@
 
             db.depenses.unshift({
                 id: 'E' + Date.now() + Math.floor(Math.random() * 1000),
-                date: new Date().toISOString(),
+                date: date,
                 category: category,
                 motif: motif,
                 amount: amount
@@ -2828,6 +3093,8 @@
             addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
             saveDB();
             this.reset();
+            // Réinitialiser la date par défaut
+            document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
             showToast("Dépense enregistrée", "success");
             updateUI();
         };
@@ -2838,23 +3105,40 @@
             const category = document.getElementById('expense-modal-category').value;
             const motif = document.getElementById('expense-modal-motif').value.trim();
             const amount = parseFloat(document.getElementById('expense-modal-amount').value);
-
-            if(!category) return showToast("Veuillez sélectionner une catégorie", "error");
-            if(!motif) return showToast("Veuillez saisir un motif", "error");
-            if(isNaN(amount) || amount <= 0) return showToast("Montant invalide", "error");
-
-            db.depenses.unshift({
-                id: 'E' + Date.now() + Math.floor(Math.random() * 1000),
-                date: new Date().toISOString(),
-                category: category,
-                motif: motif,
-                amount: amount
-            });
-
-            addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
+            const date = document.getElementById('expense-modal-date').value;
+            const editId = this.dataset.editId;
+            
+            if(editId) {
+                // Mode édition
+                const expense = db.depenses.find(e => e.id === editId);
+                if(expense) {
+                    expense.category = category;
+                    expense.motif = motif;
+                    expense.amount = amount;
+                    expense.date = date;
+                    
+                    addLog(`Dépense modifiée: ${motif} (-${formatMoney(amount)})`, "warning");
+                    showToast("Dépense modifiée", "success");
+                }
+                delete this.dataset.editId;
+            } else {
+                // Mode création
+                const expense = {
+                    id: 'EXP' + Date.now(),
+                    category,
+                    motif,
+                    amount,
+                    date,
+                    time: new Date().toISOString()
+                };
+                
+                db.depenses.push(expense);
+                addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
+                showToast("Dépense enregistrée", "success");
+            }
+            
             saveDB();
             closeModal('modal-expense');
-            showToast("Dépense enregistrée", "success");
             updateUI();
         };
 
@@ -2878,6 +3162,72 @@
             }, "Supprimer une dépense nécessite une authentification.");
         }
 
+        function editExpense(id) {
+            const expense = db.depenses.find(e => e.id === id);
+            if(!expense) return;
+            
+            // Pré-remplir le formulaire de dépense
+            document.getElementById('expense-modal-category').value = expense.category;
+            document.getElementById('expense-modal-motif').value = expense.motif;
+            document.getElementById('expense-modal-amount').value = expense.amount;
+            document.getElementById('expense-modal-date').value = expense.date || new Date().toISOString().split('T')[0];
+            
+            // Changer le titre
+            document.getElementById('expense-modal-title').innerText = "Modifier Dépense";
+            
+            // Ouvrir le modal
+            openModal('modal-expense');
+            
+            // Marquer comme en mode édition
+            document.getElementById('form-expense-modal').dataset.editId = id;
+        }
+
+        function cancelInvoice(invoiceId) {
+            const invoice = db.ventes.find(v => v.id === invoiceId);
+            if(!invoice) return;
+            
+            showConfirm(
+                "Annuler la facture",
+                `Annuler la facture ${invoice.id} de ${formatMoney(invoice.total)} ?\n\nLe stock sera automatiquement restauré.`,
+                "Annuler",
+                "error",
+                () => {
+                    // Restaurer le stock
+                    invoice.items.forEach(item => {
+                        const product = db.produits.find(p => p.id === item.productId);
+                        if(product) {
+                            product.stock += item.quantity;
+                        }
+                    });
+                    
+                    // Supprimer le crédit associé s'il existe
+                    const credit = db.credits.find(c => c.invoiceId === invoiceId);
+                    if(credit) {
+                        db.credits = db.credits.filter(c => c.id !== credit.id);
+                    }
+                    
+                    // Supprimer la facture
+                    db.ventes = db.ventes.filter(v => v.id !== invoiceId);
+                    
+                    // Logger l'action
+                    addLog(`Facture annulée: ${invoice.id} (-${formatMoney(invoice.total)})`, "error");
+                    
+                    // Sauvegarder et mettre à jour
+                    saveDB();
+                    updateUI();
+                    showToast("Facture annulée avec succès", "success");
+                }
+            );
+        }
+
+        function resetExpenseForm() {
+            // Réinitialiser le formulaire
+            document.getElementById('form-expense-modal').reset();
+            document.getElementById('expense-modal-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('expense-modal-title').innerText = "Nouvelle Dépense";
+            delete document.getElementById('form-expense-modal').dataset.editId;
+        }
+
         // === UI UPDATERS ===
         function updateUI() {
             updateDashboard();
@@ -2886,6 +3236,7 @@
             renderCredits();
             renderExpenses();
             renderLogs();
+            updateReports();
             updateSelects();
             updateHeaderInfo();
             updateStorageSize();
@@ -2926,7 +3277,7 @@
 
         function updateDashboard() {
             // Read dashboard filter
-            const period = (document.getElementById('dashboard-period') && document.getElementById('dashboard-period').value) || 'today';
+            const period = (document.getElementById('dashboard-period') && document.getElementById('dashboard-period').value) || 'all';
             const customDate = document.getElementById('dashboard-date') ? document.getElementById('dashboard-date').value : null;
             const range = getRangeForPeriod(period, customDate);
 
@@ -3067,17 +3418,17 @@
                 const margin = p.vente - p.achat;
                 const marginPercent = ((margin / p.achat) * 100).toFixed(1);
                 
-                let statusClass = '';
-                let statusText = '';
+                let stockClass = '';
+                let stockText = '';
                 if(p.stock === 0) {
-                    statusClass = 'bg-red-100 text-red-600 pulse';
-                    statusText = 'Épuisé';
+                    stockClass = 'bg-red-100 text-red-600 pulse';
+                    stockText = 'Épuisé';
                 } else if(p.stock <= p.min) {
-                    statusClass = 'bg-amber-100 text-amber-600 pulse';
-                    statusText = 'Critique';
+                    stockClass = 'bg-amber-100 text-amber-600 pulse';
+                    stockText = 'Critique';
                 } else {
-                    statusClass = 'bg-emerald-100 text-emerald-600';
-                    statusText = 'Normal';
+                    stockClass = 'bg-emerald-100 text-emerald-600';
+                    stockText = 'Normal';
                 }
                 
                 return `
@@ -3094,33 +3445,47 @@
                         <div class="text-xs text-emerald-600">+${marginPercent}%</div>
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="status-badge ${statusClass}">
-                            ${p.stock}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-center">
-                        <div class="flex justify-center gap-1">
-                            <button onclick="document.getElementById('adjust-product').value = '${p.id}'; document.querySelector('input[name=\"adjust-type\"][value=\"add\"]').checked = true; document.getElementById('adjust-qty').value = '10'; openModal('modal-stock-adjust');" class="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Ajouter stock">
-                                <i data-lucide="plus" class="w-3 h-3"></i>
-                            </button>
-                            <button onclick="document.getElementById('adjust-product').value = '${p.id}'; document.querySelector('input[name=\"adjust-type\"][value=\"remove\"]').checked = true; document.getElementById('adjust-qty').value = '1'; openModal('modal-stock-adjust');" class="p-1 text-amber-600 hover:bg-amber-50 rounded" title="Retirer stock">
-                                <i data-lucide="minus" class="w-3 h-3"></i>
-                            </button>
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full ${stockClass}">${stockText}</span>
+                            <span class="text-xs font-bold text-slate-600">${p.stock} unité(s)</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex justify-end gap-2">
-                            <button onclick="editProduct('${p.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Modifier">
-                                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center justify-center gap-2">
+                            <!-- Stock actions -->
+                            <button onclick="openStockAdjust('${p.id}', 1, 'add')" class="p-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors" title="Ajouter stock">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
                             </button>
-                            <button onclick="deleteProduct('${p.id}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            <button onclick="openStockAdjust('${p.id}', 1, 'remove')" class="p-2 bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors" title="Retirer stock">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                </svg>
+                            </button>
+                            <!-- Separator -->
+                            <span class="w-px h-4 bg-slate-400 mx-2"></span>
+                            <!-- Product actions -->
+                            <button onclick="editProduct('${p.id}')" class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors" title="Modifier">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteProduct('${p.id}')" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg transition-colors" title="Supprimer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
                             </button>
                         </div>
                     </td>
                 </tr>
                 `;
-            }).join('') || `<tr><td colspan="8" class="px-6 py-12 text-center text-slate-400">Aucun produit trouvé</td></tr>`;
+            }).join('') || `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">Aucun produit trouvé</td></tr>`;
+            
+            // Force re-initialize Lucide icons for stock table
+            setTimeout(() => {
+                initLucide();
+            }, 100);
             
             // Stock movements
             const movementsDiv = document.getElementById('stock-movements');
@@ -3171,7 +3536,7 @@
                 recentInvoices.innerHTML = db.ventes.slice(0, 10).map(invoice => `
                     <div class="p-3 border rounded-lg hover:bg-slate-50 transition-colors">
                         <div class="flex justify-between items-start mb-2">
-                            <div class="font-medium text-sm">${invoice.clientName}</div>
+                            <div class="font-medium text-sm">${invoice.client || 'Client Passager'}</div>
                             <div class="text-xs px-2 py-1 rounded-full ${invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                                 ${invoice.status === 'paid' ? 'Payé' : 'Crédit'}
                             </div>
@@ -3184,11 +3549,9 @@
                             <button onclick="showInvoice(${JSON.stringify(invoice).replace(/"/g, '&quot;')})" class="flex-1 text-xs px-2 py-1 border border-slate-200 rounded hover:bg-slate-100">
                                 Voir
                             </button>
-                            ${invoice.status === 'pending' ? `
-                                <button onclick="requireAuth(() => {deleteCredit('${db.credits.find(c => c.invoiceId === invoice.id)?.id}')})" class="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">
-                                    Annuler
-                                </button>
-                            ` : ''}
+                            <button onclick="requireAuth(() => {cancelInvoice('${invoice.id}')})" class="flex-1 text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                                Annuler
+                            </button>
                         </div>
                     </div>
                 `).join('');
@@ -3207,7 +3570,7 @@
             // Update credit select
             const pendingCredits = db.credits.filter(c => c.status === 'pending');
             select.innerHTML = '<option value="">-- Choisir un crédit --</option>' +
-                pendingCredits.map(c => `<option value="${c.id}">${c.clientName} - ${formatMoney(c.balance)} restant</option>`).join('');
+                pendingCredits.map(c => `<option value="${c.id}">${c.clientName || 'Client Passager'} - ${formatMoney(c.balance)} restant</option>`).join('');
             
             if(db.credits.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400">Aucun crédit en cours</td></tr>`;
@@ -3232,7 +3595,7 @@
                     
                     return `
                     <tr class="hover:bg-slate-50">
-                        <td class="px-6 py-4 font-medium">${c.clientName}</td>
+                        <td class="px-6 py-4 font-medium">${c.clientName || 'Client Passager'}</td>
                         <td class="px-6 py-4 text-slate-500">#${String(c.invoiceNumber).padStart(3, '0')}</td>
                         <td class="px-6 py-4 text-slate-400">${new Date(c.date).toLocaleDateString('fr-FR')}</td>
                         <td class="px-6 py-4 text-right font-bold">${formatMoney(c.totalAmount)}</td>
@@ -3306,9 +3669,18 @@
                     <td class="px-6 py-4 font-medium">${e.motif}</td>
                     <td class="px-6 py-4 text-right font-bold text-amber-600">-${formatMoney(e.amount)}</td>
                     <td class="px-6 py-4 text-right">
-                        <button onclick="deleteExpense('${e.id}')" class="p-1 text-slate-300 hover:text-red-500 transition-colors" title="Supprimer">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
+                        <div class="flex items-center justify-end gap-2">
+                            <button onclick="editExpense('${e.id}')" class="p-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors" title="Modifier">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                            </button>
+                            <button onclick="deleteExpense('${e.id}')" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg transition-colors" title="Supprimer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `).join('') || `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Aucune dépense enregistrée</td></tr>`;
@@ -3364,18 +3736,47 @@
             } else if(period === 'year') {
                 start.setFullYear(start.getFullYear() - 1);
                 end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+            } else if(period === 'all') {
+                // Toutes les données : commencer par une date très ancienne
+                start = new Date(2000, 0, 1); // 1er janvier 2000
+                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
             } else if(period === 'custom' && customDateString) {
+                console.log('Date personnalisée reçue:', customDateString);
                 const d = new Date(customDateString);
-                start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                end = new Date(start.getTime() + 24*60*60*1000 - 1);
+                console.log('Date parsée:', d);
+                if(!isNaN(d.getTime())) {
+                    start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+                    console.log('Range personnalisé:', { start, end });
+                } else {
+                    // Si la date est invalide, utiliser aujourd'hui par défaut
+                    console.log('Date invalide, utilisation d\'aujourd\'hui');
+                    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                }
+            } else {
+                console.log('Période non reconnue ou date personnalisée manquante:', period, customDateString);
             }
             return { start, end };
         }
 
         function dateInRange(dateStr, start, end) {
             if(!dateStr) return false;
-            const d = new Date(dateStr);
-            return d >= start && d <= end;
+            try {
+                const d = new Date(dateStr);
+                // Vérifier si la date est valide
+                if(isNaN(d.getTime())) return false;
+                
+                // Normaliser les dates pour ignorer l'heure (comparaison uniquement sur la date)
+                const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+                const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+                
+                return dateOnly >= startDateOnly && dateOnly <= endDateOnly;
+            } catch(e) {
+                console.error('Erreur de date:', dateStr, e);
+                return false;
+            }
         }
 
         function onDashboardPeriodChange() {
@@ -3393,6 +3794,7 @@
                 else if(sel.value === 'week') chartSel.value = '7';
                 else if(sel.value === 'month') chartSel.value = '30';
                 else if(sel.value === 'year') chartSel.value = '90';
+                else if(sel.value === 'all') chartSel.value = '365'; // 1 an pour le graphique
                 else if(sel.value === 'custom') chartSel.value = '7';
                 updateMainChart();
             }
@@ -3460,13 +3862,126 @@
 
         // === TOOLS & HELPERS ===
         function updateSelects() {
-            // Sale product select
+            // Sale product select - only show products with stock > 0
             const saleSelect = document.getElementById('sale-product');
+            const availableProducts = db.produits.filter(p => p.stock > 0);
+            
             saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
-                db.produits
-                    .filter(p => p.stock > 0)
+                availableProducts
                     .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
                     .join('');
+
+            // Quick products - afficher les 8 produits les plus vendus avec stock disponible
+            const quickProductsDiv = document.getElementById('quick-products');
+            const productSales = {};
+            
+            db.ventes.forEach(sale => {
+                if(sale.items && Array.isArray(sale.items)) {
+                    sale.items.forEach(item => {
+                        if(!productSales[item.name]) {
+                            productSales[item.name] = 0;
+                        }
+                        productSales[item.name] += item.quantity || 0;
+                    });
+                }
+            });
+
+            const topProducts = Object.entries(productSales)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8)
+                .map(([name]) => db.produits.find(p => p.nom === name))
+                .filter(p => p && p.stock > 0);
+
+            if(topProducts.length > 0) {
+                quickProductsDiv.innerHTML = topProducts.map(product => `
+                    <button onclick="quickAddProduct('${product.id}')" 
+                        class="p-2 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-medium text-slate-700">
+                        ${product.nom}
+                    </button>
+                `).join('');
+            } else {
+                // Si pas de ventes, afficher les premiers produits en stock
+                const fallbackProducts = availableProducts.slice(0, 8);
+                quickProductsDiv.innerHTML = fallbackProducts.map(product => `
+                    <button onclick="quickAddProduct('${product.id}')" 
+                        class="p-2 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-medium text-slate-700">
+                        ${product.nom}
+                    </button>
+                `).join('');
+            }
+            
+            // Initialiser le prix si un produit est sélectionné
+            updateSalePrice();
+        }
+
+        function quickAddProduct(productId) {
+            const product = db.produits.find(p => p.id === productId);
+            if(product && product.stock > 0) {
+                document.getElementById('sale-product').value = productId;
+                document.getElementById('sale-qty').value = 1;
+                updateSalePrice(); // Mettre à jour le prix
+                addToCart();
+            }
+        }
+
+        function setupProductSearch() {
+            const searchInput = document.getElementById('product-search');
+            if(searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const saleSelect = document.getElementById('sale-product');
+                    
+                    if(searchTerm.length > 0) {
+                        const filteredProducts = db.produits.filter(p => 
+                            p.stock > 0 && (
+                                p.nom.toLowerCase().includes(searchTerm) ||
+                                p.category.toLowerCase().includes(searchTerm) ||
+                                p.fournisseur.toLowerCase().includes(searchTerm)
+                            )
+                        );
+                        
+                        saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
+                            filteredProducts
+                                .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
+                                .join('');
+                        
+                        // Sélectionner automatiquement le premier résultat
+                        if(filteredProducts.length > 0) {
+                            saleSelect.value = filteredProducts[0].id;
+                            updateSalePrice();
+                        }
+                    } else {
+                        updateSelects(); // Restaurer la liste complète
+                    }
+                });
+            }
+        }
+
+        function updateSalePrice() {
+            const productId = document.getElementById('sale-product').value;
+            const qty = parseInt(document.getElementById('sale-qty').value) || 1;
+            const priceInput = document.getElementById('sale-price');
+            
+            if(!productId) {
+                priceInput.value = '';
+                return;
+            }
+            
+            const product = db.produits.find(p => p.id === productId);
+            if(product) {
+                priceInput.value = product.vente;
+                
+                // Vérifier si la quantité est disponible
+                if(product.stock < qty) {
+                    priceInput.classList.add('border-red-300', 'bg-red-50');
+                    priceInput.classList.remove('border-slate-200', 'bg-slate-50');
+                } else {
+                    priceInput.classList.remove('border-red-300', 'bg-red-50');
+                    priceInput.classList.add('border-slate-200', 'bg-slate-50');
+                }
+            } else {
+                priceInput.value = '';
+            }
         }
 
         function formatMoney(n, short = false) {
@@ -3480,6 +3995,21 @@
                 return (n / 1000).toFixed(0) + 'k ' + currency;
             } else {
                 return formatter.format(n) + ' ' + currency;
+            }
+        }
+
+        // Fonction spécifique pour le PDF (sans espaces dans les nombres)
+        function formatMoneyPDF(n, short = false) {
+            if(isNaN(n)) n = 0;
+            const currency = db.config.currency || "Ar";
+            
+            if(short && n >= 1000000) {
+                return (n / 1000000).toFixed(1) + 'M' + currency;
+            } else if(short && n >= 1000) {
+                return (n / 1000).toFixed(0) + 'k' + currency;
+            } else {
+                // Format sans espaces pour éviter les problèmes dans certains lecteurs PDF
+                return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + currency;
             }
         }
 
@@ -3658,12 +4188,118 @@
             exportCSV(headers, rows, 'stock_inventaire');
         }
 
+        function importStockCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+                    
+                    if (lines.length < 2) {
+                        showToast("Le fichier CSV est vide ou invalide", "error");
+                        return;
+                    }
+                    
+                    // Parser le CSV
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                    const expectedHeaders = ['Nom', 'Catégorie', 'Fournisseur', 'Prix Achat', 'Prix Vente', 'Stock', 'Alerte Mini'];
+                    
+                    // Vérifier les en-têtes
+                    const hasValidHeaders = expectedHeaders.every(header => 
+                        headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
+                    );
+                    
+                    if (!hasValidHeaders) {
+                        showToast("Format CSV invalide. Les colonnes requises sont: Nom, Catégorie, Fournisseur, Prix Achat, Prix Vente, Stock, Alerte Mini", "error");
+                        return;
+                    }
+                    
+                    let importCount = 0;
+                    let updateCount = 0;
+                    let errorCount = 0;
+                    
+                    // Traiter chaque ligne
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                        
+                        if (values.length >= 7) {
+                            try {
+                                const productData = {
+                                    nom: values[0],
+                                    category: values[1] || 'Autre',
+                                    fournisseur: values[2] || 'Non spécifié',
+                                    achat: parseFloat(values[3]) || 0,
+                                    vente: parseFloat(values[4]) || 0,
+                                    stock: parseInt(values[5]) || 0,
+                                    min: parseInt(values[6]) || 1
+                                };
+                                
+                                // Validation
+                                if (!productData.nom || productData.achat <= 0 || productData.vente <= 0) {
+                                    errorCount++;
+                                    continue;
+                                }
+                                
+                                // Vérifier si le produit existe déjà
+                                const existingProduct = db.produits.find(p => 
+                                    p.nom.toLowerCase() === productData.nom.toLowerCase()
+                                );
+                                
+                                if (existingProduct) {
+                                    // Mettre à jour le produit existant
+                                    Object.assign(existingProduct, productData);
+                                    updateCount++;
+                                } else {
+                                    // Ajouter un nouveau produit
+                                    productData.id = 'P' + Date.now() + Math.floor(Math.random() * 1000);
+                                    db.produits.push(productData);
+                                    importCount++;
+                                }
+                            } catch (error) {
+                                errorCount++;
+                                console.error('Erreur ligne ' + (i + 1) + ':', error);
+                            }
+                        } else {
+                            errorCount++;
+                        }
+                    }
+                    
+                    // Sauvegarder et mettre à jour
+                    saveDB();
+                    updateUI();
+                    
+                    // Afficher le résultat
+                    let message = `Importation terminée:\n`;
+                    if (importCount > 0) message += `• ${importCount} produit(s) ajouté(s)\n`;
+                    if (updateCount > 0) message += `• ${updateCount} produit(s) mis à jour\n`;
+                    if (errorCount > 0) message += `• ${errorCount} erreur(s) ignorée(s)`;
+                    
+                    showToast(message, importCount > 0 ? "success" : "warning");
+                    
+                    // Logger l'action
+                    addLog(`Importation stock: ${importCount} ajoutés, ${updateCount} mis à jour`, "info");
+                    
+                } catch (error) {
+                    console.error('Erreur importation:', error);
+                    showToast("Erreur lors de l'importation du fichier", "error");
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // Réinitialiser l'input file
+            event.target.value = '';
+        }
+
         function exportSalesCSV() {
             const headers = ['Date', 'Facture', 'Client', 'Téléphone', 'Articles', 'Quantité Total', 'Total', 'Mode Paiement', 'Statut'];
             const rows = db.ventes.map(s => [
                 new Date(s.date).toLocaleDateString('fr-FR'),
                 s.id,
-                s.clientName,
+                s.client || 'Client Passager',
                 s.clientPhone || '',
                 s.items.map(i => i.productName).join('; '),
                 s.items.reduce((sum, i) => sum + i.quantity, 0),
@@ -4033,6 +4669,550 @@ function validateAndActivate() {
     } else {
         alert("Clé invalide.");
     }
+}
+
+// === REPORTS FUNCTIONS ===
+function onReportsPeriodChange() {
+    const sel = document.getElementById('reports-period');
+    const dateInput = document.getElementById('reports-date');
+    if(sel && dateInput) {
+        if(sel.value === 'custom') {
+            dateInput.classList.remove('hidden');
+            // Ajouter un écouteur d'événement pour la date
+            dateInput.addEventListener('change', updateReports);
+        } else {
+            dateInput.classList.add('hidden');
+            // Mettre à jour immédiatement pour les autres périodes
+            updateReports();
+        }
+    }
+}
+
+function updateReports() {
+    // Read reports filter
+    const period = (document.getElementById('reports-period') && document.getElementById('reports-period').value) || 'all';
+    const customDate = document.getElementById('reports-date') ? document.getElementById('reports-date').value : null;
+    const range = getRangeForPeriod(period, customDate);
+
+    // Debug: Afficher les informations de filtrage
+    console.log('Rapport - Période:', period);
+    console.log('Rapport - Range:', { start: range.start, end: range.end });
+
+    const ventesFiltered = db.ventes.filter(v => dateInRange(v.date, range.start, range.end));
+    const depensesFiltered = db.depenses.filter(e => dateInRange(e.date, range.start, range.end));
+    const creditsFiltered = db.credits.filter(c => dateInRange(c.date, range.start, range.end));
+
+    // Debug: Afficher les nombres de résultats
+    console.log('Rapport - Ventes filtrées:', ventesFiltered.length, 'sur', db.ventes.length);
+    console.log('Rapport - Dépenses filtrées:', depensesFiltered.length, 'sur', db.depenses.length);
+    console.log('Rapport - Crédits filtrés:', creditsFiltered.length, 'sur', db.credits.length);
+
+    const totalVentes = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.total||0), 0);
+    const totalDepenses = depensesFiltered.reduce((sum, e) => sum + (e.amount||0), 0);
+    const totalProfit = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.profit||0), 0) - totalDepenses;
+    const totalCredits = creditsFiltered.reduce((sum, c) => sum + (c.balance||0), 0);
+
+    // Debug: Afficher les totaux calculés
+    console.log('Rapport - Totaux:', { totalVentes, totalDepenses, totalProfit, totalCredits });
+
+    // Update summary cards
+    document.getElementById('report-total-sales').innerText = formatMoney(totalVentes);
+    document.getElementById('report-total-expenses').innerText = formatMoney(totalDepenses);
+    document.getElementById('report-net-profit').innerText = formatMoney(totalProfit);
+    document.getElementById('report-credits').innerText = formatMoney(totalCredits);
+
+    // Calculate best customer (excluding Client Passager)
+    const customerStats = {};
+    ventesFiltered.forEach(sale => {
+        const clientName = sale.client || 'Client Passager';
+        // Exclure les clients passagers du calcul
+        if(clientName !== 'Client Passager') {
+            if(!customerStats[clientName]) {
+                customerStats[clientName] = { total: 0, count: 0 };
+            }
+            customerStats[clientName].total += sale.total || 0;
+            customerStats[clientName].count += 1;
+        }
+    });
+
+    const bestCustomer = Object.entries(customerStats)
+        .sort((a, b) => b[1].total - a[1].total)[0];
+    
+    if(bestCustomer) {
+        document.getElementById('report-best-customer').innerText = bestCustomer[0];
+    } else {
+        document.getElementById('report-best-customer').innerText = 'Aucun client';
+    }
+
+    // Update sales list
+    const salesListDiv = document.getElementById('report-sales-list');
+    if(ventesFiltered.length === 0) {
+        salesListDiv.innerHTML = '<div class="text-center text-slate-400 py-8">Aucune vente trouvée</div>';
+    } else {
+        salesListDiv.innerHTML = ventesFiltered.slice(0, 10).map(sale => `
+            <div class="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-semibold text-sm">${sale.client || 'Client'}</div>
+                        <div class="text-xs text-slate-500">${new Date(sale.date).toLocaleDateString('fr-FR')}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm">${formatMoney(sale.total || 0)}</div>
+                        <div class="text-xs ${sale.status === 'paid' ? 'text-green-600' : 'text-amber-600'}">
+                            ${sale.status === 'paid' ? 'Payée' : 'En attente'}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Update expenses list
+    const expensesListDiv = document.getElementById('report-expenses-list');
+    if(depensesFiltered.length === 0) {
+        expensesListDiv.innerHTML = '<div class="text-center text-slate-400 py-8">Aucune dépense trouvée</div>';
+    } else {
+        expensesListDiv.innerHTML = depensesFiltered.slice(0, 10).map(expense => `
+            <div class="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-semibold text-sm">${expense.category || 'Dépense'}</div>
+                        <div class="text-xs text-slate-500">${new Date(expense.date).toLocaleDateString('fr-FR')}</div>
+                        ${expense.description ? `<div class="text-xs text-slate-600 mt-1">${expense.description}</div>` : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm text-red-600">${formatMoney(expense.amount || 0)}</div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Update top products by revenue
+    const topProductsRevenueDiv = document.getElementById('report-top-products-revenue');
+    const productSalesRevenue = {};
+    
+    ventesFiltered.forEach(sale => {
+        if(sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                if(!productSalesRevenue[item.productName]) {
+                    productSalesRevenue[item.productName] = { quantity: 0, revenue: 0 };
+                }
+                productSalesRevenue[item.productName].quantity += item.quantity || 0;
+                productSalesRevenue[item.productName].revenue += (item.quantity || 0) * (item.price || 0);
+            });
+        }
+    });
+
+    const topProductsRevenue = Object.entries(productSalesRevenue)
+        .sort((a, b) => b[1].revenue - a[1].revenue)
+        .slice(0, 6);
+
+    if(topProductsRevenue.length === 0) {
+        topProductsRevenueDiv.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">Aucune vente de produits</div>';
+    } else {
+        topProductsRevenueDiv.innerHTML = topProductsRevenue.map(([name, data], index) => `
+            <div class="p-4 bg-gradient-to-r ${index === 0 ? 'from-purple-50 to-purple-100 border-purple-200' : index === 1 ? 'from-blue-50 to-blue-100 border-blue-200' : index === 2 ? 'from-emerald-50 to-emerald-100 border-emerald-200' : 'from-slate-50 to-slate-100 border-slate-200'} border rounded-xl">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-semibold text-sm">${name}</span>
+                    <span class="text-xs font-bold ${index === 0 ? 'text-purple-600' : index === 1 ? 'text-blue-600' : index === 2 ? 'text-emerald-600' : 'text-slate-600'}">#${index + 1}</span>
+                </div>
+                <div class="text-xs text-slate-600">
+                    <div>Quantité: ${data.quantity}</div>
+                    <div>Revenu: ${formatMoney(data.revenue)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Update top products by quantity
+    const topProductsQuantityDiv = document.getElementById('report-top-products-quantity');
+    const productSalesQuantity = {};
+    
+    ventesFiltered.forEach(sale => {
+        if(sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                if(!productSalesQuantity[item.productName]) {
+                    productSalesQuantity[item.productName] = { quantity: 0, revenue: 0 };
+                }
+                productSalesQuantity[item.productName].quantity += item.quantity || 0;
+                productSalesQuantity[item.productName].revenue += (item.quantity || 0) * (item.price || 0);
+            });
+        }
+    });
+
+    const topProductsQuantity = Object.entries(productSalesQuantity)
+        .sort((a, b) => b[1].quantity - a[1].quantity)
+        .slice(0, 6);
+
+    if(topProductsQuantity.length === 0) {
+        topProductsQuantityDiv.innerHTML = '<div class="col-span-full text-center text-slate-400 py-8">Aucune vente de produits</div>';
+    } else {
+        topProductsQuantityDiv.innerHTML = topProductsQuantity.map(([name, data], index) => `
+            <div class="p-4 bg-gradient-to-r ${index === 0 ? 'from-blue-50 to-blue-100 border-blue-200' : index === 1 ? 'from-emerald-50 to-emerald-100 border-emerald-200' : index === 2 ? 'from-amber-50 to-amber-100 border-amber-200' : 'from-slate-50 to-slate-100 border-slate-200'} border rounded-xl">
+                <div class="flex justify-between items-start mb-2">
+                    <span class="font-semibold text-sm">${name}</span>
+                    <span class="text-xs font-bold ${index === 0 ? 'text-blue-600' : index === 1 ? 'text-emerald-600' : index === 2 ? 'text-amber-600' : 'text-slate-600'}">#${index + 1}</span>
+                </div>
+                <div class="text-xs text-slate-600">
+                    <div>Quantité: ${data.quantity}</div>
+                    <div>Revenu: ${formatMoney(data.revenue)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+function generatePDFReport() {
+    const { jsPDF } = window.jspdf;
+    
+    // Récupérer les données du rapport
+    const period = (document.getElementById('reports-period') && document.getElementById('reports-period').value) || 'all';
+    const customDate = document.getElementById('reports-date') ? document.getElementById('reports-date').value : null;
+    const range = getRangeForPeriod(period, customDate);
+    
+    const ventesFiltered = db.ventes.filter(v => dateInRange(v.date, range.start, range.end));
+    const depensesFiltered = db.depenses.filter(e => dateInRange(e.date, range.start, range.end));
+    const creditsFiltered = db.credits.filter(c => dateInRange(c.date, range.start, range.end));
+    
+    const totalVentes = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.total||0), 0);
+    const totalDepenses = depensesFiltered.reduce((sum, e) => sum + (e.amount||0), 0);
+    const totalProfit = totalVentes - totalDepenses;
+    const totalCredits = creditsFiltered.reduce((sum, c) => sum + (c.balance||0), 0);
+    
+    // Calculer le meilleur client
+    const customerStats = {};
+    ventesFiltered.forEach(sale => {
+        const clientName = sale.client || 'Client Passager';
+        if(clientName !== 'Client Passager') {
+            if(!customerStats[clientName]) {
+                customerStats[clientName] = { total: 0, count: 0 };
+            }
+            customerStats[clientName].total += sale.total || 0;
+            customerStats[clientName].count += 1;
+        }
+    });
+    
+    const bestCustomer = Object.entries(customerStats)
+        .sort((a, b) => b[1].total - a[1].total)[0];
+    
+    // Calculer les produits les plus vendus
+    const productSales = {};
+    ventesFiltered.forEach(sale => {
+        if(sale.items && Array.isArray(sale.items)) {
+            sale.items.forEach(item => {
+                if(!productSales[item.productName]) {
+                    productSales[item.productName] = { quantity: 0, revenue: 0 };
+                }
+                productSales[item.productName].quantity += item.quantity || 0;
+                productSales[item.productName].revenue += (item.quantity || 0) * (item.price || 0);
+            });
+        }
+    });
+    
+    const topProductsRevenue = Object.entries(productSales)
+        .sort((a, b) => b[1].revenue - a[1].revenue)
+        .slice(0, 5);
+    
+    const topProductsQuantity = Object.entries(productSales)
+        .sort((a, b) => b[1].quantity - a[1].quantity)
+        .slice(0, 5);
+    
+    // Créer le PDF avec support UTF-8
+    const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+    });
+    
+    // Ajouter le support des caractères français
+    pdf.addFont('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf', 'Roboto', 'normal');
+    pdf.setFont('Roboto');
+    
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 20;
+    
+    // Fonction utilitaire pour ajouter une nouvelle page si nécessaire
+    function checkPageBreak(requiredHeight) {
+        if(yPosition + requiredHeight > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+            return true;
+        }
+        return false;
+    }
+    
+    // Fonction pour formater le texte sans accents (uniquement les lettres)
+    function normalizeText(text) {
+        return text.toString()
+            .replace(/[ÀÁÂÃÄÅ]/g, 'A')
+            .replace(/[àáâãäå]/g, 'a')
+            .replace(/[ÈÉÊË]/g, 'E')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ÌÍÎÏ]/g, 'I')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[ÒÓÔÕÖ]/g, 'O')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ÙÚÛÜ]/g, 'U')
+            .replace(/[ùúûü]/g, 'u')
+            .replace(/[Ç]/g, 'C')
+            .replace(/[ç]/g, 'c')
+            .replace(/[Ñ]/g, 'N')
+            .replace(/[ñ]/g, 'n')
+            .replace(/[Ý]/g, 'Y')
+            .replace(/[ýÿ]/g, 'y');
+    }
+    
+    // En-tête avec cadre
+    pdf.setDrawColor(59, 130, 246);
+    pdf.setFillColor(59, 130, 246);
+    pdf.rect(15, 15, pageWidth - 30, 40, 'F');
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(24);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('RAPPORT DE GESTION', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'normal');
+    const periodText = period === 'custom' && customDate ? 
+        `Date: ${new Date(customDate).toLocaleDateString('fr-FR')}` :
+        period === 'today' ? "Aujourd'hui" :
+        period === 'week' ? "7 derniers jours" :
+        period === 'month' ? "30 derniers jours" :
+        period === 'year' ? "Cette annee" : "Toutes les donnees";
+    
+    pdf.text(`Periode: ${normalizeText(periodText)}`, pageWidth / 2, 45, { align: 'center' });
+    pdf.text(`Genere le: ${new Date().toLocaleDateString('fr-FR')} a ${new Date().toLocaleTimeString('fr-FR')}`, pageWidth / 2, 50, { align: 'center' });
+    
+    yPosition = 70;
+    
+    // Resume financier avec tableau
+    checkPageBreak(80);
+    
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(16);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('RESUME FINANCIER', 20, yPosition);
+    yPosition += 15;
+    
+    // Cadre pour le resume
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(15, yPosition - 5, pageWidth - 30, 65, 'F');
+    pdf.rect(15, yPosition - 5, pageWidth - 30, 65);
+    
+    // Donnees du resume en colonnes
+    pdf.setFontSize(11);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('INDICATEUR', 25, yPosition + 5);
+    pdf.text('MONTANT', pageWidth - 60, yPosition + 5);
+    
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(50, 50, 50);
+    
+    const summaryData = [
+        ['Total Ventes', totalVentes],
+        ['Total Depenses', totalDepenses],
+        ['Benefice Net', totalProfit],
+        ['Credits en cours', totalCredits],
+        ['Meilleur Client', bestCustomer ? bestCustomer[0] : 'Aucun']
+    ];
+    
+    summaryData.forEach(([label, value], index) => {
+        yPosition += 10;
+        pdf.setFont(undefined, 'bold');
+        pdf.text(normalizeText(label), 25, yPosition);
+        pdf.setFont(undefined, 'normal');
+        if(typeof value === 'number') {
+            pdf.text(formatMoneyPDF(value), pageWidth - 60, yPosition);
+        } else {
+            pdf.text(normalizeText(value.toString()), pageWidth - 60, yPosition);
+        }
+    });
+    
+    yPosition += 20;
+    
+    // Top produits par revenus
+    if(topProductsRevenue.length > 0) {
+        checkPageBreak(100);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('TOP 5 PRODUITS (PAR REVENUS)', 20, yPosition);
+        yPosition += 15;
+        
+        // En-tete du tableau
+        pdf.setDrawColor(59, 130, 246);
+        pdf.setFillColor(59, 130, 246);
+        pdf.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('#', 20, yPosition);
+        pdf.text('PRODUIT', 35, yPosition);
+        pdf.text('QUANTITE', pageWidth - 80, yPosition, { align: 'right' });
+        pdf.text('REVENUS', pageWidth - 25, yPosition, { align: 'right' });
+        
+        yPosition += 5;
+        
+        // Donnees du tableau
+        topProductsRevenue.forEach(([name, data], index) => {
+            yPosition += 8;
+            
+            // Ligne alternee
+            if(index % 2 === 0) {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(15, yPosition - 3, pageWidth - 30, 8, 'F');
+            }
+            
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(15, yPosition - 3, pageWidth - 30, 8);
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFont(undefined, 'normal');
+            pdf.text(`${index + 1}`, 20, yPosition + 2);
+            pdf.text(normalizeText(name.length > 30 ? name.substring(0, 27) + '...' : name), 35, yPosition + 2);
+            pdf.text(data.quantity.toString(), pageWidth - 80, yPosition + 2, { align: 'right' });
+            pdf.text(formatMoneyPDF(data.revenue), pageWidth - 25, yPosition + 2, { align: 'right' });
+        });
+        
+        yPosition += 15;
+    }
+    
+    // Top produits par quantite
+    if(topProductsQuantity.length > 0) {
+        checkPageBreak(100);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('TOP 5 PRODUITS (PAR QUANTITE)', 20, yPosition);
+        yPosition += 15;
+        
+        // En-tete du tableau
+        pdf.setDrawColor(34, 197, 94);
+        pdf.setFillColor(34, 197, 94);
+        pdf.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('#', 20, yPosition);
+        pdf.text('PRODUIT', 35, yPosition);
+        pdf.text('QUANTITE', pageWidth - 80, yPosition, { align: 'right' });
+        pdf.text('REVENUS', pageWidth - 25, yPosition, { align: 'right' });
+        
+        yPosition += 5;
+        
+        // Donnees du tableau
+        topProductsQuantity.forEach(([name, data], index) => {
+            yPosition += 8;
+            
+            // Ligne alternee
+            if(index % 2 === 0) {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(15, yPosition - 3, pageWidth - 30, 8, 'F');
+            }
+            
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(15, yPosition - 3, pageWidth - 30, 8);
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFont(undefined, 'normal');
+            pdf.text(`${index + 1}`, 20, yPosition + 2);
+            pdf.text(normalizeText(name.length > 30 ? name.substring(0, 27) + '...' : name), 35, yPosition + 2);
+            pdf.text(data.quantity.toString(), pageWidth - 80, yPosition + 2, { align: 'right' });
+            pdf.text(formatMoneyPDF(data.revenue), pageWidth - 25, yPosition + 2, { align: 'right' });
+        });
+        
+        yPosition += 15;
+    }
+    
+    // Detail des ventes recentes
+    if(ventesFiltered.length > 0) {
+        checkPageBreak(120);
+        
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('DETAIL DES VENTES RECENTES', 20, yPosition);
+        yPosition += 15;
+        
+        // En-tete du tableau
+        pdf.setDrawColor(156, 163, 175);
+        pdf.setFillColor(156, 163, 175);
+        pdf.rect(15, yPosition - 5, pageWidth - 30, 10, 'F');
+        
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, 'bold');
+        pdf.text('DATE', 20, yPosition);
+        pdf.text('CLIENT', 50, yPosition);
+        pdf.text('TOTAL', pageWidth - 60, yPosition, { align: 'right' });
+        pdf.text('STATUT', pageWidth - 25, yPosition, { align: 'right' });
+        
+        yPosition += 5;
+        
+        // Donnees du tableau
+        const recentSales = ventesFiltered.slice(0, 15);
+        recentSales.forEach((sale, index) => {
+            checkPageBreak(10);
+            
+            yPosition += 7;
+            
+            // Ligne alternee
+            if(index % 2 === 0) {
+                pdf.setFillColor(248, 250, 252);
+                pdf.rect(15, yPosition - 3, pageWidth - 30, 7, 'F');
+            }
+            
+            pdf.setDrawColor(200, 200, 200);
+            pdf.rect(15, yPosition - 3, pageWidth - 30, 7);
+            
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFont(undefined, 'normal');
+            
+            const clientName = sale.client || 'Client Passager';
+            const dateStr = new Date(sale.date).toLocaleDateString('fr-FR');
+            const statusText = sale.status === 'paid' ? 'Paye' : 'Credit';
+            
+            pdf.text(dateStr, 20, yPosition + 2);
+            pdf.text(normalizeText(clientName.length > 25 ? clientName.substring(0, 22) + '...' : clientName), 50, yPosition + 2);
+            pdf.text(formatMoneyPDF(sale.total), pageWidth - 60, yPosition + 2, { align: 'right' });
+            
+            pdf.setTextColor(sale.status === 'paid' ? 34 : 245, sale.status === 'paid' ? 197 : 158, sale.status === 'paid' ? 94 : 11);
+            pdf.setFont(undefined, 'bold');
+            pdf.text(normalizeText(statusText), pageWidth - 25, yPosition + 2, { align: 'right' });
+        });
+    }
+    
+    // Pied de page
+    const totalPages = pdf.internal.getNumberOfPages();
+    for(let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        
+        // Ligne de separation
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.5);
+        pdf.line(15, pageHeight - 15, pageWidth - 15, pageHeight - 15);
+        
+        pdf.setTextColor(100, 100, 100);
+        pdf.setFontSize(8);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(`Page ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        pdf.text('Enterprise Management Pro v2.3 - Rapport de Gestion', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    }
+    
+    // Telecharger le PDF
+    const fileName = `rapport_gestion_${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+    
+    showToast('Rapport PDF genere avec succes', 'success');
 }
 
 // Lancement automatique du test de sécurité
