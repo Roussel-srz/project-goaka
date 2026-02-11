@@ -538,11 +538,25 @@
                                 <i data-lucide="arrow-down-right" class="w-3 h-3"></i> Sorties caisse
                             </div>
                         </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-green-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Ventes Espèces</p>
+                            <h3 id="stat-ventes-cash" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-green-600 flex items-center gap-1">
+                                <i data-lucide="dollar-sign" class="w-3 h-3"></i> Paiement comptant
+                            </div>
+                        </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-blue-500">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Ventes Mobile</p>
+                            <h3 id="stat-ventes-mobile" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-blue-600 flex items-center gap-1">
+                                <i data-lucide="smartphone" class="w-3 h-3"></i> Mobile Money
+                            </div>
+                        </div>
                         <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500">
-                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Marge Estimée</p>
-                            <h3 id="stat-marge" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Total Ventes</p>
+                            <h3 id="stat-total-ventes" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
                             <div class="mt-1 md:mt-2 text-xs text-purple-600 flex items-center gap-1">
-                                <i data-lucide="pie-chart" class="w-3 h-3"></i> Profit net
+                                <i data-lucide="trending-up" class="w-3 h-3"></i> Somme ventes
                             </div>
                         </div>
                         <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-rose-500 col-span-2 md:col-span-1">
@@ -802,14 +816,11 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
-                                                <input type="number" id="sale-qty" value="1" min="1" onchange="updateSalePrice()" 
-                                                    class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prix</label>
-                                                <div class="flex gap-2">
+                                                <div class="flex gap-1">
+                                                    <input type="number" id="sale-qty" value="1" min="1" onchange="updateSalePrice()" 
+                                                        class="w-28 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                                     <input type="number" id="sale-price" readonly 
-                                                        class="flex-1 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base">
+                                                        class="w-32 px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base">
                                                     <button type="button" onclick="addToCart()" class="px-3 md:px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 touch-target">
                                                         <i data-lucide="plus" class="w-4 h-4"></i>
                                                     </button>
@@ -975,13 +986,18 @@
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Catégorie</label>
                                         <select id="expense-category" required class="w-full px-3 md:px-4 py-2.5 md:py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm md:text-base">
                                             <option value="">Sélectionner</option>
-                                            <option value="loyer">Loyer</option>
-                                            <option value="electricite">Électricité</option>
-                                            <option value="salaires">Salaires</option>
-                                            <option value="fournitures">Fournitures</option>
-                                            <option value="transport">Transport</option>
-                                            <option value="achat_stock">Achat Stock</option>
-                                            <option value="autre">Autre</option>
+                                            <option value="transports">Transports</option>
+                                            <option value="communication">Communication</option>
+                                            <option value="energie">Énergie</option>
+                                            <option value="achats_restaurant">Achats Restaurant</option>
+                                            <option value="achats_evenements">Achats Événements</option>
+                                            <option value="cotisations_sociales">Cotisations Sociales</option>
+                                            <option value="entretien">Entretien</option>
+                                            <option value="dejeuner_personnel">Déjeuner Personnel</option>
+                                            <option value="salaires_fixes">Salaires Fixes</option>
+                                            <option value="salaires_extra">Salaires Extra</option>
+                                            <option value="bonus_prime">Bonus et Prime</option>
+                                            <option value="divers_autres">Divers et Autres</option>
                                         </select>
                                     </div>
                                     <div>
@@ -1208,12 +1224,34 @@
                             <i data-lucide="building" class="w-4 h-4 md:w-5 md:h-5 text-blue-500"></i> Entreprise
                         </h4>
                         <div class="space-y-3 md:space-y-4">
+                            <!-- Logo Section -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Logo de l'entreprise</label>
+                                    <div class="flex items-center gap-3">
+                                        <div id="logo-preview" class="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50">
+                                            <i data-lucide="image" class="w-6 h-6 text-slate-400"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <input type="file" id="logo-upload" accept="image/*" style="display: none;" onchange="handleLogoUpload(event)">
+                                            <button onclick="document.getElementById('logo-upload').click()" 
+                                                class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all">
+                                                Choisir un logo
+                                            </button>
+                                            <button onclick="removeLogo()" id="remove-logo-btn" style="display: none;" 
+                                                class="w-full px-3 py-1 mt-1 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600 hover:bg-red-100 transition-all">
+                                                Supprimer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Nom *</label>
                                     <input type="text" id="company-name" value="Enterprise Goaka" 
                                         class="w-full px-3 md:px-4 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                                 </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                 <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Adresse</label>
                                     <input type="text" id="company-address" placeholder="Adresse" 
@@ -1521,13 +1559,18 @@
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Catégorie</label>
                     <select id="expense-modal-category" required class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-amber-500 text-sm md:text-base">
                         <option value="">Sélectionner</option>
-                        <option value="loyer">Loyer</option>
-                        <option value="electricite">Électricité</option>
-                        <option value="salaires">Salaires</option>
-                        <option value="fournitures">Fournitures</option>
-                        <option value="transport">Transport</option>
-                        <option value="achat_stock">Achat Stock</option>
-                        <option value="autre">Autre</option>
+                        <option value="transports">Transports</option>
+                        <option value="communication">Communication</option>
+                        <option value="energie">Énergie</option>
+                        <option value="achats_restaurant">Achats Restaurant</option>
+                        <option value="achats_evenements">Achats Événements</option>
+                        <option value="cotisations_sociales">Cotisations Sociales</option>
+                        <option value="entretien">Entretien</option>
+                        <option value="dejeuner_personnel">Déjeuner Personnel</option>
+                        <option value="salaires_fixes">Salaires Fixes</option>
+                        <option value="salaires_extra">Salaires Extra</option>
+                        <option value="bonus_prime">Bonus et Prime</option>
+                        <option value="divers_autres">Divers et Autres</option>
                     </select>
                 </div>
                 <div>
@@ -1861,18 +1904,24 @@
         }
 
         function loadCompanyInfo() {
-            const company = db.config.company;
-            document.getElementById('company-name').value = company.name;
-            document.getElementById('company-address').value = company.address || '';
-            document.getElementById('company-phone').value = company.phone || '';
-            document.getElementById('company-nif').value = company.nif || '';
-            document.getElementById('company-email').value = company.email || '';
-            document.getElementById('company-signature').value = company.signature || 'Le Gérant';
+            const company = db.config.company || {};
             
-            // Update sidebar
-            document.getElementById('sidebar-company-name').innerHTML = `
-                ${company.name.split(' ')[0]} <span class="text-slate-400 font-light">${company.name.split(' ').slice(1).join(' ') || 'Pro'}</span>
-            `;
+            // Update form fields
+            document.getElementById('company-name').value = company.name || "Enterprise Goaka";
+            document.getElementById('company-address').value = company.address || "";
+            document.getElementById('company-phone').value = company.phone || "";
+            document.getElementById('company-nif').value = company.nif || "";
+            document.getElementById('company-email').value = company.email || "";
+            document.getElementById('company-signature').value = company.signature || "Le Gérant";
+            
+            // Update logo preview
+            updateLogoPreview(company.logo || null);
+            
+            // Show/hide remove button based on logo existence
+            const removeBtn = document.getElementById('remove-logo-btn');
+            if (removeBtn) {
+                removeBtn.style.display = company.logo ? 'block' : 'none';
+            }
             
             // Update mobile sidebar
             document.getElementById('mobile-sidebar-company-name').innerText = company.name;
@@ -1888,12 +1937,87 @@
                 phone: document.getElementById('company-phone').value.trim(),
                 nif: document.getElementById('company-nif').value.trim(),
                 email: document.getElementById('company-email').value.trim(),
-                signature: document.getElementById('company-signature').value.trim() || "Le Gérant"
+                signature: document.getElementById('company-signature').value.trim() || "Le Gérant",
+                logo: db.config.company.logo || null
             };
             
             saveDB();
             loadCompanyInfo();
             showToast("Informations de l'entreprise mises à jour", "success");
+        }
+
+        // Logo management functions
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showToast("Veuillez sélectionner une image valide", "error");
+                return;
+            }
+            
+            // Validate file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showToast("L'image ne doit pas dépasser 2MB", "error");
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const logoData = e.target.result;
+                
+                // Update database
+                if (!db.config.company) db.config.company = {};
+                db.config.company.logo = logoData;
+                
+                // Update preview
+                updateLogoPreview(logoData);
+                
+                // Show remove button
+                document.getElementById('remove-logo-btn').style.display = 'block';
+                
+                // Save to database
+                saveDB();
+                
+                showToast("Logo ajouté avec succès", "success");
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function removeLogo() {
+            if (!confirm("Êtes-vous sûr de vouloir supprimer le logo ?")) return;
+            
+            // Remove from database
+            if (db.config.company) {
+                db.config.company.logo = null;
+            }
+            
+            // Update preview
+            updateLogoPreview(null);
+            
+            // Hide remove button
+            document.getElementById('remove-logo-btn').style.display = 'none';
+            
+            // Clear file input
+            document.getElementById('logo-upload').value = '';
+            
+            // Save to database
+            saveDB();
+            
+            showToast("Logo supprimé", "success");
+        }
+
+        function updateLogoPreview(logoData) {
+            const preview = document.getElementById('logo-preview');
+            
+            if (logoData) {
+                preview.innerHTML = `<img src="${logoData}" alt="Logo" class="w-full h-full object-contain rounded-lg">`;
+            } else {
+                preview.innerHTML = '<i data-lucide="image" class="w-6 h-6 text-slate-400"></i>';
+                initLucide(); // Re-initialize lucide icons
+            }
         }
 
         function loadDB() {
@@ -2622,16 +2746,32 @@
             
             // Enhanced stock validation
             if(product.stock <= 0) {
-                showToast("Produit en rupture de stock", "error");
-                return;
+                // Vérifier si c'est un service ou produit de productivité
+                const isService = product.category && (
+                    product.category.toLowerCase().includes('service') || 
+                    product.category.toLowerCase().includes('productivité')
+                );
+                
+                if(!isService) {
+                    showToast("Produit en rupture de stock", "error");
+                    return;
+                }
             }
             
             if(product.stock < qty) {
-                showToast(`Stock insuffisant ! Disponible: ${product.stock} unité(s), Demandé: ${qty}`, "error");
-                // Auto-adjust quantity to available stock
-                document.getElementById('sale-qty').value = product.stock;
-                return;
-            }
+                    // Vérifier si c'est un service ou produit de productivité
+                    const isService = product.category && (
+                        product.category.toLowerCase().includes('service') || 
+                        product.category.toLowerCase().includes('productivité')
+                    );
+                    
+                    if(!isService) {
+                        showToast(`Stock insuffisant ! Disponible: ${product.stock} unité(s), Demandé: ${qty}`, "error");
+                        // Auto-adjust quantity to available stock
+                        document.getElementById('sale-qty').value = product.stock;
+                        return;
+                    }
+                }
             
             // Check if product already in cart
             const existingIndex = cart.findIndex(item => item.productId === productId);
@@ -2640,8 +2780,16 @@
                 
                 // Check if combined quantity exceeds stock
                 if(newQuantity > product.stock) {
-                    showToast(`Stock insuffisant ! Total dans panier: ${newQuantity}, Disponible: ${product.stock}`, "error");
-                    return;
+                    // Vérifier si c'est un service ou produit de productivité
+                    const isService = product.category && (
+                        product.category.toLowerCase().includes('service') || 
+                        product.category.toLowerCase().includes('productivité')
+                    );
+                    
+                    if(!isService) {
+                        showToast(`Stock insuffisant ! Total dans panier: ${newQuantity}, Disponible: ${product.stock}`, "error");
+                        return;
+                    }
                 }
                 
                 cart[existingIndex].quantity = newQuantity;
@@ -2707,7 +2855,13 @@
             cart.forEach(item => {
                 const product = db.produits.find(p => p.id === item.productId);
                 if(product) {
-                    if(product.stock < item.quantity) {
+                    // Vérifier si c'est un service ou produit de productivité
+                    const isService = product.category && (
+                        product.category.toLowerCase().includes('service') || 
+                        product.category.toLowerCase().includes('productivité')
+                    );
+                    
+                    if(!isService && product.stock < item.quantity) {
                         stockError = true;
                         errorMessage = `Stock insuffisant pour ${product.nom}. Disponible: ${product.stock}, Demandé: ${item.quantity}`;
                     }
@@ -2723,9 +2877,18 @@
             cart.forEach(item => {
                 const product = db.produits.find(p => p.id === item.productId);
                 if(product) {
-                    product.stock -= item.quantity;
-                    // Ensure stock never goes below 0
-                    if(product.stock < 0) product.stock = 0;
+                    // Vérifier si c'est un service ou produit de productivité
+                    const isService = product.category && (
+                        product.category.toLowerCase().includes('service') || 
+                        product.category.toLowerCase().includes('productivité')
+                    );
+                    
+                    // Ne pas déduire le stock pour les services
+                    if(!isService) {
+                        product.stock -= item.quantity;
+                        // Ensure stock never goes below 0
+                        if(product.stock < 0) product.stock = 0;
+                    }
                 }
             });
             
@@ -2788,23 +2951,52 @@
             // Use escapeHtml to sanitize all user-provided values before injecting
             invoiceContent.innerHTML = `
                 <div class="mb-6 md:mb-8">
-                    <!-- Company Header -->
-                    <div class="mb-4 md:mb-8">
-                        <h1 class="text-xl md:text-2xl font-bold text-slate-800 mb-2">${escapeHtml(company.name)}</h1>
-                        ${company.address ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(company.address)}</div>` : ''}
-                        ${company.phone ? `<div class="text-slate-600 text-sm md:text-base">Tél: ${escapeHtml(company.phone)}</div>` : ''}
-                        ${company.email ? `<div class="text-slate-600 text-sm md:text-base">Email: ${escapeHtml(company.email)}</div>` : ''}
-                        ${company.nif ? `<div class="text-slate-600 text-sm md:text-base">NIF/STAT: ${escapeHtml(company.nif)}</div>` : ''}
-                    </div>
-                    
-                    <div class="flex justify-between items-start mb-4 md:mb-8">
-                        <div>
-                            <h2 class="text-xl md:text-2xl font-bold text-slate-800">FACTURE</h2>
-                            <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.id)}</div>
+                    <!-- Company Header with Logo -->
+                    <div class="flex justify-between items-start mb-6 md:mb-8">
+                        <!-- Logo and Company Info -->
+                        <div class="flex items-start gap-4 md:gap-6 flex-1">
+                            ${company.logo ? `
+                                <div class="flex-shrink-0">
+                                    <img src="${company.logo}" alt="Logo" class="h-16 md:h-20 w-auto object-contain max-w-[120px] md:max-w-[150px] rounded-lg shadow-sm">
+                                </div>
+                            ` : ''}
+                            <div class="flex-1 min-w-0">
+                                <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-3">${escapeHtml(company.name)}</h1>
+                                <div class="space-y-1">
+                                    ${company.address ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(company.address)}</div>` : ''}
+                                    <div class="flex flex-wrap gap-3 md:gap-4 text-sm md:text-base text-slate-600">
+                                        ${company.phone ? `<div class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                            </svg>
+                                            ${escapeHtml(company.phone)}
+                                        </div>` : ''}
+                                        ${company.email ? `<div class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                            </svg>
+                                            ${escapeHtml(company.email)}
+                                        </div>` : ''}
+                                        ${company.nif ? `<div class="flex items-center gap-1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                            NIF/STAT: ${escapeHtml(company.nif)}
+                                        </div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-slate-600 text-sm md:text-base">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
-                            <div class="text-slate-600 text-sm md:text-base">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
+                        <!-- Invoice Info -->
+                        <div class="text-right ml-4 md:ml-6">
+                            <div class="inline-block bg-slate-100 px-4 py-2 rounded-lg mb-3">
+                                <h2 class="text-xl md:text-2xl font-bold text-slate-800">FACTURE</h2>
+                            </div>
+                            <div class="space-y-1 text-sm md:text-base">
+                                <div class="font-semibold text-slate-700">${escapeHtml(invoice.id)}</div>
+                                <div class="text-slate-600">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
+                                <div class="text-slate-600">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
+                            </div>
                         </div>
                     </div>
                     
@@ -2911,23 +3103,67 @@
 
         function printInvoice() {
             const printWindow = window.open('', '_blank');
-            const invoiceContent = document.getElementById('invoice-content').innerHTML;
+            const company = db.config.company;
+            const invoiceId = document.querySelector('#invoice-content .text-right .text-slate-600')?.textContent || '';
+            const invoiceDate = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[1]?.textContent || '';
+            const invoiceTime = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[2]?.textContent || '';
+            
+            // Build invoice content manually for print with proper styling
+            let invoiceContent = `
+                <div class="header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+                        <div style="flex: 1;">
+                            ${company.logo ? `
+                                <div style="margin-bottom: 15px;">
+                                    <img src="${company.logo}" alt="Logo" style="height: 150px; max-width: 150px; object-fit: contain;">
+                                </div>
+                            ` : ''}
+                            <div class="company-name">${company.name}</div>
+                            ${company.address ? `<div>${company.address}</div>` : ''}
+                            ${company.phone ? `<div>Tél: ${company.phone}</div>` : ''}
+                            ${company.email ? `<div>Email: ${company.email}</div>` : ''}
+                            ${company.nif ? `<div>NIF/STAT: ${company.nif}</div>` : ''}
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="invoice-title">FACTURE</div>
+                            <div>${invoiceId}</div>
+                            <div>${invoiceDate}</div>
+                            <div>${invoiceTime}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add the rest of the invoice content
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = document.getElementById('invoice-content').innerHTML;
+            
+            // Find and add client info, table, payment info, and footer
+            const clientInfo = tempDiv.querySelector('.bg-slate-50');
+            const table = tempDiv.querySelector('table');
+            const paymentInfo = tempDiv.querySelectorAll('.bg-slate-50')[1];
+            const footer = tempDiv.querySelector('.border-t');
+            
+            if (clientInfo) invoiceContent += clientInfo.outerHTML;
+            if (table) invoiceContent += table.outerHTML;
+            if (paymentInfo) invoiceContent += paymentInfo.outerHTML;
+            if (footer) invoiceContent += `<div class="footer">${footer.innerHTML}</div>`;
             
             printWindow.document.write(`
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>Facture ${db.config.company.name}</title>
+                    <title>Facture ${company.name}</title>
                     <style>
                         body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
                         .header { margin-bottom: 30px; }
-                        .company-name { font-size: 20px; font-weight: bold; }
+                        .company-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
                         .invoice-title { font-size: 18px; font-weight: bold; margin: 20px 0; }
-                        .client-info { margin-bottom: 20px; padding: 10px; background: #f8fafc; }
+                        .client-info { margin-bottom: 20px; padding: 10px; background: #f8fafc; border-radius: 8px; }
                         table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
                         th, td { padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
-                        th { background-color: #f8fafc; }
-                        .total { font-size: 16px; font-weight: bold; text-align: right; }
+                        th { background-color: #f8fafc; font-weight: bold; }
+                        .total { font-size: 16px; font-weight: bold; text-align: right; color: #2563eb; }
                         .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; }
                         .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 40px; }
                         @media print { 
@@ -2939,6 +3175,12 @@
                 </head>
                 <body>
                     ${invoiceContent}
+                    <div style="margin-top: 60px; display: flex; justify-content: flex-end;">
+                        <div style="text-align: center;">
+                            <div style="margin-bottom: 10px; font-weight: bold;">Signature et cachet</div>
+                            <div class="signature-line"></div>
+                        </div>
+                    </div>
                     <div class="footer">
                         <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer;">
                             Imprimer
@@ -3296,10 +3538,15 @@
 
             const caisse = totalVentes - totalDepenses;
 
+            const ventesCash = ventesFiltered.filter(v => v.status === 'paid' && v.paymentMethod === 'cash').reduce((sum, s) => sum + (s.total||0), 0);
+            const ventesMobile = ventesFiltered.filter(v => v.status === 'paid' && v.paymentMethod === 'mobile').reduce((sum, s) => sum + (s.total||0), 0);
+
             document.getElementById('stat-caisse').innerText = formatMoney(caisse);
             document.getElementById('stat-ca').innerText = formatMoney(totalVentes);
             document.getElementById('stat-depenses').innerText = formatMoney(totalDepenses);
-            document.getElementById('stat-marge').innerText = formatMoney(totalProfit);
+            document.getElementById('stat-ventes-cash').innerText = formatMoney(ventesCash);
+            document.getElementById('stat-ventes-mobile').innerText = formatMoney(ventesMobile);
+            document.getElementById('stat-total-ventes').innerText = formatMoney(totalVentes);
             document.getElementById('stat-credits').innerText = formatMoney(totalCredits);
 
             // Stock Alerts
@@ -3867,9 +4114,16 @@
 
         // === TOOLS & HELPERS ===
         function updateSelects() {
-            // Sale product select - only show products with stock > 0
+            // Sale product select - only show products with stock > 0 or services (category contains "service" or "productivité")
             const saleSelect = document.getElementById('sale-product');
-            const availableProducts = db.produits.filter(p => p.stock > 0);
+            const availableProducts = db.produits.filter(p => {
+                // Services et produits de productivité sont toujours disponibles
+                const isService = p.category && (
+                    p.category.toLowerCase().includes('service') || 
+                    p.category.toLowerCase().includes('productivité')
+                );
+                return p.stock > 0 || isService;
+            });
             
             saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
                 availableProducts
@@ -3895,7 +4149,15 @@
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 8)
                 .map(([name]) => db.produits.find(p => p.nom === name))
-                .filter(p => p && p.stock > 0);
+                .filter(p => {
+                    if (!p) return false;
+                    // Services et produits de productivité sont toujours disponibles
+                    const isService = p.category && (
+                        p.category.toLowerCase().includes('service') || 
+                        p.category.toLowerCase().includes('productivité')
+                    );
+                    return p.stock > 0 || isService;
+                });
 
             if(topProducts.length > 0) {
                 quickProductsDiv.innerHTML = topProducts.map(product => `
@@ -3921,11 +4183,19 @@
 
         function quickAddProduct(productId) {
             const product = db.produits.find(p => p.id === productId);
-            if(product && product.stock > 0) {
-                document.getElementById('sale-product').value = productId;
-                document.getElementById('sale-qty').value = 1;
-                updateSalePrice(); // Mettre à jour le prix
-                addToCart();
+            if(product) {
+                // Services et produits de productivité sont toujours disponibles
+                const isService = product.category && (
+                    product.category.toLowerCase().includes('service') || 
+                    product.category.toLowerCase().includes('productivité')
+                );
+                
+                if(product.stock > 0 || isService) {
+                    document.getElementById('sale-product').value = productId;
+                    document.getElementById('sale-qty').value = 1;
+                    updateSalePrice(); // Mettre à jour le prix
+                    addToCart();
+                }
             }
         }
 
@@ -3937,13 +4207,18 @@
                     const saleSelect = document.getElementById('sale-product');
                     
                     if(searchTerm.length > 0) {
-                        const filteredProducts = db.produits.filter(p => 
-                            p.stock > 0 && (
+                        const filteredProducts = db.produits.filter(p => {
+                            // Services et produits de productivité sont toujours disponibles
+                            const isService = p.category && (
+                                p.category.toLowerCase().includes('service') || 
+                                p.category.toLowerCase().includes('productivité')
+                            );
+                            return (p.stock > 0 || isService) && (
                                 p.nom.toLowerCase().includes(searchTerm) ||
                                 p.category.toLowerCase().includes(searchTerm) ||
                                 p.fournisseur.toLowerCase().includes(searchTerm)
-                            )
-                        );
+                            );
+                        });
                         
                         saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
                             filteredProducts
@@ -3976,8 +4251,13 @@
             if(product) {
                 priceInput.value = product.vente;
                 
-                // Vérifier si la quantité est disponible
-                if(product.stock < qty) {
+                // Vérifier si la quantité est disponible (sauf pour les services)
+                const isService = product.category && (
+                    product.category.toLowerCase().includes('service') || 
+                    product.category.toLowerCase().includes('productivité')
+                );
+                
+                if(!isService && product.stock < qty) {
                     priceInput.classList.add('border-red-300', 'bg-red-50');
                     priceInput.classList.remove('border-slate-200', 'bg-slate-50');
                 } else {
