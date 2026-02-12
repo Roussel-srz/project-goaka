@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goaka - Multi-User Restaurant Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .sidebar-item.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        @media (max-width: 768px) {
+            .mobile-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .mobile-menu.open {
+                transform: translateX(0);
+            }
+        }
+        .sync-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .sync-success {
+            color: #10b981;
+        }
+        .sync-error {
+            color: #ef4444;
+        }
+        .sync-pending {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen">
+    
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass-card p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                    Goaka Restaurant
+                </h1>
+                <p class="text-slate-600">Gestion Multi-Utilisateurs</p>
+            </div>
+            
+            <form id="login-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Nom d'utilisateur</label>
+                    <input type="text" id="username" required 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                           placeholder="Entrez votre nom d'utilisateur">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
+                    <input type="password" id="password" required 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                           placeholder="Entrez votre mot de passe">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Mode</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="login-mode" value="offline" checked class="mr-2">
+                            <span class="text-sm">Hors ligne (local uniquement)</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="login-mode" value="online" class="mr-2">
+                            <span class="text-sm">En ligne avec synchronisation</span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Le mode en ligne sauvegarde automatiquement vos données</p>
+                </div>
+                
+                <button type="submit" 
+                        class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all">
+                    Se connecter
+                </button>
+                
+                <div class="text-center">
+                    <button type="button" onclick="showFirstTimeSetup()" 
+                            class="text-blue-600 hover:text-blue-700 text-sm">
+                        Première fois ? Configurer
+                    </button>
+                </div>
+            </form>
+            
+            <div id="login-error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm hidden">
+                Erreur d'authentification
+            </div>
+        </div>
+    </div>
+    
+    <!-- FIRST TIME SETUP -->
+    <div id="setup-screen" class="min-h-screen flex items-center justify-center p-4 hidden">
+        <div class="glass-card p-8 rounded-2xl shadow-xl w-full max-w-md">
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                    Configuration Initiale
+                </h1>
+                <p class="text-slate-600">Créez votre compte utilisateur</p>
+            </div>
+            
+            <form id="setup-form" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Nom d'utilisateur</label>
+                    <input type="text" id="setup-username" required 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                           placeholder="Choisissez un nom d'utilisateur">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
+                    <input type="password" id="setup-password" required 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                           placeholder="Choisissez un mot de passe">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Confirmer le mot de passe</label>
+                    <input type="password" id="setup-password-confirm" required 
+                           class="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                           placeholder="Confirmez votre mot de passe">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-2">Mode de fonctionnement</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="setup-mode" value="offline" checked class="mr-2">
+                            <span class="text-sm">Hors ligne (local uniquement)</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="setup-mode" value="online" class="mr-2">
+                            <span class="text-sm">En ligne avec synchronisation automatique</span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">Le mode en ligne sauvegarde vos données sur GitHub gratuitement</p>
+                </div>
+                
+                <div class="space-y-3">
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all">
+                        Créer le compte
+                    </button>
+                    
+                    <button type="button" onclick="backToLogin()" 
+                            class="w-full bg-slate-200 text-slate-700 py-3 rounded-lg font-medium hover:bg-slate-300 transition-all">
+                        Retour
+                    </button>
+                </div>
+            </form>
+            
+            <div id="setup-error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm hidden">
+                Erreur de configuration
+            </div>
+        </div>
+    </div>
+    
+    <!-- MAIN APPLICATION -->
+    <div id="main-app" class="hidden">
+        <!-- HEADER -->
+        <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
+            <div class="px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-slate-100">
+                            <i data-lucide="menu" class="w-5 h-5"></i>
+                        </button>
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Goaka Restaurant
+                        </h1>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <!-- Sync Status -->
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100">
+                            <div id="sync-indicator" class="w-2 h-2 rounded-full sync-pending"></div>
+                            <span id="sync-status" class="text-xs font-medium">Hors ligne</span>
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50">
+                            <i data-lucide="user" class="w-4 h-4 text-blue-600"></i>
+                            <span id="current-user" class="text-sm font-medium text-blue-700">Utilisateur</span>
+                        </div>
+                        
+                        <!-- Logout -->
+                        <button onclick="logout()" class="p-2 rounded-lg hover:bg-red-50 text-red-600">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="flex">
+            <!-- SIDEBAR -->
+            <aside id="sidebar" class="mobile-menu fixed md:sticky top-0 md:top-16 left-0 h-screen md:h-auto w-64 bg-white shadow-lg md:shadow-sm border-r border-slate-200 z-30 overflow-y-auto">
+                <nav class="p-4 space-y-2">
+                    <button onclick="switchTab('dashboard'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 active">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Tableau de bord
+                    </button>
+                    <button onclick="switchTab('sales'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="shopping-cart" class="w-5 h-5"></i> Ventes
+                    </button>
+                    <button onclick="switchTab('stock'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="package" class="w-5 h-5"></i> Stock
+                    </button>
+                    <button onclick="switchTab('credits'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="credit-card" class="w-5 h-5"></i> Crédits
+                    </button>
+                    <button onclick="switchTab('expenses'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="receipt" class="w-5 h-5"></i> Dépenses
+                    </button>
+                    <button onclick="switchTab('reports'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="bar-chart-2" class="w-5 h-5"></i> Rapports
+                    </button>
+                    <button onclick="switchTab('settings'); closeMobileMenu();" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50">
+                        <i data-lucide="settings" class="w-5 h-5"></i> Paramètres
+                    </button>
+                </nav>
+            </aside>
+            
+            <!-- MAIN CONTENT -->
+            <main class="flex-1 p-4 md:p-6">
+                <!-- DASHBOARD TAB -->
+                <div id="tab-dashboard" class="tab-content active space-y-4 md:space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="glass-card p-4 rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-slate-500">Ventes du jour</span>
+                                <i data-lucide="trending-up" class="w-4 h-4 text-green-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-slate-800" id="dashboard-sales-today">0</div>
+                            <div class="text-xs text-green-600 mt-1">+0% vs hier</div>
+                        </div>
+                        
+                        <div class="glass-card p-4 rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-slate-500">Revenu du jour</span>
+                                <i data-lucide="dollar-sign" class="w-4 h-4 text-blue-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-slate-800" id="dashboard-revenue-today">0</div>
+                            <div class="text-xs text-blue-600 mt-1">+0% vs hier</div>
+                        </div>
+                        
+                        <div class="glass-card p-4 rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-slate-500">Crédits en cours</span>
+                                <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-slate-800" id="dashboard-credits">0</div>
+                            <div class="text-xs text-amber-600 mt-1">À récupérer</div>
+                        </div>
+                        
+                        <div class="glass-card p-4 rounded-xl shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-slate-500">Produits en stock</span>
+                                <i data-lucide="package" class="w-4 h-4 text-purple-500"></i>
+                            </div>
+                            <div class="text-2xl font-bold text-slate-800" id="dashboard-stock">0</div>
+                            <div class="text-xs text-purple-600 mt-1">Articles</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="glass-card p-6 rounded-xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Actions Rapides</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button onclick="switchTab('sales'); document.getElementById('quick-sale-btn').click()" 
+                                    class="p-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all">
+                                <i data-lucide="plus" class="w-5 h-5 mx-auto mb-1"></i>
+                                <span class="text-sm">Nouvelle Vente</span>
+                            </button>
+                            <button onclick="switchTab('stock'); document.getElementById('add-product-btn').click()" 
+                                    class="p-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all">
+                                <i data-lucide="plus" class="w-5 h-5 mx-auto mb-1"></i>
+                                <span class="text-sm">Ajouter Produit</span>
+                            </button>
+                            <button onclick="manualSync()" 
+                                    class="p-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all">
+                                <i data-lucide="refresh-cw" class="w-5 h-5 mx-auto mb-1"></i>
+                                <span class="text-sm">Synchroniser</span>
+                            </button>
+                            <button onclick="switchTab('reports'); document.getElementById('export-data-btn').click()" 
+                                    class="p-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg hover:from-amber-600 hover:to-amber-700 transition-all">
+                                <i data-lucide="download" class="w-5 h-5 mx-auto mb-1"></i>
+                                <span class="text-sm">Exporter</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="glass-card p-6 rounded-xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Activité Récente</h3>
+                        <div id="recent-activity" class="space-y-3">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SALES TAB -->
+                <div id="tab-sales" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Nouvelle Vente</h3>
+                        <form id="sale-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Client</label>
+                                <input type="text" id="sale-client" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nom du client (optionnel)">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Produit</label>
+                                <select id="sale-product" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="">-- Sélectionner un produit --</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Quantité</label>
+                                <input type="number" id="sale-quantity" min="1" value="1" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Prix unitaire</label>
+                                <input type="number" id="sale-price" min="0" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Total</label>
+                                <input type="number" id="sale-total" min="0" step="0.01" readonly class="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Statut</label>
+                                <select id="sale-status" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="paid">Payé</option>
+                                    <option value="credit">Crédit</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Enregistrer la vente
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Ventes Récentes</h3>
+                        <div id="recent-sales" class="space-y-3">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- STOCK TAB -->
+                <div id="tab-stock" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Ajouter un Produit</h3>
+                        <form id="product-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Nom du produit</label>
+                                <input type="text" id="product-name" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Catégorie</label>
+                                <input type="text" id="product-category" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Fournisseur</label>
+                                <input type="text" id="product-supplier" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Prix d'achat</label>
+                                    <input type="number" id="product-cost" min="0" step="0.01" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Prix de vente</label>
+                                    <input type="number" id="product-price" min="0" step="0.01" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Stock initial</label>
+                                <input type="number" id="product-stock" min="0" value="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Ajouter le produit
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Liste des Produits</h3>
+                        <div id="product-list" class="space-y-3">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CREDITS TAB -->
+                <div id="tab-credits" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Ajouter un Crédit</h3>
+                        <form id="credit-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Client</label>
+                                <input type="text" id="credit-client" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Montant</label>
+                                <input type="number" id="credit-amount" min="0" step="0.01" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Raison</label>
+                                <textarea id="credit-reason" rows="3" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-amber-600 text-white py-2 rounded-lg hover:bg-amber-700 transition-colors">
+                                Ajouter le crédit
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Crédits en Cours</h3>
+                        <div id="credits-list" class="space-y-3">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- EXPENSES TAB -->
+                <div id="tab-expenses" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Ajouter une Dépense</h3>
+                        <form id="expense-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                                <input type="text" id="expense-description" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Montant</label>
+                                <input type="number" id="expense-amount" min="0" step="0.01" required class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Catégorie</label>
+                                <select id="expense-category" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                                    <option value="fourniture">Fournitures</option>
+                                    <option value="loyer">Loyer</option>
+                                    <option value="services">Services</option>
+                                    <option value="transport">Transport</option>
+                                    <option value="autre">Autre</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                Ajouter la dépense
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Dépenses Récentes</h3>
+                        <div id="expenses-list" class="space-y-3">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- REPORTS TAB -->
+                <div id="tab-reports" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Rapports et Exportation</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Date début</label>
+                                <input type="date" id="report-start-date" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Date fin</label>
+                                <input type="date" id="report-end-date" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3">
+                            <button id="export-pdf-btn" onclick="exportPDF()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i data-lucide="file-text" class="w-4 h-4 inline mr-2"></i>
+                                Exporter en PDF
+                            </button>
+                            <button id="export-csv-btn" onclick="exportCSV()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 inline mr-2"></i>
+                                Exporter en CSV
+                            </button>
+                            <button id="import-data-btn" onclick="showImportDialog()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                                <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>
+                                Importer des données
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Statistiques</h3>
+                        <div id="report-statistics" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <!-- JS Injection -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SETTINGS TAB -->
+                <div id="tab-settings" class="tab-content space-y-4 md:space-y-6">
+                    <div class="glass-card p-4 md:p-6 rounded-xl md:rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-4">Paramètres</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-medium mb-3">Synchronisation</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">Synchronisation automatique</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="auto-sync-toggle" class="sr-only peer" checked>
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">Intervalle (minutes)</span>
+                                        <select id="sync-interval" class="px-3 py-1 border border-slate-200 rounded-lg text-sm">
+                                            <option value="5">5</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium mb-3">Compte</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm">Utilisateur</span>
+                                        <span class="text-sm font-medium" id="settings-username">-</span>
+                                    </div>
+                                    <button onclick="changePassword()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm">
+                                        Changer le mot de passe
+                                    </button>
+                                    <button onclick="logout()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                        Déconnexion
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium mb-3">Données</h4>
+                                <div class="space-y-3">
+                                    <button onclick="backupData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                        Sauvegarder les données
+                                    </button>
+                                    <button onclick="restoreData()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                        Restaurer les données
+                                    </button>
+                                    <button onclick="clearAllData()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                        Effacer toutes les données
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </main>
+        </div>
+    </div>
+    
+    <!-- MODALS -->
+    <!-- Add more modals as needed -->
+    
+    <script>
+        // Global variables
+        let currentUser = null;
+        let githubToken = null;
+        let db = null;
+        let syncInterval = null;
+        let lastSyncTime = null;
+        
+        // GitHub repository configuration
+        const GITHUB_REPO = 'Roussel-srz/project-goaka';
+        const GITHUB_API_BASE = 'https://api.github.com/repos';
+        
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initLucide();
+            setupEventListeners();
+            checkExistingSession();
+        });
+        
+        function initLucide() {
+            lucide.createIcons();
+        }
+        
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            
+            // Setup form
+            document.getElementById('setup-form').addEventListener('submit', handleSetup);
+        }
+        
+        function checkExistingSession() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedToken = localStorage.getItem('githubToken');
+            
+            if (savedUser) {
+                currentUser = savedUser;
+                githubToken = savedToken;
+                showMainApp();
+            }
+        }
+        
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const mode = document.querySelector('input[name="login-mode"]:checked').value;
+            
+            // Hash password
+            const hashedPassword = hashPassword(password);
+            
+            // Set GitHub token automatically if online mode
+            const token = mode === 'online' ? getServerGitHubToken() : null;
+            
+            // Authenticate user
+            authenticateUser(username, hashedPassword, token);
+        }
+        
+        function handleSetup(e) {
+            e.preventDefault();
+            const username = document.getElementById('setup-username').value;
+            const password = document.getElementById('setup-password').value;
+            const passwordConfirm = document.getElementById('setup-password-confirm').value;
+            const mode = document.querySelector('input[name="setup-mode"]:checked').value;
+            
+            // Validate passwords match
+            if (password !== passwordConfirm) {
+                showError('setup-error', 'Les mots de passe ne correspondent pas');
+                return;
+            }
+            
+            // Hash password
+            const hashedPassword = hashPassword(password);
+            
+            // Set GitHub token automatically if online mode
+            const token = mode === 'online' ? getServerGitHubToken() : null;
+            
+            // Create user account
+            createUser(username, hashedPassword, token);
+        }
+        
+        function getServerGitHubToken() {
+            // Token GitHub côté serveur pour la synchronisation automatique
+            // Ce token est caché et géré par l'administrateur
+            return 'ghp_your_server_token_here'; // À remplacer par le vrai token serveur
+        }
+        
+        function hashPassword(password) {
+            // Simple hash function (in production, use bcrypt or similar)
+            let hash = 0;
+            for (let i = 0; i < password.length; i++) {
+                const char = password.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            return hash.toString();
+        }
+        
+        async function authenticateUser(username, hashedPassword, token) {
+            try {
+                // Try to load user from GitHub or local storage
+                const userData = await loadUserData(username);
+                
+                if (userData && userData.password === hashedPassword) {
+                    // Authentication successful
+                    currentUser = username;
+                    githubToken = token;
+                    localStorage.setItem('currentUser', currentUser);
+                    localStorage.setItem('githubToken', githubToken || '');
+                    
+                    // Initialize database
+                    await initializeDatabase();
+                    
+                    showMainApp();
+                } else {
+                    showError('login-error', 'Nom d\'utilisateur ou mot de passe incorrect');
+                }
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showError('login-error', 'Erreur d\'authentification');
+            }
+        }
+        
+        async function createUser(username, hashedPassword, token) {
+            try {
+                // Create user data structure
+                const userData = {
+                    username: username,
+                    password: hashedPassword,
+                    createdAt: new Date().toISOString(),
+                    lastLogin: new Date().toISOString()
+                };
+                
+                // Save to GitHub if token provided
+                if (token) {
+                    await saveUserData(username, userData, token);
+                }
+                
+                // Save to local storage as backup
+                localStorage.setItem(`user_${username}`, JSON.stringify(userData));
+                
+                // Auto-login after creation
+                await authenticateUser(username, hashedPassword, token);
+            } catch (error) {
+                console.error('User creation error:', error);
+                showError('setup-error', 'Erreur lors de la création du compte');
+            }
+        }
+        
+        async function loadUserData(username) {
+            // Try local storage first
+            const localData = localStorage.getItem(`user_${username}`);
+            if (localData) {
+                return JSON.parse(localData);
+            }
+            
+            // Try GitHub if token available
+            if (githubToken) {
+                try {
+                    const response = await fetch(`${GITHUB_API_BASE}/${GITHUB_REPO}/contents/data/users.json`, {
+                        headers: {
+                            'Authorization': `token ${githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const content = atob(data.content);
+                        const users = JSON.parse(content);
+                        return users[username];
+                    }
+                } catch (error) {
+                    console.error('Error loading user from GitHub:', error);
+                }
+            }
+            
+            return null;
+        }
+        
+        async function saveUserData(username, userData, token) {
+            if (!token) return;
+            
+            try {
+                // Load existing users
+                let users = {};
+                try {
+                    const response = await fetch(`${GITHUB_API_BASE}/${GITHUB_REPO}/contents/data/users.json`, {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        users = JSON.parse(atob(data.content));
+                    }
+                } catch (error) {
+                    // File doesn't exist, create new
+                }
+                
+                // Add/update user
+                users[username] = userData;
+                
+                // Save back to GitHub
+                const content = btoa(JSON.stringify(users, null, 2));
+                await fetch(`${GITHUB_API_BASE}/${GITHUB_REPO}/contents/data/users.json`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Update user ${username}`,
+                        content: content
+                    })
+                });
+            } catch (error) {
+                console.error('Error saving user data:', error);
+                throw error;
+            }
+        }
+        
+        async function initializeDatabase() {
+            try {
+                // Initialize sql.js
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+                
+                // Create or load database
+                const dbData = await loadDatabaseData();
+                db = new SQL.Database(dbData);
+                
+                // Create tables if they don't exist
+                createTables();
+                
+                // Load existing data
+                await loadExistingData();
+                
+                // Start auto-sync
+                if (githubToken) {
+                    startAutoSync();
+                }
+                
+                // Update UI
+                updateDashboard();
+                initLucide();
+            } catch (error) {
+                console.error('Database initialization error:', error);
+            }
+        }
+        
+        function createTables() {
+            // Products table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS produits (
+                    id TEXT PRIMARY KEY,
+                    nom TEXT NOT NULL,
+                    category TEXT,
+                    fournisseur TEXT,
+                    achat REAL,
+                    vente REAL,
+                    stock INTEGER DEFAULT 0,
+                    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Sales table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS ventes (
+                    id TEXT PRIMARY KEY,
+                    client TEXT,
+                    items TEXT NOT NULL,
+                    total REAL NOT NULL,
+                    status TEXT DEFAULT 'paid',
+                    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Credits table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS credits (
+                    id TEXT PRIMARY KEY,
+                    client TEXT NOT NULL,
+                    montant REAL NOT NULL,
+                    raison TEXT,
+                    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    status TEXT DEFAULT 'pending',
+                    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Expenses table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS expenses (
+                    id TEXT PRIMARY KEY,
+                    description TEXT NOT NULL,
+                    montant REAL NOT NULL,
+                    category TEXT,
+                    date DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            
+            // Logs table
+            db.run(`
+                CREATE TABLE IF NOT EXISTS logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    action TEXT NOT NULL,
+                    details TEXT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+        }
+        
+        async function loadDatabaseData() {
+            try {
+                if (githubToken) {
+                    // Try to load from GitHub
+                    const response = await fetch(`${GITHUB_API_BASE}/${GITHUB_REPO}/contents/data/${currentUser}/database.json`, {
+                        headers: {
+                            'Authorization': `token ${githubToken}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const content = atob(data.content);
+                        return Uint8Array.from(atob(content), c => c.charCodeAt(0));
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading database from GitHub:', error);
+            }
+            
+            // Return empty database if not found or error
+            return new Uint8Array(0);
+        }
+        
+        async function loadExistingData() {
+            // Load data will be implemented as we add the tabs
+            console.log('Loading existing data...');
+        }
+        
+        function startAutoSync() {
+            // Sync every 5 minutes
+            syncInterval = setInterval(async () => {
+                await autoSync();
+            }, 5 * 60 * 1000);
+            
+            // Initial sync
+            autoSync();
+        }
+        
+        async function autoSync() {
+            if (!githubToken || !db) return;
+            
+            try {
+                updateSyncStatus('pending', 'Synchronisation...');
+                
+                // Export database
+                const data = db.export();
+                const content = btoa(String.fromCharCode.apply(null, data));
+                
+                // Save to GitHub
+                await fetch(`${GITHUB_API_BASE}/${GITHUB_REPO}/contents/data/${currentUser}/database.json`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubToken}`,
+                        'Accept': 'application/vnd.github.v3+json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: `Auto-sync for ${currentUser}`,
+                        content: content
+                    })
+                });
+                
+                // Update last sync time
+                lastSyncTime = new Date();
+                updateSyncStatus('success', 'Synchronisé');
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    updateSyncStatus('success', 'En ligne');
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Auto-sync error:', error);
+                updateSyncStatus('error', 'Erreur de sync');
+            }
+        }
+        
+        async function manualSync() {
+            await autoSync();
+        }
+        
+        function updateSyncStatus(status, text) {
+            const indicator = document.getElementById('sync-indicator');
+            const statusText = document.getElementById('sync-status');
+            
+            // Remove all status classes
+            indicator.classList.remove('sync-success', 'sync-error', 'sync-pending');
+            
+            // Add new status class
+            indicator.classList.add(`sync-${status}`);
+            statusText.textContent = text;
+        }
+        
+        function showMainApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            // Update user display
+            document.getElementById('current-user').textContent = currentUser;
+            
+            // Initialize lucide icons
+            initLucide();
+        }
+        
+        function showFirstTimeSetup() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('setup-screen').classList.remove('hidden');
+        }
+        
+        function backToLogin() {
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+        }
+        
+        function logout() {
+            // Clear session
+            currentUser = null;
+            githubToken = null;
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('githubToken');
+            
+            // Stop auto-sync
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+            
+            // Close database
+            if (db) {
+                db.close();
+                db = null;
+            }
+            
+            // Show login screen
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            
+            // Clear form
+            document.getElementById('login-form').reset();
+        }
+        
+        function showError(errorId, message) {
+            const errorElement = document.getElementById(errorId);
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                errorElement.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            // Update sidebar
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Initialize lucide icons
+            initLucide();
+        }
+        
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        
+        function closeMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.remove('open');
+        }
+        
+        function updateDashboard() {
+            if (!db) return;
+            
+            try {
+                // Get today's sales
+                const today = new Date().toDateString();
+                const salesResult = db.exec(`
+                    SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as revenue 
+                    FROM ventes 
+                    WHERE date(date) = date('now')
+                `);
+                
+                const salesCount = salesResult[0].values[0][0];
+                const revenue = salesResult[0].values[0][1];
+                
+                // Get pending credits
+                const creditsResult = db.exec(`
+                    SELECT COUNT(*) as count, COALESCE(SUM(montant), 0) as total 
+                    FROM credits 
+                    WHERE status = 'pending'
+                `);
+                
+                const creditsCount = creditsResult[0].values[0][0];
+                
+                // Get products count
+                const stockResult = db.exec(`
+                    SELECT COUNT(*) as count FROM produits
+                `);
+                
+                const stockCount = stockResult[0].values[0][0];
+                
+                // Update dashboard
+                document.getElementById('dashboard-sales-today').textContent = salesCount;
+                document.getElementById('dashboard-revenue-today').textContent = formatMoney(revenue);
+                document.getElementById('dashboard-credits').textContent = creditsCount;
+                document.getElementById('dashboard-stock').textContent = stockCount;
+                
+            } catch (error) {
+                console.error('Dashboard update error:', error);
+            }
+        }
+        
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: 'MGA' // Ariary de Madagascar
+            }).format(amount);
+        }
+        
+        // Add more functions as we implement each tab
+        
+        // === SALES FUNCTIONS ===
+        
+        function setupSalesFunctions() {
+            // Sale form submission
+            document.getElementById('sale-form').addEventListener('submit', handleSaleSubmit);
+            
+            // Product selection change
+            document.getElementById('sale-product').addEventListener('change', updateSalePrice);
+            
+            // Quantity change
+            document.getElementById('sale-quantity').addEventListener('input', updateSalePrice);
+            
+            // Load products
+            loadProductsToSelect();
+            
+            // Load recent sales
+            loadRecentSales();
+        }
+        
+        function handleSaleSubmit(e) {
+            e.preventDefault();
+            
+            const client = document.getElementById('sale-client').value;
+            const productId = document.getElementById('sale-product').value;
+            const quantity = parseInt(document.getElementById('sale-quantity').value);
+            const price = parseFloat(document.getElementById('sale-price').value);
+            const total = parseFloat(document.getElementById('sale-total').value);
+            const status = document.getElementById('sale-status').value;
+            
+            if (!productId || quantity <= 0 || price <= 0) {
+                alert('Veuillez remplir tous les champs correctement');
+                return;
+            }
+            
+            // Get product details
+            const product = getProductById(productId);
+            if (!product) {
+                alert('Produit non trouvé');
+                return;
+            }
+            
+            // Check stock
+            if (product.stock < quantity) {
+                alert('Stock insuffisant');
+                return;
+            }
+            
+            // Create sale
+            const saleId = 'SALE_' + Date.now();
+            const items = [{
+                productId: productId,
+                productName: product.nom,
+                quantity: quantity,
+                unitPrice: price,
+                total: price * quantity
+            }];
+            
+            try {
+                // Insert sale
+                db.run(`
+                    INSERT INTO ventes (id, client, items, total, status, date)
+                    VALUES (?, ?, ?, ?, ?, datetime('now'))
+                `, [saleId, client, JSON.stringify(items), total, status]);
+                
+                // Update stock
+                db.run(`
+                    UPDATE produits SET stock = stock - ? WHERE id = ?
+                `, [quantity, productId]);
+                
+                // Log action
+                logAction('Vente créée', `Vente ${saleId} - ${formatMoney(total)}`);
+                
+                // Reset form
+                document.getElementById('sale-form').reset();
+                
+                // Update UI
+                loadProductsToSelect();
+                loadRecentSales();
+                updateDashboard();
+                
+                // Show success message
+                showSuccessMessage('Vente enregistrée avec succès');
+                
+            } catch (error) {
+                console.error('Sale error:', error);
+                alert('Erreur lors de l\'enregistrement de la vente');
+            }
+        }
+        
+        function updateSalePrice() {
+            const productId = document.getElementById('sale-product').value;
+            const quantity = parseInt(document.getElementById('sale-quantity').value) || 1;
+            const priceInput = document.getElementById('sale-price');
+            const totalInput = document.getElementById('sale-total');
+            
+            if (productId) {
+                const product = getProductById(productId);
+                if (product) {
+                    priceInput.value = product.vente;
+                    totalInput.value = (product.vente * quantity).toFixed(2);
+                }
+            } else {
+                priceInput.value = '';
+                totalInput.value = '';
+            }
+        }
+        
+        function getProductById(productId) {
+            try {
+                const result = db.exec('SELECT * FROM produits WHERE id = ?', [productId]);
+                if (result.length > 0) {
+                    return {
+                        id: result[0].values[0][0],
+                        nom: result[0].values[0][1],
+                        category: result[0].values[0][2],
+                        fournisseur: result[0].values[0][3],
+                        achat: result[0].values[0][4],
+                        vente: result[0].values[0][5],
+                        stock: result[0].values[0][6]
+                    };
+                }
+            } catch (error) {
+                console.error('Get product error:', error);
+            }
+            return null;
+        }
+        
+        function loadProductsToSelect() {
+            const select = document.getElementById('sale-product');
+            
+            try {
+                const result = db.exec('SELECT * FROM produits ORDER BY nom');
+                const products = result[0].values.map(row => ({
+                    id: row[0],
+                    nom: row[1],
+                    stock: row[6],
+                    vente: row[5]
+                }));
+                
+                select.innerHTML = '<option value="">-- Sélectionner un produit --</option>' +
+                    products.filter(p => p.stock > 0)
+                        .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
+                        .join('');
+                
+            } catch (error) {
+                console.error('Load products error:', error);
+                select.innerHTML = '<option value="">-- Aucun produit disponible --</option>';
+            }
+        }
+        
+        function loadRecentSales() {
+            const container = document.getElementById('recent-sales');
+            
+            try {
+                const result = db.exec(`
+                    SELECT * FROM ventes 
+                    ORDER BY date DESC 
+                    LIMIT 10
+                `);
+                
+                if (result.length === 0) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-4">Aucune vente récente</p>';
+                    return;
+                }
+                
+                const sales = result[0].values.map(row => ({
+                    id: row[0],
+                    client: row[1],
+                    items: JSON.parse(row[2]),
+                    total: row[3],
+                    status: row[4],
+                    date: row[5]
+                }));
+                
+                container.innerHTML = sales.map(sale => `
+                    <div class="p-3 border rounded-lg hover:bg-slate-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-medium">${sale.client || 'Client passager'}</div>
+                            <div class="text-xs px-2 py-1 rounded-full ${sale.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}">
+                                ${sale.status === 'paid' ? 'Payé' : 'Crédit'}
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-slate-500">${new Date(sale.date).toLocaleDateString('fr-FR')}</div>
+                            <div class="font-bold text-blue-600">${formatMoney(sale.total)}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Load sales error:', error);
+                container.innerHTML = '<p class="text-center text-red-500 py-4">Erreur de chargement</p>';
+            }
+        }
+        
+        // === STOCK FUNCTIONS ===
+        
+        function setupStockFunctions() {
+            // Product form submission
+            document.getElementById('product-form').addEventListener('submit', handleProductSubmit);
+            
+            // Load products
+            loadProductsList();
+        }
+        
+        function handleProductSubmit(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('product-name').value;
+            const category = document.getElementById('product-category').value;
+            const supplier = document.getElementById('product-supplier').value;
+            const cost = parseFloat(document.getElementById('product-cost').value) || 0;
+            const price = parseFloat(document.getElementById('product-price').value);
+            const stock = parseInt(document.getElementById('product-stock').value) || 0;
+            
+            if (!name || price <= 0) {
+                alert('Veuillez remplir les champs obligatoires');
+                return;
+            }
+            
+            const productId = 'PROD_' + Date.now();
+            
+            try {
+                // Insert product
+                db.run(`
+                    INSERT INTO produits (id, nom, category, fournisseur, achat, vente, stock)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `, [productId, name, category, supplier, cost, price, stock]);
+                
+                // Log action
+                logAction('Produit ajouté', `Produit ${name} ajouté`);
+                
+                // Reset form
+                document.getElementById('product-form').reset();
+                
+                // Update UI
+                loadProductsList();
+                updateDashboard();
+                
+                // Show success message
+                showSuccessMessage('Produit ajouté avec succès');
+                
+            } catch (error) {
+                console.error('Product error:', error);
+                alert('Erreur lors de l\'ajout du produit');
+            }
+        }
+        
+        function loadProductsList() {
+            const container = document.getElementById('product-list');
+            
+            try {
+                const result = db.exec('SELECT * FROM produits ORDER BY nom');
+                
+                if (result.length === 0) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-4">Aucun produit en stock</p>';
+                    return;
+                }
+                
+                const products = result[0].values.map(row => ({
+                    id: row[0],
+                    nom: row[1],
+                    category: row[2],
+                    fournisseur: row[3],
+                    achat: row[4],
+                    vente: row[5],
+                    stock: row[6]
+                }));
+                
+                container.innerHTML = products.map(product => `
+                    <div class="p-3 border rounded-lg hover:bg-slate-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-medium">${product.nom}</div>
+                            <div class="text-xs px-2 py-1 rounded-full ${product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                Stock: ${product.stock}
+                            </div>
+                        </div>
+                        <div class="text-sm text-slate-600">
+                            ${product.category ? `<span class="mr-3">${product.category}</span>` : ''}
+                            ${product.fournisseur ? `<span class="mr-3">${product.fournisseur}</span>` : ''}
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <div class="text-sm">
+                                <span class="text-slate-500">Achat:</span> ${formatMoney(product.achat)}
+                                <span class="ml-3 text-slate-500">Vente:</span> ${formatMoney(product.vente)}
+                            </div>
+                            <button onclick="deleteProduct('${product.id}')" class="text-red-600 hover:text-red-700 text-sm">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Load products error:', error);
+                container.innerHTML = '<p class="text-center text-red-500 py-4">Erreur de chargement</p>';
+            }
+        }
+        
+        function deleteProduct(productId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
+                return;
+            }
+            
+            try {
+                db.run('DELETE FROM produits WHERE id = ?', [productId]);
+                
+                // Log action
+                logAction('Produit supprimé', `Produit ${productId} supprimé`);
+                
+                // Update UI
+                loadProductsList();
+                updateDashboard();
+                
+                showSuccessMessage('Produit supprimé avec succès');
+                
+            } catch (error) {
+                console.error('Delete product error:', error);
+                alert('Erreur lors de la suppression du produit');
+            }
+        }
+        
+        // === CREDITS FUNCTIONS ===
+        
+        function setupCreditsFunctions() {
+            // Credit form submission
+            document.getElementById('credit-form').addEventListener('submit', handleCreditSubmit);
+            
+            // Load credits
+            loadCreditsList();
+        }
+        
+        function handleCreditSubmit(e) {
+            e.preventDefault();
+            
+            const client = document.getElementById('credit-client').value;
+            const amount = parseFloat(document.getElementById('credit-amount').value);
+            const reason = document.getElementById('credit-reason').value;
+            
+            if (!client || amount <= 0) {
+                alert('Veuillez remplir les champs obligatoires');
+                return;
+            }
+            
+            const creditId = 'CREDIT_' + Date.now();
+            
+            try {
+                // Insert credit
+                db.run(`
+                    INSERT INTO credits (id, client, montant, raison, status, date)
+                    VALUES (?, ?, ?, ?, 'pending', datetime('now'))
+                `, [creditId, client, amount, reason]);
+                
+                // Log action
+                logAction('Crédit ajouté', `Crédit ${creditId} - ${formatMoney(amount)} pour ${client}`);
+                
+                // Reset form
+                document.getElementById('credit-form').reset();
+                
+                // Update UI
+                loadCreditsList();
+                updateDashboard();
+                
+                // Show success message
+                showSuccessMessage('Crédit ajouté avec succès');
+                
+            } catch (error) {
+                console.error('Credit error:', error);
+                alert('Erreur lors de l\'ajout du crédit');
+            }
+        }
+        
+        function loadCreditsList() {
+            const container = document.getElementById('credits-list');
+            
+            try {
+                const result = db.exec(`
+                    SELECT * FROM credits 
+                    WHERE status = 'pending'
+                    ORDER BY date DESC
+                `);
+                
+                if (result.length === 0) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-4">Aucun crédit en cours</p>';
+                    return;
+                }
+                
+                const credits = result[0].values.map(row => ({
+                    id: row[0],
+                    client: row[1],
+                    montant: row[2],
+                    raison: row[3],
+                    date: row[4]
+                }));
+                
+                container.innerHTML = credits.map(credit => `
+                    <div class="p-3 border rounded-lg hover:bg-slate-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-medium">${credit.client}</div>
+                            <div class="font-bold text-amber-600">${formatMoney(credit.montant)}</div>
+                        </div>
+                        ${credit.raison ? `<div class="text-sm text-slate-600 mb-2">${credit.raison}</div>` : ''}
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-slate-500">${new Date(credit.date).toLocaleDateString('fr-FR')}</div>
+                            <div class="space-x-2">
+                                <button onclick="payCredit('${credit.id}')" class="text-green-600 hover:text-green-700 text-sm">
+                                    Marquer payé
+                                </button>
+                                <button onclick="deleteCredit('${credit.id}')" class="text-red-600 hover:text-red-700 text-sm">
+                                    Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Load credits error:', error);
+                container.innerHTML = '<p class="text-center text-red-500 py-4">Erreur de chargement</p>';
+            }
+        }
+        
+        function payCredit(creditId) {
+            try {
+                db.run('UPDATE credits SET status = "paid" WHERE id = ?', [creditId]);
+                
+                // Log action
+                logAction('Crédit payé', `Crédit ${creditId} marqué comme payé`);
+                
+                // Update UI
+                loadCreditsList();
+                updateDashboard();
+                
+                showSuccessMessage('Crédit marqué comme payé');
+                
+            } catch (error) {
+                console.error('Pay credit error:', error);
+                alert('Erreur lors du paiement du crédit');
+            }
+        }
+        
+        function deleteCredit(creditId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer ce crédit ?')) {
+                return;
+            }
+            
+            try {
+                db.run('DELETE FROM credits WHERE id = ?', [creditId]);
+                
+                // Log action
+                logAction('Crédit supprimé', `Crédit ${creditId} supprimé`);
+                
+                // Update UI
+                loadCreditsList();
+                updateDashboard();
+                
+                showSuccessMessage('Crédit supprimé avec succès');
+                
+            } catch (error) {
+                console.error('Delete credit error:', error);
+                alert('Erreur lors de la suppression du crédit');
+            }
+        }
+        
+        // === EXPENSES FUNCTIONS ===
+        
+        function setupExpensesFunctions() {
+            // Expense form submission
+            document.getElementById('expense-form').addEventListener('submit', handleExpenseSubmit);
+            
+            // Load expenses
+            loadExpensesList();
+        }
+        
+        function handleExpenseSubmit(e) {
+            e.preventDefault();
+            
+            const description = document.getElementById('expense-description').value;
+            const amount = parseFloat(document.getElementById('expense-amount').value);
+            const category = document.getElementById('expense-category').value;
+            
+            if (!description || amount <= 0) {
+                alert('Veuillez remplir les champs obligatoires');
+                return;
+            }
+            
+            const expenseId = 'EXP_' + Date.now();
+            
+            try {
+                // Insert expense
+                db.run(`
+                    INSERT INTO expenses (id, description, montant, category, date)
+                    VALUES (?, ?, ?, ?, datetime('now'))
+                `, [expenseId, description, amount, category]);
+                
+                // Log action
+                logAction('Dépense ajoutée', `Dépense ${expenseId} - ${formatMoney(amount)}`);
+                
+                // Reset form
+                document.getElementById('expense-form').reset();
+                
+                // Update UI
+                loadExpensesList();
+                updateDashboard();
+                
+                // Show success message
+                showSuccessMessage('Dépense ajoutée avec succès');
+                
+            } catch (error) {
+                console.error('Expense error:', error);
+                alert('Erreur lors de l\'ajout de la dépense');
+            }
+        }
+        
+        function loadExpensesList() {
+            const container = document.getElementById('expenses-list');
+            
+            try {
+                const result = db.exec(`
+                    SELECT * FROM expenses 
+                    ORDER BY date DESC 
+                    LIMIT 10
+                `);
+                
+                if (result.length === 0) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-4">Aucune dépense récente</p>';
+                    return;
+                }
+                
+                const expenses = result[0].values.map(row => ({
+                    id: row[0],
+                    description: row[1],
+                    montant: row[2],
+                    category: row[3],
+                    date: row[4]
+                }));
+                
+                container.innerHTML = expenses.map(expense => `
+                    <div class="p-3 border rounded-lg hover:bg-slate-50">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-medium">${expense.description}</div>
+                            <div class="font-bold text-red-600">${formatMoney(expense.montant)}</div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-slate-500">
+                                <span class="mr-3">${expense.category}</span>
+                                ${new Date(expense.date).toLocaleDateString('fr-FR')}
+                            </div>
+                            <button onclick="deleteExpense('${expense.id}')" class="text-red-600 hover:text-red-700 text-sm">
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Load expenses error:', error);
+                container.innerHTML = '<p class="text-center text-red-500 py-4">Erreur de chargement</p>';
+            }
+        }
+        
+        function deleteExpense(expenseId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette dépense ?')) {
+                return;
+            }
+            
+            try {
+                db.run('DELETE FROM expenses WHERE id = ?', [expenseId]);
+                
+                // Log action
+                logAction('Dépense supprimée', `Dépense ${expenseId} supprimée`);
+                
+                // Update UI
+                loadExpensesList();
+                updateDashboard();
+                
+                showSuccessMessage('Dépense supprimée avec succès');
+                
+            } catch (error) {
+                console.error('Delete expense error:', error);
+                alert('Erreur lors de la suppression de la dépense');
+            }
+        }
+        
+        // === REPORTS FUNCTIONS ===
+        
+        function setupReportsFunctions() {
+            // Set default dates
+            const today = new Date();
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            document.getElementById('report-start-date').value = firstDay.toISOString().split('T')[0];
+            document.getElementById('report-end-date').value = today.toISOString().split('T')[0];
+            
+            // Load statistics
+            loadReportStatistics();
+        }
+        
+        function loadReportStatistics() {
+            const container = document.getElementById('report-statistics');
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+            
+            try {
+                // Sales statistics
+                const salesResult = db.exec(`
+                    SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as total
+                    FROM ventes 
+                    WHERE date(date) BETWEEN date(?) AND date(?)
+                `, [startDate, endDate]);
+                
+                const salesCount = salesResult[0].values[0][0];
+                const salesTotal = salesResult[0].values[0][1];
+                
+                // Credits statistics
+                const creditsResult = db.exec(`
+                    SELECT COUNT(*) as count, COALESCE(SUM(montant), 0) as total
+                    FROM credits 
+                    WHERE date(date) BETWEEN date(?) AND date(?) AND status = 'pending'
+                `, [startDate, endDate]);
+                
+                const creditsCount = creditsResult[0].values[0][0];
+                const creditsTotal = creditsResult[0].values[0][1];
+                
+                // Expenses statistics
+                const expensesResult = db.exec(`
+                    SELECT COUNT(*) as count, COALESCE(SUM(montant), 0) as total
+                    FROM expenses 
+                    WHERE date(date) BETWEEN date(?) AND date(?)
+                `, [startDate, endDate]);
+                
+                const expensesCount = expensesResult[0].values[0][0];
+                const expensesTotal = expensesResult[0].values[0][1];
+                
+                container.innerHTML = `
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <div class="text-sm text-blue-600 mb-1">Ventes</div>
+                        <div class="text-2xl font-bold text-blue-700">${salesCount}</div>
+                        <div class="text-sm text-blue-600">${formatMoney(salesTotal)}</div>
+                    </div>
+                    <div class="p-4 bg-amber-50 rounded-lg">
+                        <div class="text-sm text-amber-600 mb-1">Crédits</div>
+                        <div class="text-2xl font-bold text-amber-700">${creditsCount}</div>
+                        <div class="text-sm text-amber-600">${formatMoney(creditsTotal)}</div>
+                    </div>
+                    <div class="p-4 bg-red-50 rounded-lg">
+                        <div class="text-sm text-red-600 mb-1">Dépenses</div>
+                        <div class="text-2xl font-bold text-red-700">${expensesCount}</div>
+                        <div class="text-sm text-red-600">${formatMoney(expensesTotal)}</div>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <div class="text-sm text-green-600 mb-1">Bénéfice net</div>
+                        <div class="text-2xl font-bold text-green-700">${formatMoney(salesTotal - expensesTotal)}</div>
+                        <div class="text-sm text-green-600">Revenus - Dépenses</div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Load statistics error:', error);
+                container.innerHTML = '<p class="text-center text-red-500">Erreur de chargement</p>';
+            }
+        }
+        
+        function exportPDF() {
+            // This would implement PDF export using jsPDF
+            alert('Export PDF en cours de développement');
+        }
+        
+        function exportCSV() {
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+            
+            try {
+                // Get all data
+                const salesResult = db.exec(`
+                    SELECT * FROM ventes 
+                    WHERE date(date) BETWEEN date(?) AND date(?)
+                    ORDER BY date
+                `, [startDate, endDate]);
+                
+                const creditsResult = db.exec(`
+                    SELECT * FROM credits 
+                    WHERE date(date) BETWEEN date(?) AND date(?)
+                    ORDER BY date
+                `, [startDate, endDate]);
+                
+                const expensesResult = db.exec(`
+                    SELECT * FROM expenses 
+                    WHERE date(date) BETWEEN date(?) AND date(?)
+                    ORDER BY date
+                `, [startDate, endDate]);
+                
+                // Create CSV content
+                let csvContent = "Rapport Période: " + startDate + " au " + endDate + "\n\n";
+                csvContent += "VENTES\n";
+                csvContent += "Date,Client,Total,Statut\n";
+                
+                salesResult[0].values.forEach(row => {
+                    csvContent += `${row[5]},${row[1] || ''},${row[3]},${row[4]}\n`;
+                });
+                
+                csvContent += "\nCRÉDITS\n";
+                csvContent += "Date,Client,Montant,Raison\n";
+                
+                creditsResult[0].values.forEach(row => {
+                    csvContent += `${row[4]},${row[1]},${row[2]},${row[3] || ''}\n`;
+                });
+                
+                csvContent += "\nDÉPENSES\n";
+                csvContent += "Date,Description,Montant,Catégorie\n";
+                
+                expensesResult[0].values.forEach(row => {
+                    csvContent += `${row[4]},${row[1]},${row[2]},${row[3]}\n`;
+                });
+                
+                // Download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `rapport_${startDate}_${endDate}.csv`;
+                link.click();
+                
+                showSuccessMessage('Export CSV réussi');
+                
+            } catch (error) {
+                console.error('Export CSV error:', error);
+                alert('Erreur lors de l\'export CSV');
+            }
+        }
+        
+        function showImportDialog() {
+            // This would implement data import functionality
+            alert('Import de données en cours de développement');
+        }
+        
+        // === SETTINGS FUNCTIONS ===
+        
+        function setupSettingsFunctions() {
+            // Update username display
+            document.getElementById('settings-username').textContent = currentUser;
+            
+            // Auto sync toggle
+            document.getElementById('auto-sync-toggle').addEventListener('change', toggleAutoSync);
+            
+            // Sync interval change
+            document.getElementById('sync-interval').addEventListener('change', updateSyncInterval);
+        }
+        
+        function toggleAutoSync() {
+            const isEnabled = document.getElementById('auto-sync-toggle').checked;
+            
+            if (isEnabled && githubToken) {
+                startAutoSync();
+                showSuccessMessage('Synchronisation automatique activée');
+            } else if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+                updateSyncStatus('success', 'En ligne');
+                showSuccessMessage('Synchronisation automatique désactivée');
+            }
+        }
+        
+        function updateSyncInterval() {
+            const interval = parseInt(document.getElementById('sync-interval').value) * 60 * 1000;
+            
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = setInterval(async () => {
+                    await autoSync();
+                }, interval);
+                
+                showSuccessMessage(`Intervalle de synchronisation mis à jour: ${interval/60000} minutes`);
+            }
+        }
+        
+        function changePassword() {
+            const newPassword = prompt('Entrez le nouveau mot de passe:');
+            if (!newPassword) return;
+            
+            const confirmPassword = prompt('Confirmez le nouveau mot de passe:');
+            if (newPassword !== confirmPassword) {
+                alert('Les mots de passe ne correspondent pas');
+                return;
+            }
+            
+            const hashedPassword = hashPassword(newPassword);
+            
+            // Update password in local storage
+            const userData = JSON.parse(localStorage.getItem(`user_${currentUser}`) || '{}');
+            userData.password = hashedPassword;
+            localStorage.setItem(`user_${currentUser}`, JSON.stringify(userData));
+            
+            // Update password on GitHub if token available
+            if (githubToken) {
+                saveUserData(currentUser, userData, githubToken);
+            }
+            
+            showSuccessMessage('Mot de passe mis à jour avec succès');
+        }
+        
+        function backupData() {
+            if (!db) return;
+            
+            try {
+                const data = db.export();
+                const blob = new Blob([data], { type: 'application/octet-stream' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_${currentUser}_${new Date().toISOString().split('T')[0]}.db`;
+                link.click();
+                
+                showSuccessMessage('Sauvegarde réussie');
+                
+            } catch (error) {
+                console.error('Backup error:', error);
+                alert('Erreur lors de la sauvegarde');
+            }
+        }
+        
+        function restoreData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.db';
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    
+                    // Close current database
+                    if (db) {
+                        db.close();
+                    }
+                    
+                    // Load new database
+                    const SQL = await initSqlJs({
+                        locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                    });
+                    
+                    db = new SQL.Database(uint8Array);
+                    
+                    // Update UI
+                    updateDashboard();
+                    loadRecentSales();
+                    loadProductsList();
+                    loadCreditsList();
+                    loadExpensesList();
+                    
+                    showSuccessMessage('Données restaurées avec succès');
+                    
+                } catch (error) {
+                    console.error('Restore error:', error);
+                    alert('Erreur lors de la restauration');
+                }
+            };
+            input.click();
+        }
+        
+        function clearAllData() {
+            if (!confirm('Êtes-vous sûr de vouloir effacer toutes les données ? Cette action est irréversible.')) {
+                return;
+            }
+            
+            if (!confirm('Cette action effacera toutes vos données (ventes, produits, crédits, dépenses). Confirmer ?')) {
+                return;
+            }
+            
+            try {
+                // Clear all tables
+                db.run('DELETE FROM ventes');
+                db.run('DELETE FROM produits');
+                db.run('DELETE FROM credits');
+                db.run('DELETE FROM expenses');
+                db.run('DELETE FROM logs');
+                
+                // Update UI
+                updateDashboard();
+                loadRecentSales();
+                loadProductsList();
+                loadCreditsList();
+                loadExpensesList();
+                
+                showSuccessMessage('Toutes les données ont été effacées');
+                
+            } catch (error) {
+                console.error('Clear data error:', error);
+                alert('Erreur lors de l\'effacement des données');
+            }
+        }
+        
+        // === UTILITY FUNCTIONS ===
+        
+        function logAction(action, details) {
+            if (!db) return;
+            
+            try {
+                db.run(`
+                    INSERT INTO logs (action, details, timestamp)
+                    VALUES (?, ?, datetime('now'))
+                `, [action, details]);
+            } catch (error) {
+                console.error('Log action error:', error);
+            }
+        }
+        
+        function showSuccessMessage(message) {
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        function loadRecentActivity() {
+            const container = document.getElementById('recent-activity');
+            
+            try {
+                const result = db.exec(`
+                    SELECT * FROM logs 
+                    ORDER BY timestamp DESC 
+                    LIMIT 5
+                `);
+                
+                if (result.length === 0) {
+                    container.innerHTML = '<p class="text-center text-slate-500 py-4">Aucune activité récente</p>';
+                    return;
+                }
+                
+                const activities = result[0].values.map(row => ({
+                    action: row[1],
+                    details: row[2],
+                    timestamp: row[3]
+                }));
+                
+                container.innerHTML = activities.map(activity => `
+                    <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                        <i data-lucide="activity" class="w-4 h-4 text-slate-400 mt-0.5"></i>
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${activity.action}</div>
+                            <div class="text-xs text-slate-500">${activity.details}</div>
+                            <div class="text-xs text-slate-400 mt-1">${new Date(activity.timestamp).toLocaleString('fr-FR')}</div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                initLucide();
+                
+            } catch (error) {
+                console.error('Load activity error:', error);
+                container.innerHTML = '<p class="text-center text-red-500 py-4">Erreur de chargement</p>';
+            }
+        }
+        
+        // === INITIALIZATION ===
+        
+        async function loadExistingData() {
+            if (!db) return;
+            
+            // Setup all tab functions
+            setupSalesFunctions();
+            setupStockFunctions();
+            setupCreditsFunctions();
+            setupExpensesFunctions();
+            setupReportsFunctions();
+            setupSettingsFunctions();
+            
+            // Load initial data
+            loadRecentActivity();
+        }
+        
+    </script>
+</body>
+</html>
