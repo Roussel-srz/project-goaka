@@ -797,13 +797,7 @@
                                         <!-- Recherche de produit -->
                                         <div class="relative">
                                             <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
-                                            <input type="text" id="product-search" placeholder="Rechercher un produit..." 
-                                                class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
-                                        </div>
-                                        
-                                        <!-- Sélection rapide -->
-                                        <div id="quick-products" class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                            <!-- Produits populaires seront injectés ici -->
+                                            <input type="text" id="product-search" placeholder="Rechercher un produit..." oninput="filterProducts(this.value)" class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm md:text-base">
                                         </div>
                                         
                                         <!-- Formulaire détaillé -->
@@ -885,6 +879,37 @@
                                     </h4>
                                     <div class="text-xs text-slate-400">Aujourd'hui: <span id="sales-today-count" class="font-bold text-slate-600">0</span></div>
                                 </div>
+                                
+                                <!-- Filtre par date -->
+                                <div class="mb-4 space-y-3">
+                                    <div class="flex flex-col sm:flex-row gap-2">
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date début</label>
+                                            <input type="date" id="invoice-filter-start" onchange="filterInvoices()" 
+                                                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                        <div class="flex-1">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date fin</label>
+                                            <input type="date" id="invoice-filter-end" onchange="filterInvoices()" 
+                                                class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500">
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button onclick="setTodayFilter()" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors">
+                                            Aujourd'hui
+                                        </button>
+                                        <button onclick="setWeekFilter()" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors">
+                                            Cette semaine
+                                        </button>
+                                        <button onclick="setMonthFilter()" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs font-medium transition-colors">
+                                            Ce mois
+                                        </button>
+                                        <button onclick="clearInvoiceFilter()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors">
+                                            Effacer
+                                        </button>
+                                    </div>
+                                </div>
+                                
                                 <div id="recent-invoices" class="space-y-2 md:space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto">
                                     <!-- JS Injection -->
                                 </div>
@@ -1881,6 +1906,9 @@
                 renderStock();
                 renderMobileStockList();
             });
+            
+            // Setup product search for sales
+            setupProductSearch();
         }
 
         function updateAdjustmentCost() {
@@ -3773,19 +3801,42 @@
         function renderSales() {
             const recentInvoices = document.getElementById('recent-invoices');
             const today = new Date().toDateString();
-            const todaySales = db.ventes.filter(v => new Date(v.date).toDateString() === today).length;
             
+            // Récupérer les filtres de date
+            const startDate = document.getElementById('invoice-filter-start').value;
+            const endDate = document.getElementById('invoice-filter-end').value;
+            
+            // Filtrer les ventes selon les dates
+            let filteredSales = [...db.ventes];
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                filteredSales = filteredSales.filter(v => new Date(v.date) >= start);
+            }
+            
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                filteredSales = filteredSales.filter(v => new Date(v.date) <= end);
+            }
+            
+            // Trier par date décroissante
+            filteredSales.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Calculer les ventes du jour
+            const todaySales = db.ventes.filter(v => new Date(v.date).toDateString() === today).length;
             document.getElementById('sales-today-count').innerText = todaySales;
             
-            if(db.ventes.length === 0) {
+            if(filteredSales.length === 0) {
                 recentInvoices.innerHTML = `
                     <div class="text-center py-6 md:py-8 text-slate-400">
                         <i data-lucide="file-text" class="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 opacity-30"></i>
-                        <p class="text-sm">Aucune facture</p>
+                        <p class="text-sm">Aucune facture trouvée pour cette période</p>
                     </div>
                 `;
             } else {
-                recentInvoices.innerHTML = db.ventes.slice(0, 10).map(invoice => `
+                recentInvoices.innerHTML = filteredSales.slice(0, 10).map(invoice => `
                     <div class="p-3 border rounded-lg hover:bg-slate-50 transition-colors">
                         <div class="flex justify-between items-start mb-2">
                             <div class="font-medium text-sm">${invoice.client || 'Client Passager'}</div>
@@ -3810,6 +3861,50 @@
             }
             
             initLucide();
+        }
+
+        // === FONCTIONS DE FILTRE DES FACTURES ===
+        
+        function filterInvoices() {
+            renderSales();
+        }
+        
+        function setTodayFilter() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('invoice-filter-start').value = today;
+            document.getElementById('invoice-filter-end').value = today;
+            renderSales();
+        }
+        
+        function setWeekFilter() {
+            const today = new Date();
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+            
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            
+            document.getElementById('invoice-filter-start').value = startOfWeek.toISOString().split('T')[0];
+            document.getElementById('invoice-filter-end').value = endOfWeek.toISOString().split('T')[0];
+            renderSales();
+        }
+        
+        function setMonthFilter() {
+            const today = new Date();
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            document.getElementById('invoice-filter-start').value = startOfMonth.toISOString().split('T')[0];
+            document.getElementById('invoice-filter-end').value = endOfMonth.toISOString().split('T')[0];
+            renderSales();
+        }
+        
+        function clearInvoiceFilter() {
+            document.getElementById('invoice-filter-start').value = '';
+            document.getElementById('invoice-filter-end').value = '';
+            renderSales();
         }
 
         function renderCredits() {
@@ -4129,73 +4224,37 @@
                 availableProducts
                     .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
                     .join('');
+        }
 
-            // Quick products - afficher les 8 produits les plus vendus avec stock disponible
-            const quickProductsDiv = document.getElementById('quick-products');
-            const productSales = {};
+        function filterProducts(searchTerm) {
+            const saleSelect = document.getElementById('sale-product');
             
-            db.ventes.forEach(sale => {
-                if(sale.items && Array.isArray(sale.items)) {
-                    sale.items.forEach(item => {
-                        if(!productSales[item.name]) {
-                            productSales[item.name] = 0;
-                        }
-                        productSales[item.name] += item.quantity || 0;
-                    });
-                }
-            });
-
-            const topProducts = Object.entries(productSales)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 8)
-                .map(([name]) => db.produits.find(p => p.nom === name))
-                .filter(p => {
-                    if (!p) return false;
+            if(searchTerm.length > 0) {
+                const filteredProducts = db.produits.filter(p => {
                     // Services et produits de productivité sont toujours disponibles
                     const isService = p.category && (
                         p.category.toLowerCase().includes('service') || 
                         p.category.toLowerCase().includes('productivité')
                     );
-                    return p.stock > 0 || isService;
+                    return (p.stock > 0 || isService) && (
+                        p.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        p.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
                 });
-
-            if(topProducts.length > 0) {
-                quickProductsDiv.innerHTML = topProducts.map(product => `
-                    <button onclick="quickAddProduct('${product.id}')" 
-                        class="p-2 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-medium text-slate-700">
-                        ${product.nom}
-                    </button>
-                `).join('');
-            } else {
-                // Si pas de ventes, afficher les premiers produits en stock
-                const fallbackProducts = availableProducts.slice(0, 8);
-                quickProductsDiv.innerHTML = fallbackProducts.map(product => `
-                    <button onclick="quickAddProduct('${product.id}')" 
-                        class="p-2 bg-white border border-slate-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all text-xs font-medium text-slate-700">
-                        ${product.nom}
-                    </button>
-                `).join('');
-            }
-            
-            // Initialiser le prix si un produit est sélectionné
-            updateSalePrice();
-        }
-
-        function quickAddProduct(productId) {
-            const product = db.produits.find(p => p.id === productId);
-            if(product) {
-                // Services et produits de productivité sont toujours disponibles
-                const isService = product.category && (
-                    product.category.toLowerCase().includes('service') || 
-                    product.category.toLowerCase().includes('productivité')
-                );
                 
-                if(product.stock > 0 || isService) {
-                    document.getElementById('sale-product').value = productId;
-                    document.getElementById('sale-qty').value = 1;
-                    updateSalePrice(); // Mettre à jour le prix
-                    addToCart();
+                saleSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' + 
+                    filteredProducts
+                        .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
+                        .join('');
+                
+                // Sélectionner automatiquement le premier résultat
+                if(filteredProducts.length > 0) {
+                    saleSelect.value = filteredProducts[0].id;
+                    updateSalePrice();
                 }
+            } else {
+                updateSelects(); // Restaurer la liste complète
             }
         }
 
