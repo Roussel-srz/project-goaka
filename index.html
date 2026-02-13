@@ -9,6 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="config.js"></script>
     <style>
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
@@ -692,11 +693,8 @@
         }
         
         function getServerGitHubToken() {
-            // Pour des raisons de sécurité, le token doit être configuré manuellement
-            // 1. Allez sur https://github.com/settings/tokens
-            // 2. Créez un token avec permissions 'repo'
-            // 3. Remplacez 'VOTRE_TOKEN_ICI' ci-dessous
-            return 'VOTRE_TOKEN_ICI'; // À remplacer par votre vrai token
+            // Token GitHub depuis le fichier de configuration sécurisé
+            return window.GITHUB_CONFIG ? window.GITHUB_CONFIG.token : null;
         }
         
         function hashPassword(password) {

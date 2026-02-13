@@ -1,0 +1,10 @@
+# Ignorer le fichier de configuration avec le token
+config.js
+
+# Ignorer les fichiers de base de données locales
+*.db
+*.sqlite
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.temp
