@@ -37,7 +37,7 @@ let db = {
         categories: ["Électronique", "Mobilier", "Fournitures", "Alimentaire", "Autre"],
         invoiceCounter: 1,
         company: {
-            name: "Enterprise Goaka",
+            name: "INFO PLUS (PORT-BERGE)",
             address: "",
             phone: "",
             nif: "",
@@ -239,7 +239,7 @@ function loadCompanyInfo() {
     const company = db.config.company || {};
     
     // Update form fields
-    document.getElementById('company-name').value = company.name || "Enterprise Goaka";
+    document.getElementById('company-name').value = company.name || "INFO PLUS (PORT-BERGE)";
     document.getElementById('company-address').value = company.address || "";
     document.getElementById('company-phone').value = company.phone || "";
     document.getElementById('company-nif').value = company.nif || "";
@@ -265,7 +265,7 @@ function loadCompanyInfo() {
         function updateCompanyInfo() {
             if(!canAccess('configCompany')) { showToast("Action non autorisée", "error"); return; }
             db.config.company = {
-        name: document.getElementById('company-name').value.trim() || "Enterprise Goaka",
+        name: document.getElementById('company-name').value.trim() || "INFO PLUS (PORT-BERGE)",
         address: document.getElementById('company-address').value.trim(),
         phone: document.getElementById('company-phone').value.trim(),
         nif: document.getElementById('company-nif').value.trim(),
@@ -4339,3 +4339,4 @@ pdf.text('Enterprise Management Pro v2.3 - Rapport de Gestion', pageWidth / 2, p
 
 // Lancement automatique du test de sécurité
 runSecurityCheck();
+
