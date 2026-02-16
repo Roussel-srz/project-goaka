@@ -1,0 +1,325 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --primary: #2563eb;
+    --secondary: #64748b;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --background: #f8fafc;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--background);
+    color: #1e293b;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Personnalisation Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Classes utilitaires */
+.glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+.tab-content.active { display: block; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.sidebar-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-item.active {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Mobile Adjustments - IMPROVED */
+@media (max-width: 768px) {
+    .main-content { 
+        margin-bottom: 70px;
+        padding: 12px !important;
+    }
+    
+    .mobile-nav { 
+        display: flex;
+        height: 60px;
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.95);
+        border-top: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    
+    .desktop-sidebar { display: none !important; }
+    
+    /* Improved header for mobile */
+    header {
+        padding: 12px 16px !important;
+        height: auto !important;
+        min-height: 56px;
+    }
+    
+    header h2 {
+        font-size: 16px !important;
+    }
+    
+    /* Better spacing for content */
+    .space-y-6 > * {
+        margin-bottom: 16px !important;
+    }
+    
+    /* Improved grid layouts */
+    .grid {
+        gap: 12px !important;
+    }
+    
+    /* Better card styling */
+    .glass-card {
+        border-radius: 16px !important;
+        padding: 16px !important;
+    }
+    
+    /* Table improvements */
+    table {
+        font-size: 12px;
+    }
+    
+    th, td {
+        padding: 8px 12px !important;
+    }
+    
+    /* Button improvements */
+    button {
+        min-height: 44px; /* Better touch target */
+    }
+    
+    /* Form improvements */
+    input, select, textarea {
+        font-size: 16px !important; /* Prevents zoom on iOS */
+        min-height: 44px;
+    }
+    
+    /* Modal improvements */
+    .fixed.inset-0 {
+        padding: 12px !important;
+        align-items: flex-start !important;
+        padding-top: 40px;
+    }
+    
+    .fixed.inset-0 > div {
+        width: 100% !important;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    /* Hide unnecessary elements on mobile */
+    .hidden-mobile {
+        display: none !important;
+    }
+    
+    /* Improved stats cards */
+    .grid-cols-5 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .grid-cols-5 > div:nth-child(5) {
+        grid-column: span 2;
+    }
+    
+    /* Better chart container */
+    .chart-container {
+        height: 200px !important;
+    }
+    
+    /* Invoice preview improvements */
+    #invoice-content {
+        padding: 16px !important;
+        font-size: 14px;
+    }
+    
+    /* Toast positioning */
+    #toast {
+        width: 90%;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Trial badge positioning */
+    .trial-badge {
+        bottom: 80px !important;
+        right: 16px !important;
+        left: 16px !important;
+        width: auto;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid-cols-5 {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .grid-cols-5 > div {
+        grid-column: span 1 !important;
+    }
+    
+    .glass-card {
+        padding: 12px !important;
+    }
+    
+    h3 {
+        font-size: 20px !important;
+    }
+    
+    .text-2xl {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* Touch-friendly improvements */
+.touch-target {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Better hover states for touch */
+@media (hover: none) {
+    button:hover, .hover\\:bg-slate-50:hover {
+        background-color: inherit !important;
+    }
+    
+    button:active, .hover\\:bg-slate-50:active {
+        background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.invoice-preview {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px dashed #cbd5e1;
+}
+
+.badge-success { background-color: #dcfce7; color: #166534; }
+.badge-warning { background-color: #fef3c7; color: #92400e; }
+.badge-danger { background-color: #fee2e2; color: #991b1b; }
+.badge-info { background-color: #dbeafe; color: #1e40af; }
+
+.signature-line {
+    border-top: 1px solid #1e293b;
+    width: 200px;
+    margin-top: 40px;
+}
+.trial-badge {
+    position: fixed;
+    bottom: 60px;
+    right: 20px;
+    background: white;
+    padding: 8px 16px;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    z-index: 100;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+.hidden { display: none !important; }
+
+/* New mobile-specific classes */
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+    .mobile-only { display: block !important; }
+    .desktop-only { display: none !important; }
+}
+
+/* Pull to refresh indicator */
+.pull-to-refresh {
+    position: fixed;
+    top: -60px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: transform 0.3s;
+}
+
+/* Swipe gestures for tables */
+.swipeable {
+    position: relative;
+    overflow: hidden;
+}
+
+.swipe-actions {
+    position: absolute;
+    right: -100px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    transition: right 0.3s;
