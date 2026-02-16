@@ -486,19 +486,124 @@ function loginPoste(posteId, password) {
     return true;
 }
 
+// Nouvelle fonction pour afficher le modal admin
+function showAdminLoginModal() {
+    // Nettoyer les champs
+    document.getElementById('admin-login-password').value = '';
+    document.getElementById('admin-login-error').classList.add('hidden');
+    
+    // Debug info
+    const dbReady = !!db && !!db.config;
+    const storedLen = dbReady ? String(db.config.adminPassword || '').length : '?';
+    console.log("[DEBUG Admin] Ouverture modal admin | db prêt:", dbReady, "| Mdp stocké (long.):", storedLen);
+    addLog("[DEBUG Admin] Ouverture modal connexion admin", "info");
+    
+    // Ouvrir le modal
+    // S'assurer que l'overlay de chargement est masqué (évite qu'il cache le modal)
+    try { hideLoading(); } catch(e) {}
+    // Si un ancêtre est masqué (par ex. #app-content display:none), détacher le modal
+    try {
+        const modalEl = document.getElementById('modal-admin-login');
+        if(modalEl) {
+            let ancestor = modalEl.parentElement;
+            let hiddenAncestor = false;
+            while(ancestor) {
+                try {
+                    const cs = window.getComputedStyle(ancestor);
+                    if(cs.display === 'none') { hiddenAncestor = true; break; }
+                } catch(e) {}
+                ancestor = ancestor.parentElement;
+            }
+            if(hiddenAncestor) {
+                try { document.body.appendChild(modalEl); } catch(e) { console.warn('Could not move modal to body', e); }
+            }
+        }
+    } catch(e) {}
+    openModal('modal-admin-login');
+}
+
+// Nouvelle fonction pour exécuter la connexion admin
+function executeAdminLogin() {
+    const password = document.getElementById('admin-login-password').value;
+    const errorDiv = document.getElementById('admin-login-error');
+    
+    console.log('[executeAdminLogin] Tentative de connexion, longueur saisie:', password ? password.length : 0);
+    
+    if (!password) {
+        errorDiv.innerText = "Veuillez entrer le mot de passe administrateur";
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    
+    // Vérifier le mot de passe
+    const stored = (db.config.adminPassword === undefined || db.config.adminPassword === null) ? '' : String(db.config.adminPassword).trim();
+    const entered = password.trim();
+    const match = entered === stored;
+    
+    const msg = `[DEBUG Admin] Entré: ${entered.length} car. | Stocké: ${stored.length} car. | Match: ${match}`;
+    console.log(msg);
+    addLog(msg, "info");
+    
+    if (!match) {
+        errorDiv.innerText = "Mot de passe administrateur incorrect";
+        errorDiv.classList.remove('hidden');
+        
+        // Hint pour le débogage
+        if (stored === 'zaza') {
+            const hint = "Le mot de passe par défaut est 'zaza'";
+            console.warn(hint);
+            addLog(hint, "warning");
+        }
+        return;
+    }
+    
+    // Connexion réussie
+    console.log("[DEBUG Admin] Connexion admin OK");
+    addLog("[DEBUG Admin] Connexion admin réussie", "success");
+    
+    // Enregistrer la session
+    sessionStorage.setItem(POSTE_SESSION_KEY, '_admin_');
+    
+    // Fermer le modal
+    closeModal('modal-admin-login');
+    
+    // Masquer les overlays et afficher l'app
+    const posteOverlay = document.getElementById('poste-login-overlay');
+    const licenseOverlay = document.getElementById('license-overlay');
+    const appContent = document.getElementById('app-content');
+    
+    if (posteOverlay) posteOverlay.style.display = 'none';
+    if (licenseOverlay) licenseOverlay.style.display = 'none';
+    if (appContent) appContent.style.display = 'block';
+    
+    // Appliquer les permissions
+    applyPostePermissions();
+    
+    showToast("Connexion administrateur réussie", "success");
+}
+
+// Modifier la fonction showAdminLoginPoste existante pour utiliser le nouveau modal
+function showAdminLoginPoste() {
+    showAdminLoginModal();
+}
+
+// Améliorer loginAsAdmin pour garder la compatibilité
 function loginAsAdmin(adminPassword) {
     const stored = (db.config.adminPassword === undefined || db.config.adminPassword === null) ? '' : String(db.config.adminPassword).trim();
     const entered = (adminPassword || '').trim();
     const match = entered === stored;
+    
     const msg = `[DEBUG Admin] Entré: ${entered.length} car. | Stocké: ${stored.length} car. | Match: ${match}`;
     console.log(msg);
     addLog(msg, "info");
+    
     if(!match) {
         const hint = "[DEBUG Admin] Si mot de passe vide par défaut: appuyez OK sans rien taper. Sinon configurez dans Paramètres > Sécurité.";
         console.warn(hint);
         addLog(hint, "warning");
         return false;
     }
+    
     sessionStorage.setItem(POSTE_SESSION_KEY, '_admin_');
     console.log("[DEBUG Admin] Connexion admin OK");
     addLog("[DEBUG Admin] Connexion admin réussie", "success");
@@ -514,6 +619,20 @@ function logoutPoste() {
 function getFirstAccessibleTab() {
     const tabs = ['dashboard','stock','sales','credits','expenses','logs','reports','settings'];
     return tabs.find(t => canAccess(t)) || 'dashboard';
+}
+
+function debugAdminPassword() {
+    const stored = db.config.adminPassword;
+    console.log("=== DEBUG MOT DE PASSE ADMIN ===");
+    console.log("Valeur stockée:", stored);
+    console.log("Type:", typeof stored);
+    console.log("Longueur:", stored ? stored.length : 0);
+    console.log("Caractères:", stored ? stored.split('').map(c => c.charCodeAt(0)) : []);
+    console.log("Est 'zaza'?:", stored === 'zaza');
+    console.log("Est vide?:", stored === '');
+    console.log("=================================");
+    
+    showToast("Info admin dans la console (F12)", "info");
 }
 
 function applyPostePermissions() {
@@ -591,41 +710,12 @@ function doPosteLogin() {
 }
 
 function resetAdminPasswordPoste() {
-    if(!confirm("Réinitialiser le mot de passe administrateur à \"zaza\" ?")) return;
-    db.config.adminPassword = ADMIN_PASSWORD;
-    saveDB();
-    showToast("Mot de passe admin réinitialisé à 'zaza'", "success");
-    addLog("Mot de passe admin réinitialisé", "info");
+    // Function removed to prevent insecure password reset via UI.
+    // Previously allowed resetting admin password to default 'zaza'.
+    // If an admin-initiated reset workflow is required, implement a secure flow.
 }
 
-function showAdminLoginPoste() {
-    const dbReady = !!db && !!db.config;
-    const storedLen = dbReady ? String(db.config.adminPassword || '').length : '?';
-    console.log("[DEBUG Admin] Clic Connexion administrateur | db prêt:", dbReady, "| Mdp stocké (long.):", storedLen);
-    addLog("[DEBUG Admin] Clic 'Connexion administrateur' | Mdp stocké: " + storedLen + " car.", "info");
-    const pwd = prompt("Mot de passe administrateur :");
-    if(pwd === null) {
-        console.log("[DEBUG Admin] Annulé");
-        addLog("[DEBUG Admin] Annulé par l'utilisateur", "info");
-        return;
-    }
-    console.log("[DEBUG Admin] Saisi longueur:", (pwd || '').length);
-    if(loginAsAdmin(pwd)) {
-        // Masquer explicitement les overlays et afficher l'app (évite les conflits)
-        const posteOverlay = document.getElementById('poste-login-overlay');
-        const licenseOverlay = document.getElementById('license-overlay');
-        const appContent = document.getElementById('app-content');
-        if(posteOverlay) posteOverlay.style.display = 'none';
-        if(licenseOverlay) licenseOverlay.style.display = 'none';
-        if(appContent) appContent.style.display = 'block';
-        applyPostePermissions();
-        addLog("Connexion administrateur réussie", "success");
-        showToast("Connexion réussie", "success");
-    } else {
-        addLog("[DEBUG Admin] Échec - Aller dans Journal du Système pour les détails", "error");
-        showToast("Mot de passe admin incorrect", "error");
-    }
-}
+
 
 function toggleMultiposte() {
     const cb = document.getElementById('multiposte-enabled');
@@ -3159,9 +3249,57 @@ function openModal(id) {
         console.log('[openModal] opening', id);
         const el = document.getElementById(id);
         if (!el) { console.warn('[openModal] element not found', id); return; }
+
+        // Debug: état avant modification
+        console.log('[openModal] before', id, 'classList=', Array.from(el.classList).join(' '));
+        try {
+            const cs = window.getComputedStyle(el);
+            console.log('[openModal] computed before display=', cs.display, 'visibility=', cs.visibility, 'zIndex=', cs.zIndex);
+        } catch(e) {}
+
+        // S'assurer que le modal et ses ancêtres ne sont pas masqués
+        let p = el.parentElement;
+        let hiddenAncestor = false;
+        while(p) {
+            const c = Array.from(p.classList).join(' ');
+            try {
+                const pcs = window.getComputedStyle(p);
+                if(pcs.display === 'none' || pcs.visibility === 'hidden') {
+                    console.warn('[openModal] ancestor hidden', p.tagName, 'class=', c, 'display=', pcs.display, 'visibility=', pcs.visibility);
+                    hiddenAncestor = true;
+                    break;
+                }
+            } catch(e) {}
+            p = p.parentElement;
+        }
+
+        // Si un ancêtre est masqué, déplacer le modal dans le body (portal dynamique)
+        try {
+            if(hiddenAncestor && el.parentElement !== document.body) {
+                document.body.appendChild(el);
+                console.log('[openModal] moved', id, 'to document.body to avoid hidden ancestors');
+            }
+        } catch(e) { console.warn('[openModal] failed to move modal to body', e); }
+
+        // Fallback inline styles pour forcer l'affichage et priorité au-dessus des overlays
+        try {
+            el.style.position = 'fixed';
+            el.style.zIndex = '99999';
+            // ensure flex display (some CSS frameworks use display utilities)
+            el.style.display = 'flex';
+        } catch(e) {}
+
         el.classList.remove('hidden');
         el.classList.add('flex');
         document.body.style.overflow = 'hidden';
+
+        // Debug: état après modification
+        console.log('[openModal] after', id, 'classList=', Array.from(el.classList).join(' '));
+        try {
+            const cs2 = window.getComputedStyle(el);
+            console.log('[openModal] computed after display=', cs2.display, 'visibility=', cs2.visibility, 'zIndex=', cs2.zIndex);
+        } catch(e) {}
+
         initLucide();
     } catch (err) {
         console.error('[openModal] error', err, id);
@@ -3176,6 +3314,12 @@ function closeModal(id) {
         if (!el) { console.warn('[closeModal] element not found', id); return; }
         el.classList.add('hidden');
         el.classList.remove('flex');
+        // remove inline fallbacks if present
+        try {
+            el.style.zIndex = '';
+            el.style.position = '';
+            el.style.display = '';
+        } catch(e) {}
         document.body.style.overflow = 'auto';
     } catch (err) { console.error('[closeModal] error', err, id); }
     
