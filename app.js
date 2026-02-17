@@ -86,6 +86,7 @@ window.onload = function() {
         // Initialiser la configuration des widgets du tableau de bord
         loadDashboardWidgetsConfig();
         renderDashboardWidgets();
+        updateDashboardFilterVisibility();
         
         // Initialiser le menu mobile
         setupMobileMenu();
@@ -472,6 +473,43 @@ function saveDB() {
     }
 }
 
+function toggleAdminPasswordVisibility() {
+    const passwordInput = document.getElementById('admin-login-password');
+    const eyeIcon = document.getElementById('admin-password-eye');
+    
+    if (!passwordInput || !eyeIcon) return;
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.setAttribute('data-lucide', 'eye-off');
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.setAttribute('data-lucide', 'eye');
+    }
+    
+    // Re-initialize Lucide icon
+    lucide.createIcons();
+}
+
+function showForgotPasswordModal() {
+    // Open modal
+    openModal('modal-forgot-password');
+}
+
+function useDefaultPassword() {
+    // Reset password to default
+    db.config.adminPassword = 'Info_plus';
+    saveDB();
+    
+    // Close modal and show admin login
+    closeModal('modal-forgot-password');
+    showAdminLoginModal();
+    
+    // Show success message
+    showToast('Mot de passe réinitialisé', 'success');
+    addLog('Mot de passe administrateur réinitialisé', 'info');
+}
+
 // === MULTIPOSTE SYSTEM ===
 const POSTE_SESSION_KEY = 'enterprise_current_poste';
 
@@ -668,6 +706,13 @@ function applyPostePermissions() {
         if(mobileBtn) { mobileBtn.style.display = hasAccess ? '' : 'none'; }
         if(mobileSidebarBtn) { mobileSidebarBtn.style.display = hasAccess ? '' : 'none'; }
     });
+    
+    // Handle admin-only elements
+    const adminOnlyElements = document.querySelectorAll('.admin-only');
+    adminOnlyElements.forEach(element => {
+        element.style.display = isAdmin ? '' : 'none';
+    });
+    
     const cards = document.querySelectorAll('#tab-settings .glass-card');
     cards.forEach(card => {
         if(card.id === 'postes-management-card') { card.style.display = (isAdmin || canAccess('configPostes')) ? '' : 'none'; return; }
@@ -879,6 +924,7 @@ function switchTab(tabId) {
             } else if(tabId === 'settings') {
                 renderPostesList();
                 loadDashboardWidgetsConfig();
+                updateDashboardFilterVisibility();
             }
         }
 
@@ -2453,7 +2499,10 @@ function updateDashboard() {
     document.getElementById('stat-ventes-mobile').innerText = formatMoney(ventesMobile);
     document.getElementById('stat-total-ventes').innerText = formatMoney(totalVentes);
     document.getElementById('stat-credits').innerText = formatMoney(totalCredits);
-
+    
+    // Update filter visibility after dashboard update
+    updateDashboardFilterVisibility();
+    
     // Stock Alerts
     const alertsDiv = document.getElementById('stock-alerts');
     const critical = db.produits.filter(p => p.stock <= p.min);
@@ -2858,8 +2907,15 @@ function loadDashboardWidgetsConfig() {
             ventesEspeces: true,
             ventesMobile: true,
             totalVentes: true,
-            creditsEnAttente: true
+            creditsEnAttente: true,
+            showDashboardFilter: true
         };
+        saveDB();
+    }
+    
+    // Initialize showDashboardFilter if it doesn't exist
+    if (db.config.dashboardWidgets.showDashboardFilter === undefined) {
+        db.config.dashboardWidgets.showDashboardFilter = true;
         saveDB();
     }
     
@@ -2871,6 +2927,7 @@ function loadDashboardWidgetsConfig() {
     document.getElementById('widget-ventes-mobile').checked = db.config.dashboardWidgets.ventesMobile;
     document.getElementById('widget-total-ventes').checked = db.config.dashboardWidgets.totalVentes;
     document.getElementById('widget-credits-attente').checked = db.config.dashboardWidgets.creditsEnAttente;
+    document.getElementById('show-dashboard-filter').checked = db.config.dashboardWidgets.showDashboardFilter;
 }
 
 function updateDashboardWidgets() {
@@ -2881,11 +2938,13 @@ function updateDashboardWidgets() {
         ventesEspeces: document.getElementById('widget-ventes-especes').checked,
         ventesMobile: document.getElementById('widget-ventes-mobile').checked,
         totalVentes: document.getElementById('widget-total-ventes').checked,
-        creditsEnAttente: document.getElementById('widget-credits-attente').checked
+        creditsEnAttente: document.getElementById('widget-credits-attente').checked,
+        showDashboardFilter: document.getElementById('show-dashboard-filter').checked
     };
     
     saveDB();
     renderDashboardWidgets();
+    updateDashboardFilterVisibility();
     updateDashboard(); // Refresh dashboard data
     
     showToast('Configuration des widgets mise à jour', 'success');
@@ -2895,7 +2954,8 @@ function updateDashboardWidgets() {
 function selectAllDashboardWidgets() {
     const checkboxes = [
         'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
-        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente'
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente',
+        'show-dashboard-filter'
     ];
     
     checkboxes.forEach(id => {
@@ -2908,7 +2968,8 @@ function selectAllDashboardWidgets() {
 function deselectAllDashboardWidgets() {
     const checkboxes = [
         'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
-        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente'
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente',
+        'show-dashboard-filter'
     ];
     
     checkboxes.forEach(id => {
@@ -2960,6 +3021,38 @@ function renderDashboardWidgets() {
     } else {
         container.className = 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4';
     }
+}
+
+function updateDashboardFilterVisibility() {
+    const filterContainer = document.querySelector('#tab-dashboard .flex.items-center.justify-end.gap-3');
+    if (!filterContainer) return;
+    
+    const showFilter = db.config.dashboardWidgets && db.config.dashboardWidgets.showDashboardFilter;
+    
+    if (showFilter) {
+        filterContainer.style.display = 'flex';
+    } else {
+        filterContainer.style.display = 'none';
+    }
+}
+
+function onDashboardFilterCheckboxChange() {
+    const checkbox = document.getElementById('show-dashboard-filter');
+    if (!checkbox) return;
+    
+    const showFilter = checkbox.checked;
+    
+    // Update configuration
+    if (!db.config.dashboardWidgets) {
+        db.config.dashboardWidgets = {};
+    }
+    db.config.dashboardWidgets.showDashboardFilter = showFilter;
+    
+    // Save to database
+    saveDB();
+    
+    // Update visibility
+    updateDashboardFilterVisibility();
 }
 
 // === EXPENSE CATEGORIES MANAGEMENT ===
