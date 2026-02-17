@@ -1,3 +1,4 @@
+
 // === CONFIGURATION ===
 const STORAGE_KEY = "enterprise_pro_db_v2.3";
 const ADMIN_PASSWORD = ""; // Mot de passe par défaut (Ã  configurer via l'interface)
