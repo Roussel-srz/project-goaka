@@ -1,4 +1,3 @@
-
 // === CONFIGURATION ===
 const STORAGE_KEY = "enterprise_pro_db_v2.3";
 const ADMIN_PASSWORD = ""; // Mot de passe par défaut (Ã  configurer via l'interface)
@@ -38,6 +37,15 @@ let db = {
         categories: ["Électronique", "Mobilier", "Fournitures", "Alimentaire", "Autre"],
         expenseCategories: [], // Catégories de dépenses personnalisées
         invoiceCounter: 1,
+        dashboardWidgets: {
+            caisse: true,
+            chiffreAffaires: true,
+            totalDepenses: true,
+            ventesEspeces: true,
+            ventesMobile: true,
+            totalVentes: true,
+            creditsEnAttente: true
+        },
         company: {
             name: "INFO PLUS (PORT-BERGE)",
             address: "",
@@ -74,6 +82,10 @@ window.onload = function() {
         // Initialiser les catégories de dépenses
         updateExpenseCategoriesSelect();
         renderCategoriesList();
+        
+        // Initialiser la configuration des widgets du tableau de bord
+        loadDashboardWidgetsConfig();
+        renderDashboardWidgets();
         
         // Initialiser le menu mobile
         setupMobileMenu();
@@ -866,6 +878,7 @@ function switchTab(tabId) {
                 renderCategoriesList();
             } else if(tabId === 'settings') {
                 renderPostesList();
+                loadDashboardWidgetsConfig();
             }
         }
 
@@ -2832,6 +2845,121 @@ function renderCredits() {
     }
     
     initLucide();
+}
+
+// === DASHBOARD WIDGETS MANAGEMENT ===
+function loadDashboardWidgetsConfig() {
+    // Initialize dashboardWidgets if it doesn't exist
+    if (!db.config.dashboardWidgets) {
+        db.config.dashboardWidgets = {
+            caisse: true,
+            chiffreAffaires: true,
+            totalDepenses: true,
+            ventesEspeces: true,
+            ventesMobile: true,
+            totalVentes: true,
+            creditsEnAttente: true
+        };
+        saveDB();
+    }
+    
+    // Load checkboxes states
+    document.getElementById('widget-caisse').checked = db.config.dashboardWidgets.caisse;
+    document.getElementById('widget-chiffre-affaires').checked = db.config.dashboardWidgets.chiffreAffaires;
+    document.getElementById('widget-total-depenses').checked = db.config.dashboardWidgets.totalDepenses;
+    document.getElementById('widget-ventes-especes').checked = db.config.dashboardWidgets.ventesEspeces;
+    document.getElementById('widget-ventes-mobile').checked = db.config.dashboardWidgets.ventesMobile;
+    document.getElementById('widget-total-ventes').checked = db.config.dashboardWidgets.totalVentes;
+    document.getElementById('widget-credits-attente').checked = db.config.dashboardWidgets.creditsEnAttente;
+}
+
+function updateDashboardWidgets() {
+    db.config.dashboardWidgets = {
+        caisse: document.getElementById('widget-caisse').checked,
+        chiffreAffaires: document.getElementById('widget-chiffre-affaires').checked,
+        totalDepenses: document.getElementById('widget-total-depenses').checked,
+        ventesEspeces: document.getElementById('widget-ventes-especes').checked,
+        ventesMobile: document.getElementById('widget-ventes-mobile').checked,
+        totalVentes: document.getElementById('widget-total-ventes').checked,
+        creditsEnAttente: document.getElementById('widget-credits-attente').checked
+    };
+    
+    saveDB();
+    renderDashboardWidgets();
+    updateDashboard(); // Refresh dashboard data
+    
+    showToast('Configuration des widgets mise à jour', 'success');
+    addLog('info', 'Configuration des widgets du tableau de bord modifiée');
+}
+
+function selectAllDashboardWidgets() {
+    const checkboxes = [
+        'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente'
+    ];
+    
+    checkboxes.forEach(id => {
+        document.getElementById(id).checked = true;
+    });
+    
+    updateDashboardWidgets();
+}
+
+function deselectAllDashboardWidgets() {
+    const checkboxes = [
+        'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente'
+    ];
+    
+    checkboxes.forEach(id => {
+        document.getElementById(id).checked = false;
+    });
+    
+    updateDashboardWidgets();
+}
+
+function renderDashboardWidgets() {
+    const widgets = db.config.dashboardWidgets || {};
+    const container = document.querySelector('.grid.grid-cols-2.md\\:grid-cols-5');
+    
+    if (!container) return;
+    
+    // Hide all widgets first
+    const allWidgets = container.children;
+    for (let i = 0; i < allWidgets.length; i++) {
+        allWidgets[i].style.display = 'none';
+    }
+    
+    // Show only selected widgets
+    let visibleCount = 0;
+    const widgetOrder = [
+        { id: 'caisse', selector: '[data-widget="caisse"]' },
+        { id: 'chiffreAffaires', selector: '[data-widget="chiffre-affaires"]' },
+        { id: 'totalDepenses', selector: '[data-widget="total-depenses"]' },
+        { id: 'ventesEspeces', selector: '[data-widget="ventes-especes"]' },
+        { id: 'ventesMobile', selector: '[data-widget="ventes-mobile"]' },
+        { id: 'totalVentes', selector: '[data-widget="total-ventes"]' },
+        { id: 'creditsEnAttente', selector: '[data-widget="credits-attente"]' }
+    ];
+    
+    widgetOrder.forEach(widget => {
+        if (widgets[widget.id]) {
+            const element = container.querySelector(widget.selector);
+            if (element) {
+                element.style.display = 'block';
+                visibleCount++;
+            }
+        }
+    });
+    
+    // Adjust grid columns based on visible widgets
+    if (visibleCount <= 2) {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4';
+    } else if (visibleCount <= 4) {
+        container.className = 'grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4';
+    } else {
+        container.className = 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4';
+    }
 }
 
 // === EXPENSE CATEGORIES MANAGEMENT ===
