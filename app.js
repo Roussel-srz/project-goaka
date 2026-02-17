@@ -3596,6 +3596,224 @@ function exportStockCSV() {
     exportCSV(headers, rows, 'stock_inventaire');
 }
 
+function exportStockPDF() {
+    const { jsPDF } = window.jspdf;
+    
+    // Calculer les statistiques
+    const totalProducts = db.produits.length;
+    const totalStockValue = db.produits.reduce((sum, p) => sum + (p.stock * p.achat || 0), 0);
+    const lowStockProducts = db.produits.filter(p => p.stock <= p.min).length;
+    const outOfStockProducts = db.produits.filter(p => p.stock === 0).length;
+    
+    // Trier les produits par valeur de stock (décroissant)
+    const sortedProducts = [...db.produits].sort((a, b) => (b.stock * b.achat) - (a.stock * a.achat));
+    
+    // Créer le PDF
+    const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
+        compress: true
+    });
+    
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    let yPosition = 20;
+    
+    // Fonction utilitaire pour ajouter une nouvelle page si nécessaire
+    function checkPageBreak(requiredHeight) {
+        if (yPosition + requiredHeight > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+            return true;
+        }
+        return false;
+    }
+    
+    // Fonction pour formater le texte sans accents
+    function normalizeText(text) {
+        return text.toString()
+            .replace(/[ÀÁÂÃÄÅ]/g, 'A')
+            .replace(/[àáâãäå]/g, 'a')
+            .replace(/[ÈÉÊË]/g, 'E')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ÌÍÎÏ]/g, 'I')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[ÒÓÔÕÖ]/g, 'O')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ÙÚÛÜ]/g, 'U')
+            .replace(/[ùúûü]/g, 'u')
+            .replace(/[Ç]/g, 'C')
+            .replace(/[ç]/g, 'c')
+            .replace(/[Ñ]/g, 'N')
+            .replace(/[ñ]/g, 'n');
+    }
+    
+    // En-tête avec cadre
+    pdf.setDrawColor(34, 197, 94);
+    pdf.setFillColor(34, 197, 94);
+    pdf.rect(15, 15, pageWidth - 30, 40, 'F');
+    
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(24);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('INVENTAIRE DU STOCK', pageWidth / 2, 30, { align: 'center' });
+    
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}`, pageWidth / 2, 45, { align: 'center' });
+    pdf.text(`Entreprise: ${normalizeText(db.config.company?.name || 'Non spécifiée')}`, pageWidth / 2, 50, { align: 'center' });
+    
+    yPosition = 70;
+    
+    // Résumé avec tableau
+    checkPageBreak(60);
+    
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(16);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('RÉSUMÉ DU STOCK', 20, yPosition);
+    yPosition += 15;
+    
+    // Cadre pour le résumé
+    pdf.setDrawColor(200, 200, 200);
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(15, yPosition - 5, pageWidth - 30, 50, 'F');
+    pdf.rect(15, yPosition - 5, pageWidth - 30, 50);
+    
+    // Données du résumé en colonnes
+    pdf.setFontSize(11);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('INDICATEUR', 25, yPosition + 5);
+    pdf.text('VALEUR', pageWidth - 60, yPosition + 5);
+    
+    pdf.setFont(undefined, 'normal');
+    pdf.setTextColor(50, 50, 50);
+    
+    const summaryData = [
+        ['Total des produits', totalProducts],
+        ['Valeur totale du stock', formatMoneyPDF(totalStockValue)],
+        ['Produits en stock critique', lowStockProducts],
+        ['Produits en rupture de stock', outOfStockProducts]
+    ];
+    
+    summaryData.forEach(([label, value]) => {
+        yPosition += 10;
+        pdf.text(normalizeText(label), 25, yPosition);
+        pdf.text(normalizeText(value.toString()), pageWidth - 60, yPosition);
+    });
+    
+    yPosition += 20;
+    
+    // Tableau des produits
+    checkPageBreak(80);
+    
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(16);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('DÉTAIL DES PRODUITS', 20, yPosition);
+    yPosition += 15;
+    
+    // En-têtes du tableau
+    const headers = ['Nom', 'Categorie', 'Stock', 'Prix Achat', 'Prix Vente', 'Valeur Stock'];
+    const columnWidths = [50, 35, 20, 25, 25, 30];
+    const startX = 15;
+    
+    checkPageBreak(20);
+    
+    // Dessiner les bordures du tableau des en-têtes
+    pdf.setDrawColor(100, 100, 100);
+    let currentX = startX;
+    columnWidths.forEach(width => {
+        pdf.rect(currentX, yPosition - 5, width, 12);
+        currentX += width;
+    });
+    
+    // Remplir le fond des en-têtes
+    pdf.setFillColor(34, 197, 94);
+    currentX = startX;
+    columnWidths.forEach(width => {
+        pdf.rect(currentX, yPosition - 5, width, 12, 'F');
+        currentX += width;
+    });
+    
+    // Texte des en-têtes
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(9);
+    pdf.setFont(undefined, 'bold');
+    
+    currentX = startX;
+    headers.forEach((header, index) => {
+        const text = normalizeText(header);
+        const textWidth = pdf.getTextWidth(text);
+        const xPosition = currentX + (columnWidths[index] - textWidth) / 2;
+        pdf.text(text, xPosition, yPosition + 2);
+        currentX += columnWidths[index];
+    });
+    
+    yPosition += 15;
+    
+    // Données des produits
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFont(undefined, 'normal');
+    
+    sortedProducts.forEach((product, index) => {
+        checkPageBreak(10);
+        
+        const row = [
+            product.nom || 'N/A',
+            product.category || 'N/A',
+            product.stock || 0,
+            formatMoneyPDF(product.achat || 0),
+            formatMoneyPDF(product.vente || 0),
+            formatMoneyPDF((product.stock || 0) * (product.achat || 0))
+        ];
+        
+        // Couleur de fond alternée
+        if (index % 2 === 0) {
+            pdf.setFillColor(248, 250, 252);
+            currentX = startX;
+            columnWidths.forEach(width => {
+                pdf.rect(currentX, yPosition - 5, width, 8, 'F');
+                currentX += width;
+            });
+        }
+        
+        // Bordures
+        pdf.setDrawColor(200, 200, 200);
+        currentX = startX;
+        columnWidths.forEach(width => {
+            pdf.rect(currentX, yPosition - 5, width, 8);
+            currentX += width;
+        });
+        
+        // Texte
+        currentX = startX;
+        row.forEach((text, colIndex) => {
+            pdf.setFontSize(9);
+            const displayText = text.length > 15 ? text.substring(0, 12) + '...' : text;
+            pdf.text(normalizeText(displayText), currentX + 2, yPosition);
+            currentX += columnWidths[colIndex];
+        });
+        
+        yPosition += 8;
+    });
+    
+    // Pied de page
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`Page ${i} / ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+    
+    // Télécharger le PDF
+    pdf.save(`stock_inventaire_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('Export PDF du stock généré avec succès', 'success');
+    addLog('info', 'Export PDF du stock généré');
+}
+
 function importStockCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
