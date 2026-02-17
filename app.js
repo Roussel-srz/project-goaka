@@ -35,6 +35,7 @@ let db = {
         authEnabled: true,
         adminPassword: ADMIN_PASSWORD,
         categories: ["Électronique", "Mobilier", "Fournitures", "Alimentaire", "Autre"],
+        expenseCategories: [], // Catégories de dépenses personnalisées
         invoiceCounter: 1,
         company: {
             name: "INFO PLUS (PORT-BERGE)",
@@ -68,6 +69,10 @@ window.onload = function() {
         // Initialiser les dates par défaut
         document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
         document.getElementById('expense-modal-date').value = new Date().toISOString().split('T')[0];
+        
+        // Initialiser les catégories de dépenses
+        updateExpenseCategoriesSelect();
+        renderCategoriesList();
         
         // Initialiser le menu mobile
         setupMobileMenu();
@@ -856,6 +861,8 @@ function switchTab(tabId) {
                 renderMobileCreditsList();
             } else if(tabId === 'expenses') {
                 renderMobileExpensesList();
+                updateExpenseCategoriesSelect();
+                renderCategoriesList();
             } else if(tabId === 'settings') {
                 renderPostesList();
             }
@@ -2826,18 +2833,155 @@ function renderCredits() {
     initLucide();
 }
 
+// === EXPENSE CATEGORIES MANAGEMENT ===
+function addExpenseCategory() {
+    const input = document.getElementById('category-name-input') || document.getElementById('new-category-input');
+    const categoryName = input.value.trim();
+    
+    if (!categoryName) {
+        showToast("Veuillez entrer un nom de catégorie", "error");
+        return;
+    }
+    
+    // Initialize expenseCategories if it doesn't exist
+    if (!db.config.expenseCategories) {
+        db.config.expenseCategories = [];
+    }
+    
+    // Check if category already exists
+    if (db.config.expenseCategories.includes(categoryName)) {
+        showToast("Cette catégorie existe déjà", "error");
+        return;
+    }
+    
+    // Add category
+    db.config.expenseCategories.push(categoryName);
+    saveDB();
+    
+    // Clear input
+    input.value = '';
+    
+    // Refresh displays
+    updateExpenseCategoriesSelect();
+    renderCategoriesList();
+    
+    showToast("Catégorie ajoutée avec succès", "success");
+    addLog('info', `Nouvelle catégorie de dépense ajoutée: ${categoryName}`);
+}
+
+function removeExpenseCategory(categoryName) {
+    if (!confirm(`Voulez-vous vraiment supprimer la catégorie "${categoryName}" ?`)) {
+        return;
+    }
+    
+    // Check if category is used in expenses
+    const expensesWithCategory = db.depenses.filter(e => e.category === categoryName);
+    if (expensesWithCategory.length > 0) {
+        showToast(`Impossible de supprimer: ${expensesWithCategory.length} dépense(s) utilisent cette catégorie`, "error");
+        return;
+    }
+    
+    // Remove category
+    db.config.expenseCategories = db.config.expenseCategories.filter(cat => cat !== categoryName);
+    saveDB();
+    
+    // Refresh displays
+    updateExpenseCategoriesSelect();
+    renderCategoriesList();
+    
+    showToast("Catégorie supprimée avec succès", "success");
+    addLog('info', `Catégorie de dépense supprimée: ${categoryName}`);
+}
+
+function updateExpenseCategoriesSelect() {
+    const selects = ['expense-category', 'expense-filter-category'];
+    
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        
+        const currentValue = select.value;
+        const isFilter = selectId === 'expense-filter-category';
+        
+        // Initialize expenseCategories if it doesn't exist
+        if (!db.config.expenseCategories) {
+            db.config.expenseCategories = [];
+        }
+        
+        let optionsHTML = isFilter ? 
+            '<option value="">Toutes catégories</option>' : 
+            '<option value="">Sélectionner</option>';
+        
+        // Add custom categories
+        db.config.expenseCategories.forEach(category => {
+            optionsHTML += `<option value="${category}" ${category === currentValue ? 'selected' : ''}>${category}</option>`;
+        });
+        
+        // Add existing categories from expenses (for compatibility)
+        const expenseCategories = [...new Set(db.depenses.map(e => e.category).filter(c => c))];
+        expenseCategories.forEach(category => {
+            if (!db.config.expenseCategories.includes(category)) {
+                optionsHTML += `<option value="${category}" ${category === currentValue ? 'selected' : ''}>${category}</option>`;
+            }
+        });
+        
+        select.innerHTML = optionsHTML;
+    });
+}
+
+function renderCategoriesList() {
+    const container = document.getElementById('categories-list');
+    if (!container) return;
+    
+    // Initialize expenseCategories if it doesn't exist
+    if (!db.config.expenseCategories) {
+        db.config.expenseCategories = [];
+    }
+    
+    if (db.config.expenseCategories.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-slate-500 text-sm py-4">Aucune catégorie personnalisée. Ajoutez vos premières catégories ci-dessus.</div>';
+        return;
+    }
+    
+    // Use scrollable container for many categories
+    if (db.config.expenseCategories.length > 12) {
+        container.innerHTML = `
+            <div class="col-span-full max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    ${db.config.expenseCategories.map(category => `
+                        <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors group">
+                            <span class="text-sm font-medium text-slate-700 truncate flex-1">${category}</span>
+                            <button onclick="removeExpenseCategory('${category}')" class="ml-2 p-1 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } else {
+        // Normal grid layout for fewer categories
+        container.innerHTML = db.config.expenseCategories.map(category => `
+            <div class="flex items-center justify-between p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors group">
+                <span class="text-sm font-medium text-slate-700 truncate flex-1">${category}</span>
+                <button onclick="removeExpenseCategory('${category}')" class="ml-2 p-1 text-red-500 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all">
+                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    // Re-initialize lucide icons
+    initLucide();
+}
+
 function renderExpenses() {
     const tbody = document.getElementById('expenses-table-body');
     const categoryFilter = document.getElementById('expense-filter-category').value;
     const monthFilter = document.getElementById('expense-filter-month').value;
     
-    // Update category filter
-    const categorySelect = document.getElementById('expense-filter-category');
-    const categories = [...new Set(db.depenses.map(e => e.category).filter(c => c))];
-    const currentValue = categorySelect.value;
-    
-    categorySelect.innerHTML = '<option value="">Toutes catégories</option>' +
-        categories.map(cat => `<option value="${cat}" ${cat === currentValue ? 'selected' : ''}>${cat}</option>`).join('');
+    // Update category filter using our new function
+    updateExpenseCategoriesSelect();
     
     let filteredExpenses = db.depenses;
     
