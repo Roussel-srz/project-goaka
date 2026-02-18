@@ -1955,19 +1955,16 @@ function getPaymentMethodText(method) {
     }
 }
 
-function exportInvoicePDF() {
+function printInvoicePDF() {
     const company = db.config.company;
     const invoiceId = document.querySelector('#invoice-content .text-right .text-slate-600')?.textContent || '';
     const invoiceDate = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[1]?.textContent || '';
     const invoiceTime = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[2]?.textContent || '';
     
-    // Get invoice content HTML
+    // Get invoice content HTML exactement comme affiché
     const invoiceContent = document.getElementById('invoice-content').innerHTML;
     
-    // Create a new window for PDF generation
-    const printWindow = window.open('', '_blank');
-    
-    // Create the complete HTML document with proper styling
+    // Créer le HTML complet avec les mêmes styles Tailwind que l'interface
     const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -1975,207 +1972,23 @@ function exportInvoicePDF() {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Facture ${invoiceId}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
             <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     line-height: 1.6;
-                    color: #1e293b;
+                    color: #1f2937;
                     background: white;
                     padding: 20px;
+                    max-width: 1000px;
+                    margin: 0 auto;
                 }
                 
                 .invoice-preview {
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 32px;
+                    padding: 2rem;
+                    border-radius: 0.75rem;
                     background: white;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 12px;
-                }
-                
-                h1 {
-                    font-size: 32px;
-                    font-weight: 800;
-                    color: #1e293b;
-                    margin-bottom: 12px;
-                }
-                
-                h2 {
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #1e293b;
-                    margin-bottom: 16px;
-                }
-                
-                h3 {
-                    font-size: 18px;
-                    font-weight: 600;
-                    color: #1e293b;
-                    margin-bottom: 12px;
-                }
-                
-                .text-right {
-                    text-align: right;
-                }
-                
-                .text-left {
-                    text-align: left;
-                }
-                
-                .text-center {
-                    text-align: center;
-                }
-                
-                .text-slate-800 {
-                    color: #1e293b;
-                }
-                
-                .text-slate-600 {
-                    color: #475569;
-                }
-                
-                .text-slate-500 {
-                    color: #64748b;
-                }
-                
-                .text-blue-600 {
-                    color: #2563eb;
-                }
-                
-                .text-green-600 {
-                    color: #16a34a;
-                }
-                
-                .text-amber-600 {
-                    color: #d97706;
-                }
-                
-                .text-red-600 {
-                    color: #dc2626;
-                }
-                
-                .font-bold {
-                    font-weight: 700;
-                }
-                
-                .font-semibold {
-                    font-weight: 600;
-                }
-                
-                .font-medium {
-                    font-weight: 500;
-                }
-                
-                .mb-2 {
-                    margin-bottom: 8px;
-                }
-                
-                .mb-3 {
-                    margin-bottom: 12px;
-                }
-                
-                .mb-4 {
-                    margin-bottom: 16px;
-                }
-                
-                .mb-6 {
-                    margin-bottom: 24px;
-                }
-                
-                .mb-8 {
-                    margin-bottom: 32px;
-                }
-                
-                .mt-2 {
-                    margin-top: 8px;
-                }
-                
-                .mt-3 {
-                    margin-top: 12px;
-                }
-                
-                .mt-4 {
-                    margin-top: 16px;
-                }
-                
-                .mt-6 {
-                    margin-top: 24px;
-                }
-                
-                .p-3 {
-                    padding: 12px;
-                }
-                
-                .p-4 {
-                    padding: 16px;
-                }
-                
-                .px-4 {
-                    padding-left: 16px;
-                    padding-right: 16px;
-                }
-                
-                .py-2 {
-                    padding-top: 8px;
-                    padding-bottom: 8px;
-                }
-                
-                .bg-slate-50 {
-                    background-color: #f8fafc;
-                }
-                
-                .bg-amber-50 {
-                    background-color: #fffbeb;
-                }
-                
-                .bg-blue-50 {
-                    background-color: #eff6ff;
-                }
-                
-                .border {
-                    border: 1px solid #e2e8f0;
-                }
-                
-                .border-t {
-                    border-top: 1px solid #e2e8f0;
-                }
-                
-                .border-b {
-                    border-bottom: 1px solid #e2e8f0;
-                }
-                
-                .rounded-lg {
-                    border-radius: 8px;
-                }
-                
-                .rounded-xl {
-                    border-radius: 12px;
-                }
-                
-                .flex {
-                    display: flex;
-                }
-                
-                .items-center {
-                    align-items: center;
-                }
-                
-                .justify-between {
-                    justify-content: space-between;
-                }
-                
-                .gap-1 {
-                    gap: 4px;
-                }
-                
-                .gap-2 {
-                    gap: 8px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
                 }
                 
                 .gap-3 {
@@ -2368,6 +2181,9 @@ function exportInvoicePDF() {
         </html>
     `;
     
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    
     // Write the content to the new window
     printWindow.document.write(htmlContent);
     printWindow.document.close();
@@ -2375,190 +2191,6 @@ function exportInvoicePDF() {
     // Show success message
     showToast('Préparation du PDF en cours...', 'info');
     addLog('Export PDF de facture initié', 'info');
-}
-
-function printInvoice() {
-    const printWindow = window.open('', '_blank');
-    const company = db.config.company;
-    const invoiceId = document.querySelector('#invoice-content .text-right .text-slate-600')?.textContent || '';
-    const invoiceDate = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[1]?.textContent || '';
-    const invoiceTime = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[2]?.textContent || '';
-    
-    // Get invoice data to check if it's a credit invoice and get credit info
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = document.getElementById('invoice-content').innerHTML;
-    const clientInfo = tempDiv.querySelector('.bg-slate-50');
-    const table = tempDiv.querySelector('table');
-    const paymentInfo = tempDiv.querySelectorAll('.bg-slate-50')[1];
-    const footer = tempDiv.querySelector('.border-t');
-    
-    // Check if this is a credit invoice by looking for credit indicators
-    const isCreditInvoice = paymentInfo && paymentInfo.textContent.includes('crédit');
-    
-    // Get credit information for accurate payment details
-    let creditInfo = null;
-    let paidAmount = 0;
-    let remainingBalance = 0;
-    let totalAmount = 0;
-    
-    if (isCreditInvoice && table) {
-        totalAmount = parseFloat(table.querySelector('tfoot td:last-child').textContent.replace(/[^0-9.-]/g, ''));
-        
-        // Try to find credit by matching amount and extracting date from invoice
-        const invoiceDateStr = invoiceDate.replace(/Date:\s*/i, '').trim();
-        const invoiceTimeStr = invoiceTime.replace(/Heure:\s*/i, '').trim();
-        
-        // Create a Date object from the invoice date/time
-        let invoiceDateTime = null;
-        try {
-            const dateParts = invoiceDateStr.split('/');
-            if (dateParts.length === 3) {
-                const [day, month, year] = dateParts;
-                const timeParts = invoiceTimeStr.split(':');
-                if (timeParts.length === 2) {
-                    const [hours, minutes] = timeParts;
-                    invoiceDateTime = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00`);
-                }
-            }
-        } catch(e) {
-            console.error('Error parsing invoice date:', e);
-        }
-        
-        // Find credit by matching amount and date (within reasonable range)
-        creditInfo = null;
-        if (invoiceDateTime) {
-            creditInfo = db.credits.find(c => {
-                const creditDate = new Date(c.date);
-                const timeDiff = Math.abs(creditDate.getTime() - invoiceDateTime.getTime());
-                const minutesDiff = timeDiff / (1000 * 60);
-                return Math.abs(c.totalAmount - totalAmount) < 0.01 && minutesDiff < 5; // Within 5 minutes and same amount
-            });
-        }
-        
-        // Fallback: find by amount only if multiple matches, pick the most recent
-        if (!creditInfo) {
-            const creditsByAmount = db.credits.filter(c => Math.abs(c.totalAmount - totalAmount) < 0.01);
-            if (creditsByAmount.length > 0) {
-                creditInfo = creditsByAmount.reduce((mostRecent, credit) => {
-                    return new Date(credit.date) > new Date(mostRecent.date) ? credit : mostRecent;
-                });
-            }
-        }
-        
-        if (creditInfo) {
-            paidAmount = creditInfo.paidAmount;
-            remainingBalance = creditInfo.balance;
-        } else {
-            remainingBalance = totalAmount;
-        }
-    }
-    
-    // Build invoice content manually for print with proper styling
-    let invoiceContent = `
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
-                <div style="flex: 1;">
-                    ${company.logo ? `
-                        <div style="margin-bottom: 15px;">
-                            <img src="${company.logo}" alt="Logo" style="height: 150px; max-width: 150px; object-fit: contain;">
-                        </div>
-                    ` : ''}
-                    <div class="company-name">${company.name}</div>
-                    ${company.address ? `<div>${company.address}</div>` : ''}
-                    ${company.phone ? `<div>Tél: ${company.phone}</div>` : ''}
-                    ${company.email ? `<div>Email: ${company.email}</div>` : ''}
-                    ${company.nif ? `<div>NIF/STAT: ${company.nif}</div>` : ''}
-                </div>
-                <div style="text-align: right;">
-                    <div class="invoice-title">FACTURE</div>
-                    <div>${invoiceId}</div>
-                    <div>${invoiceDate}</div>
-                    <div>${invoiceTime}</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Add the rest of the invoice content
-    if (clientInfo) invoiceContent += clientInfo.outerHTML;
-    if (table) invoiceContent += table.outerHTML;
-    if (paymentInfo) invoiceContent += paymentInfo.outerHTML;
-    
-    // Add credit payment summary and signature if it's a credit invoice
-    if (isCreditInvoice) {
-        invoiceContent += `
-            <div style="margin: 10px 0; padding: 5px; background: #dbeafe; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                <h3 style="font-weight: bold; color: #1d4ed8; margin-bottom: 10px;">Récapitulatif du Paiement</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
-                    <div>Montant Total du Crédit:</div>
-                    <div style="text-align: right; font-weight: bold;">${formatMoney(totalAmount)}</div>
-                    <div>Montant Total Payé:</div>
-                    <div style="text-align: right; font-weight: bold; color: #059669;">${formatMoney(paidAmount)}</div>
-                    <div style="font-weight: bold; color: #1d4ed8; background: #bfdbfe; padding: 5px; border-radius: 4px;">Reste Ã  Payer:</div>
-                    <div style="text-align: right; font-weight: bold; color: #1d4ed8; background: #bfdbfe; padding: 5px; border-radius: 4px;">${formatMoney(remainingBalance)}</div>
-                </div>
-                <div style="text-align: center; margin-top: 5px;">
-                    <span style="display: inline-block; padding: 4px 12px; background: ${remainingBalance === 0 ? '#dcfce7; color: #166534' : '#fef3c7; color: #92400e'}; border-radius: 20px; font-size: 12px; font-weight: 600;">
-                        ${remainingBalance === 0 ? 'âœ“ Payé Complètement' : 'â³ En attente de paiement'}
-                    </span>
-                </div>
-            </div>
-            
-            <div style="margin: 5px 0; padding: 5px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: center;">
-                <h3 style="font-weight: bold; color: #374151; margin-bottom: 3px;">Signature du Client</h3>
-                <div style="border-top: 2px solid #334155; width: 300px; height: 60px; margin: 0 auto 10px;"></div>
-                <div style="font-size: 12px; color: #64748b;">Signature obligatoire pour valider le crédit</div>
-            </div>
-        `;
-    }
-    
-    if (footer) invoiceContent += `<div class="footer">${footer.innerHTML}</div>`;
-    
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Facture ${company.name}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
-                .header { margin-bottom: 3px; }
-                .company-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-                .invoice-title { font-size: 18px; font-weight: bold; margin: 20px 0; }
-                .client-info { margin-bottom: 20px; padding: 10px; background: #f8fafc; border-radius: 8px; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 13px; }
-                th, td { padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
-                th { background-color: #f8fafc; font-weight: bold; }
-                .total { font-size: 16px; font-weight: bold; text-align: right; color: #2563eb; }
-                .footer { margin-top: 5px; padding-top: 5px; border-top: 1px solid #ddd; }
-                .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 40px; }
-                @media print { 
-                    button { display: none; } 
-                    body { margin: 0; padding: 20px; }
-                    @page { size: auto; margin: 0mm; }
-                }
-            </style>
-        </head>
-        <body>
-            ${invoiceContent}
-            <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
-                <div style="text-align: center;">
-                    <div style="margin-bottom: 10px; font-weight: bold;">Signature et cachet</div>
-                    <div class="signature-line"></div>
-                </div>
-            </div>
-            <div class="footer">
-                <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                    Imprimer
-                </button>
-                <button onclick="window.close()" style="padding: 10px 20px; background: #64748b; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
-                    Fermer
-                </button>
-            </div>
-        </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
 }
 
 function resetSaleForm() {
@@ -3001,9 +2633,9 @@ function updateDashboard() {
 
 function renderStock() {
     const tbody = document.getElementById('stock-table-body');
-    const search = document.getElementById('search-stock').value.toLowerCase();
-    const categoryFilter = document.getElementById('filter-category').value;
-    const statusFilter = document.getElementById('filter-stock-status').value;
+    const search = document.getElementById('search-stock')?.value.toLowerCase() || '';
+    const categoryFilter = document.getElementById('filter-category')?.value || '';
+    const statusFilter = document.getElementById('filter-stock-status')?.value || '';
     
     // Update category filter options
     const categorySelect = document.getElementById('filter-category');
