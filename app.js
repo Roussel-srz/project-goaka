@@ -2193,6 +2193,317 @@ function printInvoicePDF() {
     addLog('Export PDF de facture initié', 'info');
 }
 
+function exportInvoicePDF() {
+    const company = db.config.company;
+    const invoiceId = document.querySelector('#invoice-content .text-right .text-slate-600')?.textContent || '';
+    const invoiceDate = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[1]?.textContent || '';
+    const invoiceTime = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[2]?.textContent || '';
+    
+    // Get invoice content HTML exactement comme affiché
+    const invoiceContent = document.getElementById('invoice-content').innerHTML;
+    
+    // Créer le HTML complet avec les mêmes styles Tailwind que l'interface
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Facture ${invoiceId}</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    line-height: 1.6;
+                    color: #1f2937;
+                    background: white;
+                    padding: 20px;
+                    max-width: 1000px;
+                    margin: 0 auto;
+                }
+                
+                .invoice-preview {
+                    padding: 2rem;
+                    border-radius: 0.75rem;
+                    background: white;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                }
+                
+                .invoice-title {
+                    font-size: 28px;
+                    font-weight: bold;
+                    color: #111827 !important;
+                    margin-bottom: 8px;
+                    display: block;
+                    background: #f3f4f6;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    text-align: center;
+                }
+                
+                .invoice-number {
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #374151 !important;
+                    margin-bottom: 4px;
+                    display: block;
+                }
+                
+                .invoice-date {
+                    font-size: 14px;
+                    color: #6b7280 !important;
+                    display: block;
+                }
+                
+                .gap-3 {
+                    gap: 12px;
+                }
+                
+                .gap-4 {
+                    gap: 16px;
+                }
+                
+                .gap-6 {
+                    gap: 24px;
+                }
+                
+                .w-full {
+                    width: 100%;
+                }
+                
+                .flex-1 {
+                    flex: 1;
+                }
+                
+                .flex-shrink-0 {
+                    flex-shrink: 0;
+                }
+                
+                .min-w-0 {
+                    min-width: 0;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 24px 0;
+                }
+                
+                th, td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                
+                th {
+                    font-weight: 600;
+                    color: #374151;
+                    background-color: #f9fafb;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                }
+                
+                td {
+                    font-size: 14px;
+                }
+                
+                .text-right td {
+                    text-align: right;
+                }
+                
+                tfoot td {
+                    font-weight: 600;
+                    background-color: #f9fafb;
+                    border-top: 2px solid #e2e8f0;
+                }
+                
+                .space-y-1 > * + * {
+                    margin-top: 4px;
+                }
+                
+                .space-y-2 > * + * {
+                    margin-top: 8px;
+                }
+                
+                .space-y-3 > * + * {
+                    margin-top: 12px;
+                }
+                
+                .space-y-4 > * + * {
+                    margin-top: 16px;
+                }
+                
+                .text-xs {
+                    font-size: 12px;
+                }
+                
+                .text-sm {
+                    font-size: 14px;
+                }
+                
+                .text-base {
+                    font-size: 16px;
+                }
+                
+                .text-lg {
+                    font-size: 18px;
+                }
+                
+                .text-xl {
+                    font-size: 20px;
+                }
+                
+                .text-2xl {
+                    font-size: 24px;
+                }
+                
+                .text-3xl {
+                    font-size: 30px;
+                }
+                
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                
+                .invoice-preview img {
+                    height: 150px !important;
+                    max-width: 150px !important;
+                }
+                
+                @media (min-width: 768px) {
+                    .invoice-preview img {
+                        height: 150px !important;
+                        max-width: 150px !important;
+                    }
+                }
+                
+                .invoice-preview .space-y-1 > * + * {
+                    margin-top: 2px !important;
+                }
+                
+                .invoice-preview .flex.flex-wrap {
+                    flex-direction: column !important;
+                    flex-wrap: nowrap !important;
+                    gap: 2px !important;
+                }
+                
+                .invoice-preview .flex.items-center.gap-1 {
+                    gap: 4px !important;
+                }
+                
+                .invoice-preview .flex.items-center svg {
+                    width: 12px !important;
+                    height: 12px !important;
+                }
+                
+                .object-contain {
+                    object-fit: contain;
+                }
+                
+                .shadow-sm {
+                    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                }
+                
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    
+                    .invoice-preview {
+                        border: none;
+                        box-shadow: none;
+                        border-radius: 0;
+                    }
+                }
+                
+                @page {
+                    margin: 20mm;
+                    size: A4;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="invoice-preview">
+                ${invoiceContent.replace(/class="text-xl md:text-2xl font-bold text-slate-800"/g, 'class="text-xl md:text-2xl font-bold text-slate-800 invoice-title"')
+                         .replace(/class="text-right text-slate-600"/g, 'class="text-right text-slate-600 invoice-number"')
+                         .replace(/class="text-right text-slate-600"/g, 'class="text-right text-slate-600 invoice-date"')}
+            </div>
+            <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #6b7280;">
+                <p>Généré par Enterprise Management Pro v2.3</p>
+                <p>Date de génération: ${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR')}</p>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // Create a temporary element to hold the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.style.width = '800px';
+    tempDiv.style.background = 'white';
+    document.body.appendChild(tempDiv);
+    
+    // Use html2canvas to convert to image, then jsPDF to create PDF
+    html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        removeContainer: true
+    }).then(canvas => {
+        // Remove temporary element
+        document.body.removeChild(tempDiv);
+        
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const imgWidth = 210; // A4 width in mm
+        const pageHeight = 297; // A4 height in mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // Add additional pages if needed
+        while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+        
+        // Generate filename with invoice number and date
+        const invoiceNumber = invoiceId.replace(/[^0-9]/g, '') || Date.now();
+        const dateStr = new Date().toISOString().split('T')[0];
+        const fileName = `Facture_${invoiceNumber}_${dateStr}.pdf`;
+        
+        // Download the PDF directly
+        pdf.save(fileName);
+        
+        // Show success message
+        showToast('Facture exportée en PDF avec succès', 'success');
+        addLog(`Facture ${invoiceId} exportée en PDF`, 'info');
+    }).catch(error => {
+        // Remove temporary element if still exists
+        if (tempDiv.parentNode) {
+            document.body.removeChild(tempDiv);
+        }
+        
+        console.error('Error generating PDF:', error);
+        showToast('Erreur lors de la génération du PDF', 'error');
+        addLog(`Erreur PDF facture ${invoiceId}: ${error.message}`, 'error');
+    });
+}
+
 function resetSaleForm() {
     cart = [];
     document.getElementById('client-name').value = '';
