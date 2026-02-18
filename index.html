@@ -327,6 +327,28 @@
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-emerald-300 group-hover:text-emerald-500"></i>
                                 </button>
+                                <button onclick="exportStockPDF()" class="w-full flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 rounded-lg md:rounded-xl transition-all group touch-target">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="file-text" class="w-4 h-4 md:w-5 md:h-5 text-red-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Export PDF</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-red-300 group-hover:text-red-500"></i>
+                                </button>
+                                <button onclick="exportStockCSV()" class="w-full flex items-center justify-between p-3 bg-green-50 hover:bg-green-100 rounded-lg md:rounded-xl transition-all group touch-target">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="file-spreadsheet" class="w-4 h-4 md:w-5 md:h-5 text-green-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Export CSV</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-green-300 group-hover:text-green-500"></i>
+                                </button>
+                                <button onclick="document.getElementById('import-stock-file').click()" class="w-full flex items-center justify-between p-3 bg-amber-50 hover:bg-amber-100 rounded-lg md:rounded-xl transition-all group touch-target">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="upload" class="w-4 h-4 md:w-5 md:h-5 text-amber-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Importation</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-amber-300 group-hover:text-amber-500"></i>
+                                </button>
+                                <input type="file" id="import-stock-file" accept=".csv" style="display: none;" onchange="importStockCSV(event)">
                                 <button onclick="switchTab('sales')" class="w-full flex items-center justify-between p-3 bg-purple-50 hover:bg-purple-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
                                         <i data-lucide="shopping-bag" class="w-4 h-4 md:w-5 md:h-5 text-purple-600"></i>
@@ -372,7 +394,34 @@
                                 <!-- JS Injection -->
                             </select>
                         </div>
-                        <div class="grid grid-cols-3 gap-2 md:flex md:gap-2">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+                            <button onclick="requirePostePermission('stockAdd', function(){openModal('modal-product')})" class="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all group">
+                                <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Ajouter</span>
+                            </button>
+                            <button onclick="openModal('modal-stock-adjust')" class="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all group">
+                                <i data-lucide="package-plus" class="w-4 h-4 text-emerald-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Ajuster</span>
+                            </button>
+                            <button onclick="exportStockPDF()" class="flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 rounded-lg transition-all group">
+                                <i data-lucide="file-text" class="w-4 h-4 text-red-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Export PDF</span>
+                            </button>
+                            <button onclick="exportStockCSV()" class="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 hover:bg-green-100 rounded-lg transition-all group">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-green-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Export CSV</span>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+                            <button onclick="document.getElementById('import-stock-file').click()" class="flex items-center justify-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all group">
+                                <i data-lucide="upload" class="w-4 h-4 text-amber-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Importation CSV</span>
+                            </button>
+                            <input type="file" id="import-stock-file" accept=".csv" style="display: none;" onchange="importStockCSV(event)">
+                            <button onclick="switchTab('sales')" class="flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all group">
+                                <i data-lucide="shopping-bag" class="w-4 h-4 text-purple-600"></i>
+                                <span class="text-sm font-medium text-slate-700">Nouvelle vente</span>
+                            </button>
                         </div>
                     </div>
 
