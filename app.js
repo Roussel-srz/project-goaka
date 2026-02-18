@@ -4409,7 +4409,10 @@ function importStockCSV(event) {
     reader.onload = function(e) {
         try {
             const text = e.target.result;
+            console.log('Contenu du fichier CSV:', text);
+            
             const lines = text.split('\n').filter(line => line.trim());
+            console.log('Lignes trouvées:', lines.length);
             
             if (lines.length < 2) {
                 showToast("Le fichier CSV est vide ou invalide", "error");
@@ -4418,12 +4421,16 @@ function importStockCSV(event) {
             
             // Parser le CSV
             const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            console.log('En-têtes trouvées:', headers);
+            
             const expectedHeaders = ['Nom', 'Catégorie', 'Fournisseur', 'Prix Achat', 'Prix Vente', 'Stock', 'Alerte Mini'];
             
-            // Vérifier les en-tÃªtes
+            // Vérifier les en-têtes
             const hasValidHeaders = expectedHeaders.every(header => 
                 headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
             );
+            
+            console.log('En-têtes valides:', hasValidHeaders);
             
             if (!hasValidHeaders) {
                 showToast("Format CSV invalide. Les colonnes requises sont: Nom, Catégorie, Fournisseur, Prix Achat, Prix Vente, Stock, Alerte Mini", "error");
@@ -4437,6 +4444,7 @@ function importStockCSV(event) {
             // Traiter chaque ligne
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                console.log(`Ligne ${i + 1}:`, values);
                 
                 if (values.length >= 7) {
                     try {
@@ -4450,35 +4458,72 @@ function importStockCSV(event) {
                             min: parseInt(values[6]) || 1
                         };
                         
-                        // Validation
-                        if (!productData.nom || productData.achat <= 0 || productData.vente <= 0) {
+                        console.log(`Produit ${i + 1} - Valeurs brutes:`, values);
+                        console.log(`Produit ${i + 1} - Prix Achat parsé:`, productData.achat);
+                        console.log(`Produit ${i + 1} - Prix Vente parsé:`, productData.vente);
+                        
+                        // Validation plus détaillée
+                        if (!productData.nom) {
+                            console.log(`Validation échoucée pour ligne ${i + 1}: nom manquant`);
                             errorCount++;
                             continue;
                         }
                         
-                        // Vérifier si le produit existe déjÃ 
+                        if (isNaN(productData.achat) || productData.achat <= 0) {
+                            console.log(`Validation échoucée pour ligne ${i + 1}: prix achat invalide (${productData.achat})`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        if (isNaN(productData.vente) || productData.vente <= 0) {
+                            console.log(`Validation échoucée pour ligne ${i + 1}: prix vente invalide (${productData.vente})`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Convertir les noms de propriétés pour correspondre à la base de données
+                        const dbProduct = {
+                            nom: productData.nom,
+                            category: productData.category,
+                            fournisseur: productData.fournisseur,
+                            achat: productData.achat,      // Garder achat (pas prixAchat)
+                            vente: productData.vente,      // Garder vente (pas prix)
+                            stock: productData.stock,
+                            min: productData.min
+                        };
+                        
+                        console.log(`DB Product ${i + 1}:`, dbProduct);
+                        
+                        // Vérifier si le produit existe déjÃ 
                         const existingProduct = db.produits.find(p => 
                             p.nom.toLowerCase() === productData.nom.toLowerCase()
                         );
                         
+                        console.log(`Produit existant pour ${productData.nom}:`, existingProduct ? 'Oui' : 'Non');
+                        
                         if (existingProduct) {
-                            // Mettre Ã  jour le produit existant
-                            Object.assign(existingProduct, productData);
+                            // Mettre à jour le produit existant
+                            Object.assign(existingProduct, dbProduct);
                             updateCount++;
+                            console.log(`Produit ${productData.nom} mis à jour`);
                         } else {
                             // Ajouter un nouveau produit
-                            productData.id = 'P' + Date.now() + Math.floor(Math.random() * 1000);
-                            db.produits.push(productData);
+                            dbProduct.id = 'P' + Date.now() + Math.floor(Math.random() * 1000);
+                            db.produits.push(dbProduct);
                             importCount++;
+                            console.log(`Produit ${productData.nom} ajouté avec ID: ${dbProduct.id}`);
                         }
                     } catch (error) {
-                        errorCount++;
                         console.error('Erreur ligne ' + (i + 1) + ':', error);
+                        errorCount++;
                     }
                 } else {
+                    console.log(`Ligne ${i + 1}: colonnes insuffisantes (${values.length})`);
                     errorCount++;
                 }
             }
+            
+            console.log('Résultats finaux:', { importCount, updateCount, errorCount });
             
             // Sauvegarder et mettre Ã  jour
             saveDB();
