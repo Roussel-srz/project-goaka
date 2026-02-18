@@ -1955,6 +1955,428 @@ function getPaymentMethodText(method) {
     }
 }
 
+function exportInvoicePDF() {
+    const company = db.config.company;
+    const invoiceId = document.querySelector('#invoice-content .text-right .text-slate-600')?.textContent || '';
+    const invoiceDate = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[1]?.textContent || '';
+    const invoiceTime = document.querySelectorAll('#invoice-content .text-right .text-slate-600')[2]?.textContent || '';
+    
+    // Get invoice content HTML
+    const invoiceContent = document.getElementById('invoice-content').innerHTML;
+    
+    // Create a new window for PDF generation
+    const printWindow = window.open('', '_blank');
+    
+    // Create the complete HTML document with proper styling
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Facture ${invoiceId}</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    line-height: 1.6;
+                    color: #1e293b;
+                    background: white;
+                    padding: 20px;
+                }
+                
+                .invoice-preview {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 32px;
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 12px;
+                }
+                
+                h1 {
+                    font-size: 32px;
+                    font-weight: 800;
+                    color: #1e293b;
+                    margin-bottom: 12px;
+                }
+                
+                h2 {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #1e293b;
+                    margin-bottom: 16px;
+                }
+                
+                h3 {
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1e293b;
+                    margin-bottom: 12px;
+                }
+                
+                .text-right {
+                    text-align: right;
+                }
+                
+                .text-left {
+                    text-align: left;
+                }
+                
+                .text-center {
+                    text-align: center;
+                }
+                
+                .text-slate-800 {
+                    color: #1e293b;
+                }
+                
+                .text-slate-600 {
+                    color: #475569;
+                }
+                
+                .text-slate-500 {
+                    color: #64748b;
+                }
+                
+                .text-blue-600 {
+                    color: #2563eb;
+                }
+                
+                .text-green-600 {
+                    color: #16a34a;
+                }
+                
+                .text-amber-600 {
+                    color: #d97706;
+                }
+                
+                .text-red-600 {
+                    color: #dc2626;
+                }
+                
+                .font-bold {
+                    font-weight: 700;
+                }
+                
+                .font-semibold {
+                    font-weight: 600;
+                }
+                
+                .font-medium {
+                    font-weight: 500;
+                }
+                
+                .mb-2 {
+                    margin-bottom: 8px;
+                }
+                
+                .mb-3 {
+                    margin-bottom: 12px;
+                }
+                
+                .mb-4 {
+                    margin-bottom: 16px;
+                }
+                
+                .mb-6 {
+                    margin-bottom: 24px;
+                }
+                
+                .mb-8 {
+                    margin-bottom: 32px;
+                }
+                
+                .mt-2 {
+                    margin-top: 8px;
+                }
+                
+                .mt-3 {
+                    margin-top: 12px;
+                }
+                
+                .mt-4 {
+                    margin-top: 16px;
+                }
+                
+                .mt-6 {
+                    margin-top: 24px;
+                }
+                
+                .p-3 {
+                    padding: 12px;
+                }
+                
+                .p-4 {
+                    padding: 16px;
+                }
+                
+                .px-4 {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                }
+                
+                .py-2 {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                }
+                
+                .bg-slate-50 {
+                    background-color: #f8fafc;
+                }
+                
+                .bg-amber-50 {
+                    background-color: #fffbeb;
+                }
+                
+                .bg-blue-50 {
+                    background-color: #eff6ff;
+                }
+                
+                .border {
+                    border: 1px solid #e2e8f0;
+                }
+                
+                .border-t {
+                    border-top: 1px solid #e2e8f0;
+                }
+                
+                .border-b {
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                
+                .rounded-lg {
+                    border-radius: 8px;
+                }
+                
+                .rounded-xl {
+                    border-radius: 12px;
+                }
+                
+                .flex {
+                    display: flex;
+                }
+                
+                .items-center {
+                    align-items: center;
+                }
+                
+                .justify-between {
+                    justify-content: space-between;
+                }
+                
+                .gap-1 {
+                    gap: 4px;
+                }
+                
+                .gap-2 {
+                    gap: 8px;
+                }
+                
+                .gap-3 {
+                    gap: 12px;
+                }
+                
+                .gap-4 {
+                    gap: 16px;
+                }
+                
+                .gap-6 {
+                    gap: 24px;
+                }
+                
+                .w-full {
+                    width: 100%;
+                }
+                
+                .flex-1 {
+                    flex: 1;
+                }
+                
+                .flex-shrink-0 {
+                    flex-shrink: 0;
+                }
+                
+                .min-w-0 {
+                    min-width: 0;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 24px 0;
+                }
+                
+                th, td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #e2e8f0;
+                }
+                
+                th {
+                    font-weight: 600;
+                    color: #374151;
+                    background-color: #f9fafb;
+                    font-size: 12px;
+                    text-transform: uppercase;
+                }
+                
+                td {
+                    font-size: 14px;
+                }
+                
+                .text-right td {
+                    text-align: right;
+                }
+                
+                tfoot td {
+                    font-weight: 600;
+                    background-color: #f9fafb;
+                    border-top: 2px solid #e2e8f0;
+                }
+                
+                .space-y-1 > * + * {
+                    margin-top: 4px;
+                }
+                
+                .space-y-2 > * + * {
+                    margin-top: 8px;
+                }
+                
+                .space-y-3 > * + * {
+                    margin-top: 12px;
+                }
+                
+                .space-y-4 > * + * {
+                    margin-top: 16px;
+                }
+                
+                .text-xs {
+                    font-size: 12px;
+                }
+                
+                .text-sm {
+                    font-size: 14px;
+                }
+                
+                .text-base {
+                    font-size: 16px;
+                }
+                
+                .text-lg {
+                    font-size: 18px;
+                }
+                
+                .text-xl {
+                    font-size: 20px;
+                }
+                
+                .text-2xl {
+                    font-size: 24px;
+                }
+                
+                .text-3xl {
+                    font-size: 30px;
+                }
+                
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                
+                .invoice-preview img {
+                    height: 150px !important;
+                    max-width: 150px !important;
+                }
+                
+                @media (min-width: 768px) {
+                    .invoice-preview img {
+                        height: 150px !important;
+                        max-width: 150px !important;
+                    }
+                }
+                
+                .invoice-preview .space-y-1 > * + * {
+                    margin-top: 2px !important;
+                }
+                
+                .invoice-preview .flex.flex-wrap {
+                    flex-direction: column !important;
+                    flex-wrap: nowrap !important;
+                    gap: 2px !important;
+                }
+                
+                .invoice-preview .flex.items-center.gap-1 {
+                    gap: 4px !important;
+                }
+                
+                .invoice-preview .flex.items-center svg {
+                    width: 12px !important;
+                    height: 12px !important;
+                }
+                
+                .object-contain {
+                    object-fit: contain;
+                }
+                
+                .shadow-sm {
+                    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+                }
+                
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    
+                    .invoice-preview {
+                        border: none;
+                        box-shadow: none;
+                        border-radius: 0;
+                    }
+                }
+                
+                @page {
+                    margin: 20mm;
+                    size: A4;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="invoice-preview">
+                ${invoiceContent}
+            </div>
+            
+            <script>
+                // Auto-generate PDF after page loads
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 500);
+                };
+                
+                // Handle print dialog close
+                window.onafterprint = function() {
+                    window.close();
+                };
+            </script>
+        </body>
+        </html>
+    `;
+    
+    // Write the content to the new window
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Show success message
+    showToast('Préparation du PDF en cours...', 'info');
+    addLog('Export PDF de facture initié', 'info');
+}
+
 function printInvoice() {
     const printWindow = window.open('', '_blank');
     const company = db.config.company;
