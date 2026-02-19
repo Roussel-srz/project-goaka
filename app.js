@@ -2870,8 +2870,33 @@ function updateDashboard() {
     
     // Stock Alerts
     const alertsDiv = document.getElementById('stock-alerts');
-    const critical = db.produits.filter(p => p.stock <= p.min);
-    const zeroStock = db.produits.filter(p => p.stock === 0);
+    
+    // Filtrer pour exclure les services des alertes
+    const critical = db.produits.filter(p => {
+        // Vérifier si c'est un service ou produit de productivité
+        const isService = p.category && (
+            p.category.toLowerCase().includes('service') || 
+            p.category.toLowerCase().includes('productivité')
+        );
+        
+        // Ne pas alerter pour les services
+        if (isService) return false;
+        
+        return p.stock <= p.min && p.stock > 0;
+    });
+    
+    const zeroStock = db.produits.filter(p => {
+        // Vérifier si c'est un service ou produit de productivité
+        const isService = p.category && (
+            p.category.toLowerCase().includes('service') || 
+            p.category.toLowerCase().includes('productivité')
+        );
+        
+        // Ne pas alerter pour les services
+        if (isService) return false;
+        
+        return p.stock === 0;
+    });
     
     const totalAlerts = critical.length + zeroStock.length;
     document.getElementById('alert-count').innerText = totalAlerts;
@@ -5477,5 +5502,4 @@ pdf.text('Enterprise Management Pro v2.3 - Rapport de Gestion', pageWidth / 2, p
 
 // Lancement automatique du test de sécurité
 runSecurityCheck();
-
 
