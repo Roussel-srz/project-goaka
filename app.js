@@ -4908,7 +4908,7 @@ document.getElementById('app-content').style.display = 'none';
 trialBadge.style.display = 'none';
 
 document.getElementById('close-license').classList.add('hidden');
-document.getElementById('license-msg').innerText = "Votre période d'essai est terminée. \n veuillez activer le logiciel pour continuer Ã  l'utiliser.\n Alefa ** Mvola @ 034 18 420 13 ** : 20.000Ar";
+document.getElementById('license-msg').innerText = "Tampitra période d'essai anao. \n veuillez activer le logiciel pour continuer à  l'utiliser.\n Alefa ** Mvola @ 034 18 420 13 ** : 25.000Ar";
     }
 }
 
@@ -5477,4 +5477,5 @@ pdf.text('Enterprise Management Pro v2.3 - Rapport de Gestion', pageWidth / 2, p
 
 // Lancement automatique du test de sécurité
 runSecurityCheck();
+
 
