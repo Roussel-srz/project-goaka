@@ -4523,8 +4523,8 @@ function importStockCSV(event) {
                 return;
             }
             
-            // Parser le CSV
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            // Parser le CSV - supporter les virgules et points-virgules comme séparateurs
+            const headers = lines[0].split(/[;,]/).map(h => h.trim().replace(/"/g, ''));
             console.log('En-têtes trouvées:', headers);
             
             const expectedHeaders = ['Nom', 'Catégorie', 'Fournisseur', 'Prix Achat', 'Prix Vente', 'Stock', 'Alerte Mini'];
@@ -4547,7 +4547,7 @@ function importStockCSV(event) {
             
             // Traiter chaque ligne
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                const values = lines[i].split(/[;,]/).map(v => v.trim().replace(/"/g, ''));
                 console.log(`Ligne ${i + 1}:`, values);
                 
                 if (values.length >= 7) {
