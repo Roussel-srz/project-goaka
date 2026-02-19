@@ -4509,6 +4509,26 @@ function importStockCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
     
+    // Fonction pour normaliser les catégories (enlever les accents)
+    function normalizeCategory(category) {
+        if (!category) return category;
+        return category.toString()
+            .replace(/[ÀÁÂÃÄÅ]/g, 'A')
+            .replace(/[àáâãäå]/g, 'a')
+            .replace(/[ÈÉÊË]/g, 'E')
+            .replace(/[èéêë]/g, 'e')
+            .replace(/[ÌÍÎÏ]/g, 'I')
+            .replace(/[ìíîï]/g, 'i')
+            .replace(/[ÒÓÔÕÖ]/g, 'O')
+            .replace(/[òóôõö]/g, 'o')
+            .replace(/[ÙÚÛÜ]/g, 'U')
+            .replace(/[ùúûü]/g, 'u')
+            .replace(/[Ç]/g, 'C')
+            .replace(/[ç]/g, 'c')
+            .replace(/[Ñ]/g, 'N')
+            .replace(/[ñ]/g, 'n');
+    }
+    
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
@@ -4554,7 +4574,7 @@ function importStockCSV(event) {
                     try {
                         const productData = {
                             nom: values[0],
-                            category: values[1] || 'Autre',
+                            category: normalizeCategory(values[1]) || 'Autre',
                             fournisseur: values[2] || 'Non spécifié',
                             achat: parseFloat(values[3]) || 0,
                             vente: parseFloat(values[4]) || 0,
@@ -4692,7 +4712,11 @@ function exportCSV(headers, rows, filename) {
             ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
         ].join('\n');
         
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        // Ajouter BOM UTF-8 pour une meilleure compatibilité avec Excel
+        const BOM = '\uFEFF';
+        const csvWithBOM = BOM + csvContent;
+        
+        const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
