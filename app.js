@@ -3078,6 +3078,85 @@ function renderStock() {
         `;
     }).join('') || `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400">Aucun produit trouvé</td></tr>`;
     
+    // Mettre à jour la liste mobile
+    const mobileList = document.getElementById('mobile-stock-list');
+    if (mobileList) {
+        if (filtered.length === 0) {
+            mobileList.innerHTML = `<div class="text-center py-8 text-slate-400">Aucun produit trouvé</div>`;
+        } else {
+            mobileList.innerHTML = filtered.map(p => {
+                const stockValue = p.stock * p.achat;
+                const margin = p.vente - p.achat;
+                const marginPercent = ((margin / p.achat) * 100).toFixed(1);
+                
+                let stockClass = '';
+                let stockText = '';
+                if(p.stock === 0) {
+                    stockClass = 'bg-red-100 text-red-600';
+                    stockText = 'Épuisé';
+                } else if(p.stock <= p.min) {
+                    stockClass = 'bg-amber-100 text-amber-600';
+                    stockText = 'Critique';
+                } else {
+                    stockClass = 'bg-emerald-100 text-emerald-600';
+                    stockText = 'Normal';
+                }
+                
+                return `
+                <div class="bg-white rounded-lg border border-slate-200 p-4 hover:bg-slate-50 transition-colors">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-700">${p.nom}</div>
+                            <div class="text-xs text-slate-400">${p.category}</div>
+                            <div class="text-xs text-slate-500 mt-1">${p.fournisseur}</div>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-medium rounded-full ${stockClass}">${stockText}</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <div class="text-slate-400 text-xs">Prix Achat</div>
+                            <div class="font-medium text-slate-700">${formatMoney(p.achat)}</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-400 text-xs">Prix Vente</div>
+                            <div class="font-medium text-slate-700">${formatMoney(p.vente)}</div>
+                            <div class="text-xs text-emerald-600">+${marginPercent}%</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-400 text-xs">Stock</div>
+                            <div class="font-medium text-slate-700">${p.stock} unité(s)</div>
+                        </div>
+                        <div>
+                            <div class="text-slate-400 text-xs">Alerte</div>
+                            <div class="font-medium text-slate-700">${p.min} unité(s)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <button onclick="openStockAdjust('${p.id}', 1, 'add')" class="flex-1 py-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors text-sm font-medium">
+                            <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>
+                            Ajouter
+                        </button>
+                        <button onclick="openStockAdjust('${p.id}', 1, 'remove')" class="flex-1 py-2 bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors text-sm font-medium">
+                            <i data-lucide="minus" class="w-4 h-4 inline mr-1"></i>
+                            Retirer
+                        </button>
+                        <button onclick="editProduct('${p.id}')" class="flex-1 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg transition-colors text-sm font-medium">
+                            <i data-lucide="edit" class="w-4 h-4 inline mr-1"></i>
+                            Modifier
+                        </button>
+                        <button onclick="deleteProduct('${p.id}')" class="flex-1 py-2 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg transition-colors text-sm font-medium">
+                            <i data-lucide="trash-2" class="w-4 h-4 inline mr-1"></i>
+                            Supprimer
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+    }
+    
     // Force re-initialize Lucide icons for stock table
     setTimeout(() => {
         initLucide();
