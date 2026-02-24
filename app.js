@@ -277,25 +277,8 @@ function loadCompanyInfo() {
     // Update mobile sidebar
     document.getElementById('mobile-sidebar-company-name').innerText = company.name;
     
-    // Update settings display
-    document.getElementById('settings-company-name').innerText = company.name;
-}
-
-        function updateCompanyInfo() {
-            if(!canAccess('configCompany')) { showToast("Action non autorisée", "error"); return; }
-            db.config.company = {
-        name: document.getElementById('company-name').value.trim() || "INFO PLUS (PORT-BERGE)",
-        address: document.getElementById('company-address').value.trim(),
-        phone: document.getElementById('company-phone').value.trim(),
-        nif: document.getElementById('company-nif').value.trim(),
-        email: document.getElementById('company-email').value.trim(),
-        signature: document.getElementById('company-signature').value.trim() || "Le Gérant",
-        logo: db.config.company.logo || null
-    };
-    
-    saveDB();
-    loadCompanyInfo();
-    showToast("Informations de l'entreprise mises Ã  jour", "success");
+    // Load currency settings
+    loadCurrencySettings();
 }
 
 // Logo management functions
@@ -390,6 +373,14 @@ function loadDB() {
             if(!parsed.config.multiposteEnabled) parsed.config.multiposteEnabled = false;
             if(!parsed.config.postes) parsed.config.postes = [];
             
+            // Migration pour la devise (nouvelle fonctionnalité)
+            if(!parsed.config.currency) {
+                // Par défaut, utiliser "Ar" pour les bases de données existantes
+                parsed.config.currency = "Ar";
+                console.log("Migration: Devise par défaut définie sur Ar");
+                addLog("info", "Migration automatique: Devise définie sur Ar");
+            }
+            
             // Ensure all products have category
             if(parsed.produits) {
                 parsed.produits.forEach(p => {
@@ -401,12 +392,16 @@ function loadDB() {
             addLog("Base de données chargée", "success");
         } else {
             addLog("Initialisation du système", "info");
+            // Initialiser la devise par défaut pour les nouvelles installations
+            db.config.currency = "Ar";
         }
     } catch(e) {
         console.error("DB Load Error", e);
         showToast("Erreur de chargement des données", "error");
         // Initialize with default data on error
         addLog("Initialisation avec les données par défaut", "warning");
+        // Assurer la devise par défaut même en cas d'erreur
+        db.config.currency = "Ar";
     }
 }
 
@@ -5601,6 +5596,142 @@ pdf.text('Enterprise Management Pro v2.3 - Rapport de Gestion', pageWidth / 2, p
     pdf.save(fileName);
     
     showToast('Rapport PDF genere avec succes', 'success');
+}
+
+function loadCurrencySettings() {
+    const currencySelect = document.getElementById('currency-select');
+    const currencySymbol = document.getElementById('currency-symbol');
+    
+    if (db.config && db.config.currency) {
+        currencySelect.value = db.config.currency;
+        currencySymbol.value = db.config.currency;
+    } else {
+        // Valeur par défaut
+        db.config = db.config || {};
+        db.config.currency = "Ar";
+        currencySelect.value = "Ar";
+        currencySymbol.value = "Ar";
+    }
+}
+
+function updateCompanyInfo() {
+    if(!canAccess('configData')) { showToast("Action non autorisée", "error"); return; }
+    
+    // S'assurer que config.company existe
+    if (!db.config.company) {
+        db.config.company = {};
+    }
+    
+    db.config.company.name = document.getElementById('company-name').value;
+    db.config.company.phone = document.getElementById('company-phone').value;
+    db.config.company.email = document.getElementById('company-email').value;
+    db.config.company.address = document.getElementById('company-address').value;
+    db.config.company.nif = document.getElementById('company-nif').value;
+    
+    saveDB();
+    updateUI();
+    showToast("Informations enregistrées", "success");
+    addLog("info", "Modification des informations de l'entreprise");
+}
+
+function updateCurrencySettings() {
+    if(!canAccess('configData')) { showToast("Action non autorisée", "error"); return; }
+    
+    const currencySelect = document.getElementById('currency-select');
+    const currencySymbol = document.getElementById('currency-symbol');
+    const selectedCurrency = currencySelect.value;
+    const oldCurrency = db.config.currency || "Ar";
+    
+    // Mettre à jour le symbole
+    currencySymbol.value = selectedCurrency;
+    
+    // Sauvegarder la configuration
+    db.config.currency = selectedCurrency;
+    
+    // Convertir les montants si changement de devise
+    if (oldCurrency !== selectedCurrency) {
+        convertAllAmounts(oldCurrency, selectedCurrency);
+    }
+    
+    saveDB();
+    
+    // Mettre à jour l'interface
+    updateUI();
+    showToast(`Devise changée en ${selectedCurrency}`, "success");
+    addLog("info", `Changement de devise: ${oldCurrency} → ${selectedCurrency}`);
+}
+
+function convertAllAmounts(fromCurrency, toCurrency) {
+    const conversionRate = 5; // 1 Ar = 5 Fmg
+    
+    // Ne pas convertir si même devise
+    if (fromCurrency === toCurrency) return;
+    
+    // Conversion Ar → Fmg
+    if (fromCurrency === "Ar" && toCurrency === "Fmg") {
+        // Produits
+        db.produits.forEach(product => {
+            product.achat = product.achat * conversionRate;
+            product.vente = product.vente * conversionRate;
+        });
+        
+        // Ventes
+        db.ventes.forEach(sale => {
+            sale.total = sale.total * conversionRate;
+            sale.profit = sale.profit * conversionRate;
+            sale.items.forEach(item => {
+                item.price = item.price * conversionRate;
+                item.total = item.total * conversionRate;
+            });
+        });
+        
+        // Dépenses
+        db.depenses.forEach(expense => {
+            expense.amount = expense.amount * conversionRate;
+        });
+        
+        // Crédits
+        db.credits.forEach(credit => {
+            credit.balance = credit.balance * conversionRate;
+            credit.payments.forEach(payment => {
+                payment.amount = payment.amount * conversionRate;
+            });
+        });
+    }
+    
+    // Conversion Fmg → Ar
+    else if (fromCurrency === "Fmg" && toCurrency === "Ar") {
+        // Produits
+        db.produits.forEach(product => {
+            product.achat = product.achat / conversionRate;
+            product.vente = product.vente / conversionRate;
+        });
+        
+        // Ventes
+        db.ventes.forEach(sale => {
+            sale.total = sale.total / conversionRate;
+            sale.profit = sale.profit / conversionRate;
+            sale.items.forEach(item => {
+                item.price = item.price / conversionRate;
+                item.total = item.total / conversionRate;
+            });
+        });
+        
+        // Dépenses
+        db.depenses.forEach(expense => {
+            expense.amount = expense.amount / conversionRate;
+        });
+        
+        // Crédits
+        db.credits.forEach(credit => {
+            credit.balance = credit.balance / conversionRate;
+            credit.payments.forEach(payment => {
+                payment.amount = payment.amount / conversionRate;
+            });
+        });
+    }
+    
+    addLog("info", `Conversion des montants: ${fromCurrency} → ${toCurrency} (taux: ${conversionRate})`);
 }
 
 // Lancement automatique du test de sécurité
