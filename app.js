@@ -120,6 +120,9 @@ window.onload = function() {
         // Start Auto-save
         setInterval(saveDB, 300000); // 5 minutes
 
+        // Initialiser le système de mise à jour automatique
+        initUpdateSystem();
+
         clearTimeout(loadingTimeout);
                 hideLoading();
                 checkPosteAndShowApp();
