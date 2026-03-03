@@ -7,6 +7,9 @@ window.confirmCallback = null;
 window.authCallback = null;
 let cart = [];
 let currentInvoiceNumber = 1;
+let proformaItems = [];
+let proformaCounter = 1;
+let selectedProformaProducts = [];
 
 // === PERMISSIONS REFERENCE ===
 const DEFAULT_PERMISSIONS = {
@@ -37,12 +40,14 @@ let db = {
         categories: ["Électronique", "Mobilier", "Fournitures", "Alimentaire", "Autre"],
         expenseCategories: [], // Catégories de dépenses personnalisées
         invoiceCounter: 1,
+        proformaCounter: 1,
         dashboardWidgets: {
             caisse: true,
             chiffreAffaires: true,
             totalDepenses: true,
             ventesEspeces: true,
             ventesMobile: true,
+            ventesCard: true,
             totalVentes: true,
             creditsEnAttente: true
         },
@@ -52,11 +57,21 @@ let db = {
             phone: "",
             nif: "",
             email: "",
-            signature: "Le Gérant"
+            signature: "Le Gérant",
+            // Nouveaux champs pour le modèle proforma
+            ribBank: "BNI",
+            ribAccount: "00005/00001/13988760100/30",
+            chequeName: "BAOLAI SARL",
+            deliveryDelayCheque: "07 jours ouvrables après réception de chèque",
+            deliveryDelayGeneral: "07 jours ouvrables",
+            // Configuration du délai de crédit
+            defaultCreditDelay: 30, // en jours
+            creditDelayUnit: "jours" // "jours" ou "mois"
         },
         multiposteEnabled: false,
         postes: []
-    }
+    },
+    proformas: []
 };
 
 // === INITIALIZATION ===
@@ -264,6 +279,24 @@ function loadCompanyInfo() {
     document.getElementById('company-nif').value = company.nif || "";
     document.getElementById('company-email').value = company.email || "";
     document.getElementById('company-signature').value = company.signature || "Le Gérant";
+    
+    // Nouveaux champs pour le modèle proforma
+    document.getElementById('company-rib-bank').value = company.ribBank || "";
+    document.getElementById('company-rib-account').value = company.ribAccount || "";
+    document.getElementById('company-cheque-name').value = company.chequeName || "";
+    document.getElementById('company-delivery-delay-cheque').value = company.deliveryDelayCheque || "";
+    document.getElementById('company-delivery-delay-general').value = company.deliveryDelayGeneral || "";
+    
+    // Configuration du délai de crédit
+    const creditDelayInput = document.getElementById('company-default-credit-delay');
+    const creditDelayUnitInput = document.getElementById('company-credit-delay-unit');
+    
+    if (creditDelayInput) {
+        creditDelayInput.value = company.defaultCreditDelay || 30;
+    }
+    if (creditDelayUnitInput) {
+        creditDelayUnitInput.value = company.creditDelayUnit || 'jours';
+    }
     
     // Update logo preview
     updateLogoPreview(company.logo || null);
@@ -897,7 +930,8 @@ function switchTab(tabId) {
         expenses: 'Dépenses / Caisse',
         logs: 'Journal du Système',
         reports: 'Rapports',
-        settings: 'Paramètres'
+        settings: 'Paramètres',
+        proformas: 'Factures Proforma'
     };
     document.getElementById('current-tab-title').innerText = titles[tabId] || 'Application';
 
@@ -920,6 +954,8 @@ function switchTab(tabId) {
                 renderPostesList();
                 loadDashboardWidgetsConfig();
                 updateDashboardFilterVisibility();
+            } else if(tabId === 'proformas') {
+                renderProformasList();
             }
         }
 
@@ -1006,7 +1042,7 @@ function renderMobileStockList() {
                     <div class="text-slate-500">Stock</div>
                     <div class="flex flex-col gap-1">
                         <span class="px-2 py-0.5 rounded-full text-xs ${statusClass}">${statusText}</span>
-                        <div class="font-bold text-slate-600">${p.stock} unité(s)</div>
+                        <div class="font-bold text-slate-600">${formatStock(p.stock)}</div>
                     </div>
                 </div>
                 <div class="text-xs">
@@ -1051,20 +1087,32 @@ function renderMobileCreditsList() {
     container.innerHTML = db.credits.map(c => {
         let statusClass = '';
         let statusText = '';
+        let dueDateClass = '';
         
         if(c.status === 'paid') {
             statusClass = 'badge-success';
             statusText = 'Soldé';
         } else {
-            const days = Math.floor((new Date() - new Date(c.date)) / (1000 * 60 * 60 * 24));
-            if(days > 30) {
+            const dueDate = new Date(c.dueDate);
+            const daysUntilDue = Math.floor((dueDate - new Date()) / (1000 * 60 * 60 * 24));
+            
+            if(daysUntilDue < 0) {
                 statusClass = 'badge-danger';
                 statusText = 'En retard';
+                dueDateClass = 'text-red-600 font-bold';
+            } else if(daysUntilDue <= 3) {
+                statusClass = 'badge-warning';
+                statusText = 'Bientôt dû';
+                dueDateClass = 'text-amber-600 font-semibold';
             } else {
                 statusClass = 'badge-warning';
                 statusText = 'En attente';
+                dueDateClass = 'text-slate-600';
             }
         }
+        
+        const dueDateDisplay = c.dueDate ? new Date(c.dueDate).toLocaleDateString('fr-FR') : 'Non défini';
+        const delayDisplay = c.creditDelay ? `${c.creditDelay} ${c.creditDelayUnit || 'jours'}` : 'Non défini';
         
         return `
         <div class="glass-card p-4 rounded-xl shadow-sm">
@@ -1082,12 +1130,12 @@ function renderMobileCreditsList() {
                     <div class="font-medium">${new Date(c.date).toLocaleDateString('fr-FR')}</div>
                 </div>
                 <div class="text-xs">
-                    <div class="text-slate-500">Total</div>
-                    <div class="font-medium">${formatMoney(c.totalAmount)}</div>
+                    <div class="text-slate-500">Échéance</div>
+                    <div class="font-medium ${dueDateClass}">${dueDateDisplay}</div>
                 </div>
                 <div class="text-xs">
-                    <div class="text-slate-500">Payé</div>
-                    <div class="font-medium text-emerald-600">${formatMoney(c.paidAmount)}</div>
+                    <div class="text-slate-500">Délai</div>
+                    <div class="font-medium">${delayDisplay}</div>
                 </div>
                 <div class="text-xs">
                     <div class="text-slate-500">Reste</div>
@@ -1189,7 +1237,13 @@ function updateCartDisplay() {
     // Update cart count
     document.getElementById('cart-count').innerText = `${cart.length} article(s)`;
     
-    // Show/hide clear cart button
+    // Update subtotal
+    document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
+    
+    // Update total with discount
+    updateInvoiceTotal();
+    
+    // Show/hide clear button
     if(cart.length > 0) {
         clearBtn.classList.remove('hidden');
     } else {
@@ -1203,35 +1257,29 @@ function updateCartDisplay() {
                 <p class="text-sm">Aucun article ajouté</p>
             </div>
         `;
-    } else {
-        cartItems.innerHTML = cart.map((item, index) => {
-            const product = db.produits.find(p => p.id === item.productId);
-            const stockStatus = product ? (product.stock <= 0 ? 'text-red-500' : product.stock < 5 ? 'text-amber-500' : 'text-green-500') : 'text-slate-500';
-            const stockText = product ? `Stock: ${product.stock}` : 'Stock: ?';
-            
-            return `
-                <div class="flex items-center justify-between p-2 md:p-3 bg-white rounded-lg border border-slate-200 hover:border-blue-300 transition-colors">
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-sm text-slate-800 truncate">${product ? product.nom : 'Produit inconnu'}</div>
-                        <div class="flex items-center gap-3 text-xs text-slate-500">
-                            <span>${item.quantity} Ã— ${formatMoney(item.price)}</span>
-                            <span class="${stockStatus}">${stockText}</span>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-bold text-blue-600 text-sm">${formatMoney(item.total)}</div>
-                        <button onclick="removeFromCart(${index})" class="text-xs text-red-400 hover:text-red-600">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        return;
     }
     
-    // Update totals
-    document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
-    document.getElementById('invoice-total').innerText = formatMoney(subtotal);
+    let html = '';
+    cart.forEach((item, index) => {
+        html += `
+            <div class="p-3 bg-white border rounded-lg hover:bg-slate-50 transition-all">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h6 class="font-semibold text-sm text-slate-800">${escapeHtml(item.productName)}</h6>
+                        <div class="text-xs text-slate-500 mt-1">
+                            ${item.quantity} × ${formatMoney(item.price)} = ${formatMoney(item.total)}
+                        </div>
+                    </div>
+                    <button onclick="removeFromCart(${index})" class="text-red-500 hover:text-red-700 transition-colors">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    cartItems.innerHTML = html;
     
     // Re-initialize lucide icons
     setTimeout(() => initLucide(), 100);
@@ -1335,8 +1383,8 @@ function executeAuth() {
         fournisseur: document.getElementById('prod-fournisseur').value.trim() || 'Inconnu',
         achat: parseFloat(document.getElementById('prod-achat').value),
         vente: parseFloat(document.getElementById('prod-vente').value),
-        stock: parseInt(document.getElementById('prod-stock').value),
-        min: parseInt(document.getElementById('prod-min').value) || 5,
+        stock: parseStock(document.getElementById('prod-stock').value),
+        min: parseStock(document.getElementById('prod-min').value) || 5,
         createdAt: editId ? db.produits.find(p => p.id === editId)?.createdAt || new Date().toISOString() : new Date().toISOString(),
         updatedAt: new Date().toISOString()
     };
@@ -1376,11 +1424,17 @@ function executeAuth() {
 
 function validateProduct(data) {
     if(!data.nom || data.nom.length < 2) return "Le nom doit contenir au moins 2 caractères";
-    if(isNaN(data.achat) || data.achat <= 0) return "Le prix d'achat doit Ãªtre supérieur Ã  0";
-    if(isNaN(data.vente) || data.vente <= 0) return "Le prix de vente doit Ãªtre supérieur Ã  0";
-    if(data.vente < data.achat) return "Le prix de vente doit Ãªtre supérieur au prix d'achat";
-    if(isNaN(data.stock) || data.stock < 0) return "Le stock ne peut pas Ãªtre négatif";
-    if(isNaN(data.min) || data.min < 0) return "Le seuil minimal ne peut pas Ãªtre négatif";
+    if(isNaN(data.achat) || data.achat <= 0) return "Le prix d'achat doit être supérieur à 0";
+    if(isNaN(data.vente) || data.vente <= 0) return "Le prix de vente doit être supérieur à 0";
+    if(data.vente < data.achat) return "Le prix de vente doit être supérieur au prix d'achat";
+    
+    // Utiliser la nouvelle validation de stock
+    const stockError = validateStock(data.stock);
+    if(stockError) return stockError;
+    
+    const minError = validateStock(data.min);
+    if(minError) return "Le seuil minimal: " + minError;
+    
     return null;
 }
 
@@ -1456,6 +1510,41 @@ function validateProduct(data) {
     openModal('modal-stock-adjust');
 }
 
+// === STOCK MOVEMENT FUNCTION ===
+function addStockMovement(productId, type, qty, reason) {
+    const product = db.produits.find(p => p.id === productId);
+    if(!product) return;
+    
+    const oldStock = product.stock;
+    
+    // Determine movement type based on operation
+    let movementType;
+    if(type === 'vente') {
+        movementType = 'retrait'; // Vente = retrait de stock
+    } else if(type === 'add') {
+        movementType = 'achat'; // Add = achat de stock
+    } else {
+        movementType = type; // Use provided type
+    }
+    
+    // Record stock movement
+    const movement = {
+        id: 'M' + Date.now(),
+        date: new Date().toISOString(),
+        productId: productId,
+        productName: product.nom,
+        type: movementType,
+        quantity: Math.abs(qty),
+        oldStock: oldStock,
+        newStock: product.stock,
+        reason: reason,
+        cost: movementType === 'achat' ? product.achat * Math.abs(qty) : 0
+    };
+    
+    db.stockMovements.unshift(movement);
+    addLog(`Mouvement stock: ${product.nom} (${movementType === 'achat' ? '+' : '-'}${Math.abs(qty)}) - ${reason}`, "info");
+}
+
 // === STOCK ADJUSTMENT ===
 document.getElementById('form-stock-adjust').onsubmit = function(e) {
     e.preventDefault();
@@ -1463,7 +1552,7 @@ document.getElementById('form-stock-adjust').onsubmit = function(e) {
     console.log('[form-stock-adjust] submit');
     const productId = document.getElementById('adjust-product').value;
     const type = document.querySelector('input[name="adjust-type"]:checked').value;
-    const qty = parseInt(document.getElementById('adjust-qty').value);
+    const qty = parseStock(document.getElementById('adjust-qty').value);
     const reason = document.getElementById('adjust-reason').value.trim() || "Ajustement manuel";
     console.log('[form-stock-adjust] values', { productId, type, qty, reason });
     
@@ -1473,7 +1562,7 @@ document.getElementById('form-stock-adjust').onsubmit = function(e) {
         return;
     }
     
-    if(isNaN(qty) || qty <= 0) {
+    if(qty <= 0) {
         showToast("Quantité invalide", "error");
         return;
     }
@@ -1501,7 +1590,7 @@ document.getElementById('form-stock-adjust').onsubmit = function(e) {
         
     } else {
         if(product.stock < qty) {
-            showToast(`Stock insuffisant ! Il reste ${product.stock} unité(s)`, "error");
+            showToast(`Stock insuffisant ! Il reste ${formatStock(product.stock)}`, "error");
             return;
         }
         product.stock -= qty;
@@ -1648,8 +1737,21 @@ function clearCart() {
         return;
     }
     
-    const invoiceTotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const invoiceProfit = cart.reduce((sum, item) => sum + (item.total - item.cost), 0);
+    const invoiceSubtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const discountAmount = parseFloat(document.getElementById('discount-amount').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    
+    let discount = 0;
+    if(discountAmount > 0) {
+        if(discountType === 'percentage') {
+            discount = invoiceSubtotal * (Math.min(discountAmount, 100) / 100);
+        } else {
+            discount = Math.min(discountAmount, invoiceSubtotal);
+        }
+    }
+    
+    const invoiceTotal = invoiceSubtotal - discount;
+    const invoiceProfit = cart.reduce((sum, item) => sum + (item.total - item.cost), 0) - discount;
     
     // Generate invoice ID
     const invoiceId = 'INV' + String(currentInvoiceNumber).padStart(3, '0');
@@ -1669,7 +1771,7 @@ function clearCart() {
             
             if(!isService && product.stock < item.quantity) {
                 stockError = true;
-                errorMessage = `Stock insuffisant pour ${product.nom}. Disponible: ${product.stock}, Demandé: ${item.quantity}`;
+                errorMessage = `Stock insuffisant pour ${product.nom}. Disponible: ${formatStock(product.stock)}, Demandé: ${formatStock(item.quantity)}`;
             }
         }
     });
@@ -1706,7 +1808,10 @@ function clearCart() {
         client: clientName || 'Client Passager', // Utiliser Client Passager si pas de nom
         clientPhone: clientPhone,
         items: [...cart],
-        subtotal: invoiceTotal,
+        subtotal: invoiceSubtotal,
+        discount: discount,
+        discountType: discountType,
+        discountAmount: discountAmount,
         total: invoiceTotal,
         paymentMethod: paymentMethod,
         status: paymentMethod === 'credit' ? 'pending' : 'paid',
@@ -1718,6 +1823,11 @@ function clearCart() {
     
     // If credit, add to credits
     if(paymentMethod === 'credit') {
+        const creditDelay = db.config.company.defaultCreditDelay || 30;
+        const creditDelayUnit = db.config.company.creditDelayUnit || 'jours';
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + creditDelay);
+        
         const credit = {
             id: 'CR' + Date.now(),
             invoiceId: invoiceId,
@@ -1728,10 +1838,13 @@ function clearCart() {
             totalAmount: invoiceTotal,
             paidAmount: 0,
             balance: invoiceTotal,
-            status: 'pending'
+            status: 'pending',
+            creditDelay: creditDelay,
+            creditDelayUnit: creditDelayUnit,
+            dueDate: dueDate.toISOString()
         };
         db.credits.unshift(credit);
-        addLog(`Crédit créé: ${clientName} - ${formatMoney(invoiceTotal)}`, "warning");
+        addLog(`Crédit créé: ${clientName} - ${formatMoney(invoiceTotal)} - Échéance: ${dueDate.toLocaleDateString('fr-FR')}`, "warning");
     }
     
     // Increment invoice counter
@@ -1761,21 +1874,21 @@ function showInvoice(invoice) {
     
     // Use escapeHtml to sanitize all user-provided values before injecting
     invoiceContent.innerHTML = `
-        <div class="mb-6 md:mb-8">
+        <div class="mb-3 md:mb-4">
             <!-- Company Header with Logo -->
-            <div class="flex justify-between items-start mb-6 md:mb-8">
+            <div class="flex justify-between items-start mb-3 md:mb-4">
                 <!-- Logo and Company Info -->
-                <div class="flex items-start gap-4 md:gap-6 flex-1">
+                <div class="flex items-start gap-3 md:gap-4 flex-1">
                     ${company.logo ? `
                         <div class="flex-shrink-0">
-                            <img src="${company.logo}" alt="Logo" class="h-16 md:h-20 w-auto object-contain max-w-[120px] md:max-w-[150px] rounded-lg shadow-sm">
+                            <img src="${company.logo}" alt="Logo" class="h-12 md:h-16 w-auto object-contain max-w-[100px] md:max-w-[120px] rounded-lg shadow-sm">
                         </div>
                     ` : ''}
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-2xl md:text-3xl font-bold text-slate-800 mb-3">${escapeHtml(company.name)}</h1>
+                        <h1 class="text-xl md:text-2xl font-bold text-slate-800 mb-2">${escapeHtml(company.name)}</h1>
                         <div class="space-y-1">
-                            ${company.address ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(company.address)}</div>` : ''}
-                            <div class="flex flex-wrap gap-3 md:gap-4 text-sm md:text-base text-slate-600">
+                            ${company.address ? `<div class="text-slate-600 text-xs md:text-sm">${escapeHtml(company.address)}</div>` : ''}
+                            <div class="flex flex-wrap gap-2 md:gap-3 text-xs md:text-sm text-slate-600">
                                 ${company.phone ? `<div class="flex items-center gap-1">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
@@ -1799,11 +1912,11 @@ function showInvoice(invoice) {
                     </div>
                 </div>
                 <!-- Invoice Info -->
-                <div class="text-right ml-4 md:ml-6">
-                    <div class="inline-block bg-slate-100 px-4 py-2 rounded-lg mb-3">
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-800">FACTURE</h2>
+                <div class="text-right ml-3 md:ml-4">
+                    <div class="inline-block bg-slate-100 px-3 py-1 rounded-lg mb-2">
+                        <h2 class="text-lg md:text-xl font-bold text-slate-800">FACTURE</h2>
                     </div>
-                    <div class="space-y-1 text-sm md:text-base">
+                    <div class="space-y-1 text-xs md:text-sm">
                         <div class="font-semibold text-slate-700">${escapeHtml(invoice.id)}</div>
                         <div class="text-slate-600">Date: ${escapeHtml(new Date(invoice.date).toLocaleDateString('fr-FR'))}</div>
                         <div class="text-slate-600">Heure: ${escapeHtml(new Date(invoice.date).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'}))}</div>
@@ -1812,102 +1925,174 @@ function showInvoice(invoice) {
             </div>
             
             <!-- Client Info -->
-            <div class="mb-4 md:mb-8 p-3 md:p-4 bg-slate-50 rounded-lg">
-                <h3 class="font-bold text-slate-700 mb-2 text-sm md:text-base">Client</h3>
-                <div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.client || 'Client Passager')}</div>
-                ${invoice.clientPhone ? `<div class="text-slate-600 text-sm md:text-base">${escapeHtml(invoice.clientPhone)}</div>` : ''}
+            <div class="mb-3 md:mb-4 p-2 md:p-3 bg-slate-50 rounded-lg">
+                <h3 class="font-bold text-slate-700 mb-1 text-xs md:text-sm">Client</h3>
+                <div class="text-slate-600 text-xs md:text-sm">${escapeHtml(invoice.client || invoice.clientName || 'Client Passager')}</div>
+                ${invoice.clientPhone ? `<div class="text-slate-600 text-xs md:text-sm">${escapeHtml(invoice.clientPhone)}</div>` : ''}
+                ${invoice.clientEmail ? `<div class="text-slate-600 text-xs md:text-sm">${escapeHtml(invoice.clientEmail)}</div>` : ''}
+                ${invoice.clientAddress ? `<div class="text-slate-600 text-xs md:text-sm">${escapeHtml(invoice.clientAddress)}</div>` : ''}
             </div>
             
             <!-- Items Table -->
-            <table class="w-full mb-4 md:mb-8">
+            <table class="w-full mb-3 md:mb-4">
                 <thead>
                     <tr class="border-b">
-                        <th class="text-left py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Produit</th>
-                        <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Qté</th>
-                        <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Prix</th>
-                        <th class="text-right py-2 md:py-3 text-slate-600 font-medium text-sm md:text-base">Total</th>
+                        <th class="text-left py-1 md:py-2 text-slate-600 font-medium text-xs md:text-sm">Produit</th>
+                        <th class="text-right py-1 md:py-2 text-slate-600 font-medium text-xs md:text-sm">Qté</th>
+                        <th class="text-right py-1 md:py-2 text-slate-600 font-medium text-xs md:text-sm">Prix</th>
+                        <th class="text-right py-1 md:py-2 text-slate-600 font-medium text-xs md:text-sm">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${invoice.items.map(item => `
                         <tr class="border-b">
-                            <td class="py-2 md:py-3 text-sm md:text-base">${escapeHtml(item.productName)}</td>
-                            <td class="text-right py-2 md:py-3 text-sm md:text-base">${escapeHtml(item.quantity)}</td>
-                            <td class="text-right py-2 md:py-3 text-sm md:text-base">${formatMoney(item.price)}</td>
-                            <td class="text-right py-2 md:py-3 text-sm md:text-base">${formatMoney(item.total)}</td>
+                            <td class="py-1 md:py-2 text-xs md:text-sm">${escapeHtml(item.productName)}</td>
+                            <td class="text-right py-1 md:py-2 text-xs md:text-sm">${escapeHtml(item.quantity)}</td>
+                            <td class="text-right py-1 md:py-2 text-xs md:text-sm">${formatMoney(item.price)}</td>
+                            <td class="text-right py-1 md:py-2 text-xs md:text-sm">${formatMoney(item.total)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
                 <tfoot>
                     <tr class="border-t">
-                        <td colspan="3" class="text-right py-2 md:py-3 font-bold text-sm md:text-base">Total</td>
-                        <td class="text-right py-2 md:py-3 font-bold text-lg md:text-xl text-blue-600">${formatMoney(invoice.total)}</td>
+                        <td colspan="3" class="text-right py-1 md:py-2 font-bold text-xs md:text-sm">Sous-total</td>
+                        <td class="text-right py-1 md:py-2 font-medium text-xs md:text-sm">${formatMoney(invoice.subtotal || invoice.total)}</td>
+                    </tr>
+                    ${invoice.discount && invoice.discount > 0 ? `
+                    <tr class="border-t">
+                        <td colspan="3" class="text-right py-1 md:py-2 text-xs md:text-sm">
+                            Réduction ${invoice.discountType === 'percentage' ? `(${invoice.discountAmount}%)` : ''}
+                        </td>
+                        <td class="text-right py-1 md:py-2 font-medium text-red-600 text-xs md:text-sm">-${formatMoney(invoice.discount)}</td>
+                    </tr>
+                    ` : ''}
+                    <tr class="border-t-2 border-t-slate-300">
+                        <td colspan="3" class="text-right py-1 md:py-2 font-bold text-xs md:text-sm">Total</td>
+                        <td class="text-right py-1 md:py-2 font-bold text-sm md:text-base text-blue-600">${formatMoney(invoice.total)}</td>
                     </tr>
                 </tfoot>
             </table>
             
             <!-- Payment Info -->
-            <div class="mb-4 md:mb-8 p-3 md:p-4 bg-slate-50 rounded-lg">
-                <h3 class="font-bold text-slate-700 mb-2 text-sm md:text-base">Paiement</h3>
-                <div class="text-slate-600 text-sm md:text-base">
-                    Mode: <span class="font-bold">${escapeHtml(getPaymentMethodText(invoice.paymentMethod))}</span>
-                </div>
-                ${invoice.status === 'pending' ? `
-                    <div class="mt-2 text-amber-600 text-xs md:text-sm">
-                        <i data-lucide="alert-circle" class="w-3 h-3 md:w-4 md:h-4 inline mr-1"></i>
-                        Facture en crédit - Solde: ${formatMoney(remainingBalance)}
+            <div class="mb-2 md:mb-3 p-2 md:p-3 bg-slate-50 rounded-lg">
+                <h3 class="font-bold text-slate-700 mb-1 text-xs md:text-sm">Paiement</h3>
+                <div class="space-y-1 text-xs md:text-sm">
+                    <div class="text-slate-600">
+                        Mode: <span class="font-bold">${escapeHtml(getPaymentMethodText(invoice.paymentMethod))}</span>
                     </div>
-                ` : ''}
+                    ${invoice.discount && invoice.discount > 0 ? `
+                    <div class="text-emerald-600">
+                        Réduction: <span class="font-bold">
+                            ${invoice.discountType === 'percentage' ? `${invoice.discountAmount}%` : formatMoney(invoice.discountAmount)}
+                            (${formatMoney(invoice.discount)})
+                        </span>
+                    </div>
+                    ` : ''}
+                    ${invoice.status === 'pending' ? `
+                        <div class="text-amber-600">
+                            <i data-lucide="alert-circle" class="w-3 h-3 inline mr-1"></i>
+                            Crédit - Solde: ${formatMoney(remainingBalance)}
+                        </div>
+                    ` : ''}
+                </div>
             </div>
             
             ${invoice.status === 'pending' && invoice.paymentMethod === 'credit' ? `
-            <!-- Credit Payment Summary -->
-            <div class="mb-4 md:mb-8 p-3 md:p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                <h3 class="font-bold text-blue-700 mb-3 text-sm md:text-base">Récapitulatif du Paiement</h3>
-                <div class="space-y-2 text-sm md:text-base">
-                    <div class="flex justify-between">
-                        <span class="text-slate-600">Montant Total du Crédit:</span>
-                        <span class="font-medium">${formatMoney(invoice.total)}</span>
+            <!-- Credit Information Section (Parallel Layout) -->
+            <div class="mb-2 md:mb-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <!-- Credit Payment Summary -->
+                    <div class="p-2 md:p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                        <h3 class="font-bold text-blue-700 mb-1 text-xs md:text-sm">Récapitulatif du Paiement</h3>
+                        <div class="space-y-1 text-xs md:text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Total:</span>
+                                <span class="font-medium">${formatMoney(invoice.total)}</span>
+                            </div>
+                            ${creditInfo ? `
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Délai:</span>
+                                <span class="font-medium">${creditInfo.creditDelay || 30} ${creditInfo.creditDelayUnit || 'jours'}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Échéance:</span>
+                                <span class="font-medium ${new Date(creditInfo.dueDate) < new Date() ? 'text-red-600' : 'text-blue-600'}">${creditInfo.dueDate ? new Date(creditInfo.dueDate).toLocaleDateString('fr-FR') : 'Non définie'}</span>
+                            </div>
+                            ` : ''}
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Payé:</span>
+                                <span class="font-medium text-green-600">${formatMoney(paidAmount)}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                                <span>Reste:</span>
+                                <span>${formatMoney(remainingBalance)}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-slate-600">Montant Total Payé:</span>
-                        <span class="font-medium text-green-600">${formatMoney(paidAmount)}</span>
+                    
+                    <!-- Bank Information -->
+                    ${db.config.company && (db.config.company.ribBank || db.config.company.ribAccount) ? `
+                    <div class="p-2 md:p-3 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+                        <h3 class="font-bold text-amber-700 mb-1 text-xs md:text-sm">Coordonnées Bancaires</h3>
+                        <div class="space-y-1 text-xs md:text-sm text-slate-700">
+                            ${db.config.company.ribBank ? `
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Banque:</span>
+                                <span class="font-medium">${db.config.company.ribBank}</span>
+                            </div>
+                            ` : ''}
+                            ${db.config.company.chequeName ? `
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">Titulaire:</span>
+                                <span class="font-medium">${db.config.company.chequeName}</span>
+                            </div>
+                            ` : ''}
+                            ${db.config.company.ribAccount ? `
+                            <div class="flex justify-between">
+                                <span class="text-slate-600">RIB:</span>
+                                <span class="font-medium text-xs">${db.config.company.ribAccount}</span>
+                            </div>
+                            ` : ''}
+                            ${db.config.company.deliveryDelayCheque ? `
+                            <div class="text-xs text-amber-600 italic">
+                                <i data-lucide="info" class="w-3 h-3 inline mr-1"></i>
+                                ${db.config.company.deliveryDelayCheque}
+                            </div>
+                            ` : ''}
+                        </div>
                     </div>
-                    <div class="flex justify-between font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">
-                        <span>Reste Ã  Payer:</span>
-                        <span>${formatMoney(remainingBalance)}</span>
-                    </div>
+                    ` : ''}
                 </div>
-                <div class="mt-3">
-                    <span class="inline-block px-3 py-1 ${remainingBalance === 0 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'} rounded-full text-xs font-medium">
-                        ${remainingBalance === 0 ? 'âœ“ Payé Complètement' : 'â³ En attente de paiement'}
+                
+                <!-- Status Badge -->
+                <div class="mt-1 text-center">
+                    <span class="inline-block px-2 py-1 ${remainingBalance === 0 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'} rounded-full text-xs font-medium">
+                        ${remainingBalance === 0 ? '✓ Payé' : '⏳ En attente'}
                     </span>
                 </div>
             </div>
             
-            <!-- Client Signature Section -->
-            <div class="mb-4 md:mb-8 p-4 md:p-6 border-2 border-dashed border-slate-300 rounded-lg bg-slate-50">
-                <h3 class="font-bold text-slate-700 mb-3 text-center text-sm md:text-base">Signature du Client</h3>
-                <div class="text-center">
-                    <div class="border-t-2 border-slate-400 w-72 h-16 mx-auto mb-2"></div>
-                    <p class="text-xs md:text-sm text-slate-500">Signature obligatoire pour valider le crédit</p>
+            <!-- Compact Signature Section -->
+            <div class="mb-2 md:mb-3 p-2 border border-dashed border-slate-300 rounded bg-slate-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-700 text-xs">Signature Client</h3>
+                        <p class="text-xs text-slate-500">Obligatoire pour valider</p>
+                    </div>
+                    <div class="border-t-2 border-slate-400 w-32 h-8"></div>
                 </div>
             </div>
             ` : ''}
             
-            <!-- Footer -->
-            <div class="border-t pt-3 text-center">
-                <div class="mb-3">
-                    <div class="text-slate-600 text-sm md:text-base">Merci pour votre confiance !</div>
-                    <div class="text-xs md:text-sm text-slate-500 mt-1">Pour toute réclamation, contacter le service client.</div>
-                </div>
+            <!-- Compact Footer -->
+            <div class="border-t pt-1 text-center">
                 <div class="flex justify-between items-center">
                     <div class="text-left">
-                        <div class="border-t border-slate-800 w-32 mb-1"></div>
-                        <div class="text-xs md:text-sm text-slate-600">${escapeHtml(company.signature)}</div>
+                        <div class="border-t border-slate-800 w-24 mb-1"></div>
+                        <div class="text-xs text-slate-600">${escapeHtml(company.signature)}</div>
                     </div>
-                    <div class="text-xs md:text-sm text-slate-500">
-                        Généré le ${new Date().toLocaleDateString('fr-FR')} Ã  ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
+                    <div class="text-xs text-slate-500">
+                        ${new Date().toLocaleDateString('fr-FR')} ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}
                     </div>
                 </div>
             </div>
@@ -1920,22 +2105,9 @@ function showInvoice(invoice) {
         icons.forEach(icon => {
             const iconName = icon.getAttribute('data-lucide');
             icon.innerHTML = '';
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('width', '16');
-            svg.setAttribute('height', '16');
-            svg.setAttribute('viewBox', '0 0 24 24');
-            svg.setAttribute('fill', 'none');
-            svg.setAttribute('stroke', 'currentColor');
-            svg.setAttribute('stroke-width', '2');
-            svg.setAttribute('stroke-linecap', 'round');
-            svg.setAttribute('stroke-linejoin', 'round');
-            
-            // Simple icon representation
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
-            svg.appendChild(path);
-            icon.appendChild(svg);
+            // Skip creating SVG icons to remove the small shield icon
         });
+        initLucide();
     }, 100);
     
     openModal('modal-invoice');
@@ -1946,6 +2118,7 @@ function getPaymentMethodText(method) {
         case 'cash': return 'Espèces';
         case 'credit': return 'Crédit';
         case 'mobile': return 'Mobile Money';
+        case 'card': return 'Carte';
         default: return method;
     }
 }
@@ -2114,8 +2287,8 @@ function printInvoicePDF() {
                 }
                 
                 .invoice-preview .flex.flex-wrap {
-                    flex-direction: column !important;
-                    flex-wrap: nowrap !important;
+                    flex-direction: row !important;
+                    flex-wrap: wrap !important;
                     gap: 2px !important;
                 }
                 
@@ -2136,6 +2309,74 @@ function printInvoicePDF() {
                     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
                 }
                 
+                /* Styles pour le layout parallèle dans les PDF */
+                .invoice-preview .grid-cols-1 {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+                
+                .invoice-preview .md\:grid-cols-2 {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.75rem;
+                }
+                
+                /* S'assurer que les couleurs de fond sont visibles */
+                .invoice-preview .bg-blue-50 { background-color: #eff6ff !important; }
+                .invoice-preview .bg-amber-50 { background-color: #fef3c7 !important; }
+                .invoice-preview .bg-slate-50 { background-color: #f8fafc !important; }
+                .invoice-preview .bg-green-100 { background-color: #dcfce7 !important; }
+                .invoice-preview .bg-amber-100 { background-color: #fef3c7 !important; }
+                .invoice-preview .bg-blue-100 { background-color: #dbeafe !important; }
+                
+                /* S'assurer que les bordures sont visibles */
+                .invoice-preview .border-l-4 { border-left: 4px solid !important; }
+                .invoice-preview .border-blue-500 { border-color: #3b82f6 !important; }
+                .invoice-preview .border-amber-500 { border-color: #f59e0b !important; }
+                .invoice-preview .border-slate-300 { border-color: #cbd5e1 !important; }
+                .invoice-preview .border-dashed { border-style: dashed !important; }
+                .invoice-preview .border-t { border-top: 1px solid #e2e8f0 !important; }
+                
+                /* S'assurer que les couleurs de texte sont visibles */
+                .invoice-preview .text-blue-700 { color: #1d4ed8 !important; }
+                .invoice-preview .text-amber-700 { color: #b45309 !important; }
+                .invoice-preview .text-slate-700 { color: #334155 !important; }
+                .invoice-preview .text-slate-600 { color: #475569 !important; }
+                .invoice-preview .text-red-600 { color: #dc2626 !important; }
+                .invoice-preview .text-green-600 { color: #16a34a !important; }
+                
+                /* Compacter les espaces pour économiser le papier */
+                .invoice-preview .mb-3 { margin-bottom: 0.75rem !important; }
+                .invoice-preview .mb-4 { margin-bottom: 1rem !important; }
+                .invoice-preview .mb-2 { margin-bottom: 0.5rem !important; }
+                .invoice-preview .p-3 { padding: 0.75rem !important; }
+                .invoice-preview .p-4 { padding: 1rem !important; }
+                .invoice-preview .p-2 { padding: 0.5rem !important; }
+                .invoice-preview .space-y-2 > * + * { margin-top: 0.5rem !important; }
+                
+                /* S'assurer que les bordures arrondies fonctionnent */
+                .invoice-preview .rounded-lg { border-radius: 0.5rem !important; }
+                .invoice-preview .rounded { border-radius: 0.25rem !important; }
+                .invoice-preview .rounded-full { border-radius: 9999px !important; }
+                
+                /* Layout compact pour la signature */
+                .invoice-preview .flex.items-center.justify-between {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                
+                /* S'assurer que les badges de statut sont visibles */
+                .invoice-preview .inline-block {
+                    display: inline-block !important;
+                }
+                .invoice-preview .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+                .invoice-preview .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+                .invoice-preview .text-xs { font-size: 0.75rem !important; }
+                .invoice-preview .font-medium { font-weight: 500 !important; }
+                .invoice-preview .font-bold { font-weight: 700 !important; }
+                
                 @media print {
                     body {
                         padding: 0;
@@ -2149,7 +2390,7 @@ function printInvoicePDF() {
                 }
                 
                 @page {
-                    margin: 20mm;
+                    margin: 15mm 15mm 25mm 15mm;
                     size: A4;
                 }
             </style>
@@ -2378,8 +2619,8 @@ function exportInvoicePDF() {
                 }
                 
                 .invoice-preview .flex.flex-wrap {
-                    flex-direction: column !important;
-                    flex-wrap: nowrap !important;
+                    flex-direction: row !important;
+                    flex-wrap: wrap !important;
                     gap: 2px !important;
                 }
                 
@@ -2400,6 +2641,74 @@ function exportInvoicePDF() {
                     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
                 }
                 
+                /* Styles pour le layout parallèle dans les PDF */
+                .invoice-preview .grid-cols-1 {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 0.75rem;
+                }
+                
+                .invoice-preview .md\:grid-cols-2 {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.75rem;
+                }
+                
+                /* S'assurer que les couleurs de fond sont visibles */
+                .invoice-preview .bg-blue-50 { background-color: #eff6ff !important; }
+                .invoice-preview .bg-amber-50 { background-color: #fef3c7 !important; }
+                .invoice-preview .bg-slate-50 { background-color: #f8fafc !important; }
+                .invoice-preview .bg-green-100 { background-color: #dcfce7 !important; }
+                .invoice-preview .bg-amber-100 { background-color: #fef3c7 !important; }
+                .invoice-preview .bg-blue-100 { background-color: #dbeafe !important; }
+                
+                /* S'assurer que les bordures sont visibles */
+                .invoice-preview .border-l-4 { border-left: 4px solid !important; }
+                .invoice-preview .border-blue-500 { border-color: #3b82f6 !important; }
+                .invoice-preview .border-amber-500 { border-color: #f59e0b !important; }
+                .invoice-preview .border-slate-300 { border-color: #cbd5e1 !important; }
+                .invoice-preview .border-dashed { border-style: dashed !important; }
+                .invoice-preview .border-t { border-top: 1px solid #e2e8f0 !important; }
+                
+                /* S'assurer que les couleurs de texte sont visibles */
+                .invoice-preview .text-blue-700 { color: #1d4ed8 !important; }
+                .invoice-preview .text-amber-700 { color: #b45309 !important; }
+                .invoice-preview .text-slate-700 { color: #334155 !important; }
+                .invoice-preview .text-slate-600 { color: #475569 !important; }
+                .invoice-preview .text-red-600 { color: #dc2626 !important; }
+                .invoice-preview .text-green-600 { color: #16a34a !important; }
+                
+                /* Compacter les espaces pour économiser le papier */
+                .invoice-preview .mb-3 { margin-bottom: 0.75rem !important; }
+                .invoice-preview .mb-4 { margin-bottom: 1rem !important; }
+                .invoice-preview .mb-2 { margin-bottom: 0.5rem !important; }
+                .invoice-preview .p-3 { padding: 0.75rem !important; }
+                .invoice-preview .p-4 { padding: 1rem !important; }
+                .invoice-preview .p-2 { padding: 0.5rem !important; }
+                .invoice-preview .space-y-2 > * + * { margin-top: 0.5rem !important; }
+                
+                /* S'assurer que les bordures arrondies fonctionnent */
+                .invoice-preview .rounded-lg { border-radius: 0.5rem !important; }
+                .invoice-preview .rounded { border-radius: 0.25rem !important; }
+                .invoice-preview .rounded-full { border-radius: 9999px !important; }
+                
+                /* Layout compact pour la signature */
+                .invoice-preview .flex.items-center.justify-between {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                
+                /* S'assurer que les badges de statut sont visibles */
+                .invoice-preview .inline-block {
+                    display: inline-block !important;
+                }
+                .invoice-preview .px-3 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+                .invoice-preview .py-1 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+                .invoice-preview .text-xs { font-size: 0.75rem !important; }
+                .invoice-preview .font-medium { font-weight: 500 !important; }
+                .invoice-preview .font-bold { font-weight: 700 !important; }
+                
                 @media print {
                     body {
                         padding: 0;
@@ -2413,7 +2722,7 @@ function exportInvoicePDF() {
                 }
                 
                 @page {
-                    margin: 20mm;
+                    margin: 15mm 15mm 25mm 15mm;
                     size: A4;
                 }
             </style>
@@ -2499,12 +2808,47 @@ function exportInvoicePDF() {
     });
 }
 
+function updateInvoiceTotal() {
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const discountAmount = parseFloat(document.getElementById('discount-amount').value) || 0;
+    const discountType = document.getElementById('discount-type').value;
+    const currency = db.config.currency || "Ar";
+    
+    let discount = 0;
+    let total = subtotal;
+    
+    if(discountAmount > 0) {
+        if(discountType === 'percentage') {
+            if(discountAmount > 100) {
+                document.getElementById('discount-amount').value = 100;
+                discount = subtotal;
+            } else {
+                discount = subtotal * (discountAmount / 100);
+            }
+            document.getElementById('discount-display').textContent = `${discountAmount}% de réduction`;
+        } else {
+            discount = Math.min(discountAmount, subtotal);
+            document.getElementById('discount-display').textContent = `${formatMoney(discountAmount)} de réduction`;
+        }
+        total = subtotal - discount;
+    } else {
+        document.getElementById('discount-display').textContent = 'Aucune réduction';
+    }
+    
+    document.getElementById('invoice-subtotal').innerText = formatMoney(subtotal);
+    document.getElementById('invoice-discount').innerText = formatMoney(discount);
+    document.getElementById('invoice-total').innerText = formatMoney(total);
+}
+
 function resetSaleForm() {
     cart = [];
     document.getElementById('client-name').value = '';
     document.getElementById('client-phone').value = '';
     document.querySelector('input[name="payment-method"][value="cash"]').checked = true;
     document.getElementById('credit-info').classList.add('hidden');
+    document.getElementById('discount-amount').value = '';
+    document.getElementById('discount-type').value = 'percentage';
+    document.getElementById('discount-display').textContent = 'Aucune réduction';
     document.getElementById('sale-product').selectedIndex = 0;
     document.getElementById('sale-price').value = '';
     document.getElementById('sale-qty').value = 1;
@@ -2798,6 +3142,7 @@ function updateUI() {
     updateHeaderInfo();
     updateStorageSize();
     checkAlerts();
+    updateDiscountDisplay();
     initLucide();
     
     // Update mobile-specific displays
@@ -2809,6 +3154,14 @@ function updateUI() {
     }
     if(document.getElementById('tab-expenses')?.classList.contains('active')) {
         renderMobileExpensesList();
+    }
+}
+
+function updateDiscountDisplay() {
+    const currency = db.config.currency || "Ar";
+    const fixedOption = document.querySelector('#discount-type option[value="fixed"]');
+    if(fixedOption) {
+        fixedOption.textContent = currency;
     }
 }
 
@@ -2851,12 +3204,14 @@ function updateDashboard() {
 
     const ventesCash = ventesFiltered.filter(v => v.status === 'paid' && v.paymentMethod === 'cash').reduce((sum, s) => sum + (s.total||0), 0);
     const ventesMobile = ventesFiltered.filter(v => v.status === 'paid' && v.paymentMethod === 'mobile').reduce((sum, s) => sum + (s.total||0), 0);
+    const ventesCard = ventesFiltered.filter(v => v.status === 'paid' && v.paymentMethod === 'card').reduce((sum, s) => sum + (s.total||0), 0);
 
     document.getElementById('stat-caisse').innerText = formatMoney(caisse);
     document.getElementById('stat-ca').innerText = formatMoney(totalVentes);
     document.getElementById('stat-depenses').innerText = formatMoney(totalDepenses);
     document.getElementById('stat-ventes-cash').innerText = formatMoney(ventesCash);
     document.getElementById('stat-ventes-mobile').innerText = formatMoney(ventesMobile);
+    document.getElementById('stat-ventes-card').innerText = formatMoney(ventesCard);
     document.getElementById('stat-total-ventes').innerText = formatMoney(totalVentes);
     document.getElementById('stat-credits').innerText = formatMoney(totalCredits);
     
@@ -2930,10 +3285,10 @@ function updateDashboard() {
                         <div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
                         <div>
                             <span class="text-sm font-semibold">${p.nom}</span>
-                            <div class="text-xs text-amber-600">Stock critique: ${p.stock}</div>
+                            <div class="text-xs text-amber-600">Stock critique: ${formatStock(p.stock)}</div>
                         </div>
                     </div>
-                    <span class="text-xs font-bold text-amber-700">${p.stock} restant(s)</span>
+                    <span class="text-xs font-bold text-amber-700">${formatStock(p.stock)} restant(s)</span>
                 </div>
             `).join('');
         }
@@ -2979,7 +3334,7 @@ function renderStock() {
     // Update stock adjust select
     const adjustSelect = document.getElementById('adjust-product');
     adjustSelect.innerHTML = '<option value="">-- Sélectionner un produit --</option>' +
-        db.produits.map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock})</option>`).join('');
+        db.produits.map(p => `<option value="${p.id}">${p.nom} (Stock: ${formatStock(p.stock)})</option>`).join('');
     
     let filtered = db.produits.filter(p => {
         const searchLower = search.toLowerCase();
@@ -3038,7 +3393,7 @@ function renderStock() {
             <td class="px-6 py-4 text-center">
                 <div class="flex flex-col items-center gap-1">
                     <span class="px-2 py-1 text-xs font-medium rounded-full ${stockClass}">${stockText}</span>
-                    <span class="text-xs font-bold text-slate-600">${p.stock} unité(s)</span>
+                    <span class="text-xs font-bold text-slate-600">${formatStock(p.stock)}</span>
                 </div>
             </td>
             <td class="px-6 py-4">
@@ -3229,7 +3584,7 @@ function renderSales() {
         recentInvoices.innerHTML = filteredSales.slice(0, 10).map(invoice => `
             <div class="p-3 border rounded-lg hover:bg-slate-50 transition-colors">
                 <div class="flex justify-between items-start mb-2">
-                    <div class="font-medium text-sm">${invoice.client || 'Client Passager'}</div>
+                    <div class="font-medium text-sm">${invoice.client || invoice.clientName || 'Client Passager'}</div>
                     <div class="text-xs px-2 py-1 rounded-full ${invoice.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
                         ${invoice.status === 'paid' ? 'Payé' : 'Crédit'}
                     </div>
@@ -3310,31 +3665,46 @@ function renderCredits() {
         pendingCredits.map(c => `<option value="${c.id}">${c.clientName || 'Client Passager'} - ${formatMoney(c.balance)} restant</option>`).join('');
     
     if(db.credits.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400">Aucun crédit en cours</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="px-6 py-8 text-center text-slate-400">Aucun crédit en cours</td></tr>`;
     } else {
         tbody.innerHTML = db.credits.map(c => {
             let statusClass = '';
             let statusText = '';
+            let dueDateClass = '';
             
             if(c.status === 'paid') {
                 statusClass = 'badge-success';
                 statusText = 'Soldé';
             } else {
                 const days = Math.floor((new Date() - new Date(c.date)) / (1000 * 60 * 60 * 24));
-                if(days > 30) {
+                const dueDate = new Date(c.dueDate);
+                const daysUntilDue = Math.floor((dueDate - new Date()) / (1000 * 60 * 60 * 24));
+                
+                if(daysUntilDue < 0) {
                     statusClass = 'badge-danger';
                     statusText = 'En retard';
+                    dueDateClass = 'text-red-600 font-bold';
+                } else if(daysUntilDue <= 3) {
+                    statusClass = 'badge-warning';
+                    statusText = 'Bientôt dû';
+                    dueDateClass = 'text-amber-600 font-semibold';
                 } else {
                     statusClass = 'badge-warning';
                     statusText = 'En attente';
+                    dueDateClass = 'text-slate-600';
                 }
             }
+            
+            const dueDateDisplay = c.dueDate ? new Date(c.dueDate).toLocaleDateString('fr-FR') : 'Non défini';
+            const delayDisplay = c.creditDelay ? `${c.creditDelay} ${c.creditDelayUnit || 'jours'}` : 'Non défini';
             
             return `
             <tr class="hover:bg-slate-50">
                 <td class="px-6 py-4 font-medium">${c.clientName || 'Client Passager'}</td>
                 <td class="px-6 py-4 text-slate-500">#${String(c.invoiceNumber).padStart(3, '0')}</td>
                 <td class="px-6 py-4 text-slate-400">${new Date(c.date).toLocaleDateString('fr-FR')}</td>
+                <td class="px-6 py-4 text-center text-sm ${dueDateClass}">${dueDateDisplay}</td>
+                <td class="px-6 py-4 text-center text-sm text-slate-500">${delayDisplay}</td>
                 <td class="px-6 py-4 text-right font-bold">${formatMoney(c.totalAmount)}</td>
                 <td class="px-6 py-4 text-right text-emerald-600">${formatMoney(c.paidAmount)}</td>
                 <td class="px-6 py-4 text-right font-bold text-rose-600">${formatMoney(c.balance)}</td>
@@ -3370,6 +3740,7 @@ function loadDashboardWidgetsConfig() {
             totalDepenses: true,
             ventesEspeces: true,
             ventesMobile: true,
+            ventesCard: true,
             totalVentes: true,
             creditsEnAttente: true,
             showDashboardFilter: true
@@ -3389,6 +3760,7 @@ function loadDashboardWidgetsConfig() {
     document.getElementById('widget-total-depenses').checked = db.config.dashboardWidgets.totalDepenses;
     document.getElementById('widget-ventes-especes').checked = db.config.dashboardWidgets.ventesEspeces;
     document.getElementById('widget-ventes-mobile').checked = db.config.dashboardWidgets.ventesMobile;
+    document.getElementById('widget-ventes-card').checked = db.config.dashboardWidgets.ventesCard;
     document.getElementById('widget-total-ventes').checked = db.config.dashboardWidgets.totalVentes;
     document.getElementById('widget-credits-attente').checked = db.config.dashboardWidgets.creditsEnAttente;
     document.getElementById('show-dashboard-filter').checked = db.config.dashboardWidgets.showDashboardFilter;
@@ -3401,6 +3773,7 @@ function updateDashboardWidgets() {
         totalDepenses: document.getElementById('widget-total-depenses').checked,
         ventesEspeces: document.getElementById('widget-ventes-especes').checked,
         ventesMobile: document.getElementById('widget-ventes-mobile').checked,
+        ventesCard: document.getElementById('widget-ventes-card').checked,
         totalVentes: document.getElementById('widget-total-ventes').checked,
         creditsEnAttente: document.getElementById('widget-credits-attente').checked,
         showDashboardFilter: document.getElementById('show-dashboard-filter').checked
@@ -3418,7 +3791,7 @@ function updateDashboardWidgets() {
 function selectAllDashboardWidgets() {
     const checkboxes = [
         'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
-        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente',
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-ventes-card', 'widget-total-ventes', 'widget-credits-attente',
         'show-dashboard-filter'
     ];
     
@@ -3432,7 +3805,7 @@ function selectAllDashboardWidgets() {
 function deselectAllDashboardWidgets() {
     const checkboxes = [
         'widget-caisse', 'widget-chiffre-affaires', 'widget-total-depenses',
-        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-total-ventes', 'widget-credits-attente',
+        'widget-ventes-especes', 'widget-ventes-mobile', 'widget-ventes-card', 'widget-total-ventes', 'widget-credits-attente',
         'show-dashboard-filter'
     ];
     
@@ -3463,6 +3836,7 @@ function renderDashboardWidgets() {
         { id: 'totalDepenses', selector: '[data-widget="total-depenses"]' },
         { id: 'ventesEspeces', selector: '[data-widget="ventes-especes"]' },
         { id: 'ventesMobile', selector: '[data-widget="ventes-mobile"]' },
+        { id: 'ventesCard', selector: '[data-widget="ventes-card"]' },
         { id: 'totalVentes', selector: '[data-widget="total-ventes"]' },
         { id: 'creditsEnAttente', selector: '[data-widget="credits-attente"]' }
     ];
@@ -4029,6 +4403,43 @@ function formatMoney(n, short = false) {
 }
 
 // Fonction spécifique pour le PDF (sans espaces dans les nombres)
+// Fonction pour formater les stocks (supporte les décimaux)
+function formatStock(stock, unit = 'unité(s)') {
+    if (stock === null || stock === undefined || isNaN(stock)) return '0 ' + unit;
+    
+    // Si c'est un nombre entier, afficher comme entier
+    if (Number.isInteger(parseFloat(stock))) {
+        return `${parseInt(stock)} ${unit}`;
+    }
+    
+    // Si c'est un décimal, afficher avec 1 ou 2 décimales selon besoin
+    const decimalStock = parseFloat(stock);
+    if (decimalStock % 1 === 0) {
+        return `${parseInt(decimalStock)} ${unit}`;
+    } else if (decimalStock * 10 % 1 === 0) {
+        return `${decimalStock.toFixed(1)} ${unit}`;
+    } else {
+        return `${decimalStock.toFixed(2)} ${unit}`;
+    }
+}
+
+// Fonction pour parser le stock (accepte les décimaux)
+function parseStock(value) {
+    if (value === '' || value === null || value === undefined) return 0;
+    
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+}
+
+// Fonction pour valider que le stock est un nombre valide
+function validateStock(value) {
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed < 0) {
+        return "Le stock doit être un nombre positif valide";
+    }
+    return null;
+}
+
 function formatMoneyPDF(n, short = false) {
     if(isNaN(n)) n = 0;
     const currency = db.config.currency || "Ar";
@@ -4041,6 +4452,13 @@ function formatMoneyPDF(n, short = false) {
         // Format sans espaces pour éviter les problèmes dans certains lecteurs PDF
         return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + currency;
     }
+}
+
+// Fonction pour formater les dates
+function formatDate(dateString) {
+    if(!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR');
 }
 
 // Échappe une chaîne pour éviter l'injection HTML
@@ -4274,8 +4692,8 @@ function exportStockCSV() {
         p.fournisseur,
         p.achat,
         p.vente,
-        p.stock,
-        p.min,
+        formatStock(p.stock, '').replace(' unité(s)', ''), // Enlever "unité(s)" pour le CSV
+        formatStock(p.min, '').replace(' unité(s)', ''), // Enlever "unité(s)" pour le CSV
         p.stock * p.achat
     ]);
     
@@ -5627,6 +6045,25 @@ function updateCompanyInfo() {
     db.config.company.email = document.getElementById('company-email').value;
     db.config.company.address = document.getElementById('company-address').value;
     db.config.company.nif = document.getElementById('company-nif').value;
+    db.config.company.signature = document.getElementById('company-signature').value;
+    
+    // Nouveaux champs pour le modèle proforma
+    db.config.company.ribBank = document.getElementById('company-rib-bank').value;
+    db.config.company.ribAccount = document.getElementById('company-rib-account').value;
+    db.config.company.chequeName = document.getElementById('company-cheque-name').value;
+    db.config.company.deliveryDelayCheque = document.getElementById('company-delivery-delay-cheque').value;
+    db.config.company.deliveryDelayGeneral = document.getElementById('company-delivery-delay-general').value;
+    
+    // Configuration du délai de crédit
+    const creditDelayInput = document.getElementById('company-default-credit-delay');
+    const creditDelayUnitInput = document.getElementById('company-credit-delay-unit');
+    
+    if (creditDelayInput) {
+        db.config.company.defaultCreditDelay = parseInt(creditDelayInput.value) || 30;
+    }
+    if (creditDelayUnitInput) {
+        db.config.company.creditDelayUnit = creditDelayUnitInput.value || 'jours';
+    }
     
     saveDB();
     updateUI();
@@ -5733,6 +6170,1244 @@ function convertAllAmounts(fromCurrency, toCurrency) {
     
     addLog("info", `Conversion des montants: ${fromCurrency} → ${toCurrency} (taux: ${conversionRate})`);
 }
+
+// === PROFORMA INVOICE FUNCTIONS ===
+function openProformaModal() {
+    // Reset form
+    document.getElementById('proforma-client-name').value = '';
+    document.getElementById('proforma-client-phone').value = '';
+    document.getElementById('proforma-client-email').value = '';
+    document.getElementById('proforma-client-address').value = '';
+    document.getElementById('proforma-number').value = 'PRO-' + String(db.config.proformaCounter || 1).padStart(3, '0');
+    document.getElementById('proforma-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('proforma-validity').value = '30';
+    document.getElementById('proforma-terms').value = '';
+    
+    // Reset items
+    proformaItems = [];
+    renderProformaItems();
+    updateProformaTotal();
+    
+    openModal('modal-proforma');
+}
+
+function addProformaItem() {
+    const item = {
+        id: Date.now(),
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+        total: 0
+    };
+    
+    proformaItems.push(item);
+    renderProformaItems();
+}
+
+function removeProformaItem(index) {
+    proformaItems.splice(index, 1);
+    renderProformaItems();
+    updateProformaTotal();
+}
+
+function renderProformaItems() {
+    const container = document.getElementById('proforma-items');
+    
+    if(proformaItems.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-8 text-slate-400">
+                <i data-lucide="shopping-cart" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                <p class="text-sm">Aucun article ajouté</p>
+            </div>
+        `;
+        lucide?.createIcons();
+        return;
+    }
+    
+    let html = '';
+    proformaItems.forEach((item, index) => {
+        html += `
+            <div class="p-3 bg-white border rounded-lg">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+                    <div class="md:col-span-2">
+                        <input type="text" placeholder="Description" value="${item.description}" 
+                            onchange="updateProformaItem(${index}, 'description', this.value)"
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <input type="number" placeholder="Qté" value="${item.quantity}" min="1" 
+                            onchange="updateProformaItem(${index}, 'quantity', parseFloat(this.value) || 1)"
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <input type="number" placeholder="Prix unitaire" value="${item.unitPrice}" min="0" step="0.01"
+                            onchange="updateProformaItem(${index}, 'unitPrice', parseFloat(this.value) || 0)"
+                            class="w-full px-2 py-1.5 border border-slate-200 rounded text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-sm">${formatMoney(item.total)}</div>
+                    </div>
+                    <div>
+                        <button onclick="removeProformaItem(${index})" class="p-1.5 text-red-500 hover:text-red-700 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    lucide?.createIcons();
+}
+
+function updateProformaItem(index, field, value) {
+    proformaItems[index][field] = value;
+    
+    // Recalculate total when quantity or unit price changes
+    if(field === 'quantity' || field === 'unitPrice') {
+        proformaItems[index].total = proformaItems[index].quantity * proformaItems[index].unitPrice;
+    }
+    
+    updateProformaTotal();
+}
+
+function updateProformaTotal() {
+    const total = proformaItems.reduce((sum, item) => sum + item.total, 0);
+    document.getElementById('proforma-total').textContent = formatMoney(total);
+}
+
+function generateProformaPDF() {
+    if(proformaItems.length === 0) {
+        showToast("Veuillez ajouter au moins un article", "error");
+        return;
+    }
+    
+    const clientName = document.getElementById('proforma-client-name').value.trim();
+    const clientPhone = document.getElementById('proforma-client-phone').value.trim();
+    const clientEmail = document.getElementById('proforma-client-email').value.trim();
+    const clientAddress = document.getElementById('proforma-client-address').value.trim();
+    const proformaNumber = document.getElementById('proforma-number').value.trim();
+    const proformaDate = document.getElementById('proforma-date').value;
+    const validity = document.getElementById('proforma-validity').value;
+    const terms = document.getElementById('proforma-terms').value.trim();
+    
+    if(!clientName) {
+        showToast("Veuillez renseigner le nom du client", "error");
+        return;
+    }
+    
+    const total = proformaItems.reduce((sum, item) => sum + item.total, 0);
+    
+    // Save proforma to database
+    const proforma = {
+        id: 'PRO-' + Date.now(),
+        number: proformaNumber,
+        date: proformaDate,
+        validity: parseInt(validity),
+        terms: terms,
+        client: {
+            name: clientName,
+            phone: clientPhone,
+            email: clientEmail,
+            address: clientAddress
+        },
+        items: [...proformaItems],
+        total: total,
+        currency: db.config.currency || "Ar",
+        createdAt: new Date().toISOString()
+    };
+    
+    // Initialize proformas array if it doesn't exist
+    if(!db.proformas) {
+        db.proformas = [];
+    }
+    
+    db.proformas.unshift(proforma);
+    db.config.proformaCounter = (db.config.proformaCounter || 1) + 1;
+    
+    saveDB();
+    addLog(`Facture proforma créée: ${proformaNumber} - ${clientName}`, "info");
+    
+    // Generate PDF
+    generateProformaPDFContent(proforma);
+}
+
+function generateProformaPDFContent(proforma) {
+    const { jsPDF } = window.jspdf;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    let y = margin;
+    
+    // Company header with logo
+    const company = db.config.company || {};
+    
+    // Add logo if exists
+    if(company.logo) {
+        try {
+            doc.addImage(company.logo, 'JPEG', margin, y, 30, 30);
+            y += 35;
+        } catch(e) {
+            console.log('Logo could not be added to PDF');
+        }
+    }
+    
+    // Company name and info
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text(company.name || 'Entreprise', company.logo ? margin + 40 : margin, company.logo ? y - 20 : y);
+    
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'normal');
+    let infoY = company.logo ? y - 12 : y + 6;
+    
+    if(company.address) {
+        doc.text(company.address, company.logo ? margin + 40 : margin, infoY);
+        infoY += 4;
+    }
+    if(company.phone) {
+        doc.text(company.phone, company.logo ? margin + 40 : margin, infoY);
+        infoY += 4;
+    }
+    if(company.email) {
+        doc.text(company.email, company.logo ? margin + 40 : margin, infoY);
+        infoY += 4;
+    }
+    if(company.nif) {
+        doc.text(`NIF: ${company.nif}`, company.logo ? margin + 40 : margin, infoY);
+        infoY += 4;
+    }
+    
+    // Proforma header with background
+    y = infoY + 10;
+    doc.setFillColor(99, 102, 241); // Indigo background
+    doc.rect(margin, y - 12, pageWidth - 2 * margin, 25, 'F');
+    
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(255, 255, 255); // White text
+    doc.text('FACTURE PROFORMA', margin + 10, y);
+    
+    doc.setFontSize(11);
+    doc.text(`Numéro: ${proforma.number}`, margin + 10, y + 10);
+    doc.text(`Date: ${new Date(proforma.date).toLocaleDateString('fr-FR')}`, pageWidth - margin - 60, y + 10);
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    
+    // Validity info
+    y += 20;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Validité: ${proforma.validity} jours`, margin, y);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Valide jusqu'au: ${new Date(new Date(proforma.date).getTime() + proforma.validity * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}`, margin + 70, y);
+    
+    // Client info in a box
+    y += 15;
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, pageWidth - 2 * margin, 40);
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'bold');
+    doc.text('CLIENT:', margin + 5, y + 8);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(10);
+    doc.text(proforma.client.name, margin + 5, y + 18);
+    if(proforma.client.phone) {
+        doc.text(`Tél: ${proforma.client.phone}`, margin + 5, y + 26);
+    }
+    if(proforma.client.email) {
+        doc.text(`Email: ${proforma.client.email}`, margin + 5, y + 34);
+    }
+    
+    if(proforma.client.address) {
+        const addressLines = doc.splitTextToSize(proforma.client.address, 100);
+        addressLines.forEach((line, index) => {
+            if(index < 2) { // Limit to 2 lines
+                doc.text(line, margin + 120, y + 18 + (index * 4));
+            }
+        });
+    }
+    
+    // Items table with better formatting
+    y += 50;
+    
+    // Table header with background
+    doc.setFillColor(245, 245, 245);
+    doc.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(margin, y, pageWidth - 2 * margin, 8);
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(9);
+    doc.text('Description', margin + 5, y + 6);
+    doc.text('Qté', margin + 85, y + 6);
+    doc.text('Prix Unitaire', margin + 115, y + 6);
+    doc.text('Total', margin + 155, y + 6);
+    
+    y += 12;
+    
+    // Table items with alternating row colors
+    doc.setFont(undefined, 'normal');
+    proforma.items.forEach((item, index) => {
+        // Alternating row colors
+        if(index % 2 === 0) {
+            doc.setFillColor(250, 250, 250);
+            doc.rect(margin, y - 2, pageWidth - 2 * margin, 10, 'F');
+        }
+        
+        // Description with text wrapping
+        const descriptionLines = doc.splitTextToSize(item.description, 75);
+        descriptionLines.forEach((line, lineIndex) => {
+            doc.text(line, margin + 5, y + (lineIndex * 4));
+        });
+        
+        // Quantity, unit price, and total using formatMoneyPDF
+        doc.text(item.quantity.toString(), margin + 85, y);
+        doc.text(formatMoneyPDF(item.unitPrice), margin + 115, y);
+        doc.text(formatMoneyPDF(item.total), margin + 155, y);
+        
+        y += Math.max(4 * descriptionLines.length, 10);
+        
+        // Add new page if needed
+        if(y > pageHeight - 50) {
+            doc.addPage();
+            y = margin;
+            
+            // Repeat table header on new page
+            doc.setFillColor(245, 245, 245);
+            doc.rect(margin, y, pageWidth - 2 * margin, 8, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(margin, y, pageWidth - 2 * margin, 8);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(9);
+            doc.text('Description', margin + 5, y + 6);
+            doc.text('Qté', margin + 85, y + 6);
+            doc.text('Prix Unitaire', margin + 115, y + 6);
+            doc.text('Total', margin + 155, y + 6);
+            
+            doc.setFont(undefined, 'normal');
+            y += 12;
+        }
+    });
+    
+    // Table bottom line
+    doc.setDrawColor(100, 100, 100);
+    doc.line(margin, y, pageWidth - margin, y);
+    
+    // Total section
+    y += 10;
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text('TOTAL:', pageWidth - margin - 75, y + 8);
+    doc.text(formatMoneyPDF(proforma.total), pageWidth - margin - 20, y + 8);
+    
+    // Reset text color
+    doc.setTextColor(0, 0, 0);
+    
+    // Terms section
+    if(proforma.terms) {
+        y += 20;
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.text('Conditions de paiement:', margin, y);
+        
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        const termsLines = doc.splitTextToSize(proforma.terms, pageWidth - 2 * margin);
+        termsLines.forEach((line, index) => {
+            doc.text(line, margin, y + 6 + (index * 4));
+        });
+        y += 6 + (termsLines.length * 4);
+    }
+    
+    // Mode de paiement section (nouveau modèle)
+    y += 15;
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(11);
+    doc.text('Mode de paiement :', margin, y);
+    
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+    y += 8;
+    
+    // Au comptant
+    doc.text('• Au comptant', margin + 5, y);
+    y += 6;
+    
+    // Chèque (seulement si titulaire du compte est défini)
+    if(company.chequeName && company.chequeName.trim() !== '') {
+        doc.text('• Chèque libellé au nom de ' + company.chequeName + ' (livraison 1 semaine après)', margin + 5, y);
+        y += 6;
+    }
+    
+    // Virement bancaire (seulement si RIB est défini)
+    if((company.ribBank && company.ribBank.trim() !== '') || (company.ribAccount && company.ribAccount.trim() !== '')) {
+        const bank = company.ribBank || '';
+        const account = company.ribAccount || '';
+        const accountHolder = company.chequeName || '';
+        doc.text('• Virement bancaire : Banque: ' + bank + ' - Titulaire: ' + accountHolder + ' - RIB: ' + account, margin + 5, y);
+        y += 10;
+    }
+    
+    // Délai de livraison (seulement si défini)
+    if(company.deliveryDelayCheque && company.deliveryDelayCheque.trim() !== '') {
+        doc.setFont(undefined, 'bold');
+        doc.text('Délai de livraison :', margin, y);
+        doc.setFont(undefined, 'normal');
+        doc.text(' ' + company.deliveryDelayCheque, margin + 50, y);
+        y += 15;
+    }
+    
+    // Footer with signature
+    const footerY = pageHeight - 30;
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(10);
+    doc.text(company.signature || 'Signature', margin, footerY);
+    
+    // Save PDF
+    const fileName = `Facture_Proforma_${proforma.number}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+    showToast(`Facture proforma ${proforma.number} exportée avec succès`, "success");
+    closeModal('modal-proforma');
+}
+
+// === PROFORMA PRODUCT SELECTION FUNCTIONS ===
+function openProformaProductModal() {
+    selectedProformaProducts = [];
+    renderProformaProducts();
+    openModal('modal-proforma-products');
+}
+
+function renderProformaProducts() {
+    const searchTerm = document.getElementById('proforma-product-search').value.toLowerCase();
+    const categoryFilter = document.getElementById('proforma-product-category').value;
+    const grid = document.getElementById('proforma-products-grid');
+    
+    // Update category options
+    const categorySelect = document.getElementById('proforma-product-category');
+    const categories = [...new Set(db.produits.map(p => p.category).filter(c => c))];
+    categorySelect.innerHTML = '<option value="">Toutes catégories</option>';
+    categories.forEach(cat => {
+        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+    });
+    categorySelect.value = categoryFilter;
+    
+    // Filter products
+    let filteredProducts = db.produits.filter(product => {
+        const matchesSearch = product.nom.toLowerCase().includes(searchTerm) || 
+                             (product.reference && product.reference.toLowerCase().includes(searchTerm));
+        const matchesCategory = !categoryFilter || product.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+    });
+    
+    if(filteredProducts.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-8 text-slate-400">
+                <i data-lucide="package" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                <p class="text-sm">Aucun produit trouvé</p>
+            </div>
+        `;
+        lucide?.createIcons();
+        return;
+    }
+    
+    let html = '';
+    filteredProducts.forEach(product => {
+        const isSelected = selectedProformaProducts.some(p => p.id === product.id);
+        const stockInfo = product.stock > 0 ? 
+            `<span class="text-green-600 font-medium">${product.stock} en stock</span>` : 
+            `<span class="text-red-600 font-medium">Rupture</span>`;
+        
+        html += `
+            <div class="p-4 border rounded-lg hover:bg-slate-50 transition-all cursor-pointer ${isSelected ? 'bg-blue-50 border-blue-300' : 'border-slate-200'}"
+                 onclick="toggleProformaProductSelection('${product.id}')">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1">
+                        <h6 class="font-semibold text-sm text-slate-800">${escapeHtml(product.nom)}</h6>
+                        <p class="text-xs text-slate-500">${product.category || 'Non catégorisé'}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-blue-600">${formatMoney(product.vente)}</div>
+                        <div class="text-xs">${stockInfo}</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-4 h-4 text-blue-600 rounded">
+                    <span class="text-xs text-slate-600">
+                        ${isSelected ? 'Sélectionné' : 'Sélectionner'}
+                    </span>
+                </div>
+            </div>
+        `;
+    });
+    
+    grid.innerHTML = html;
+    lucide?.createIcons();
+}
+
+function toggleProformaProductSelection(productId) {
+    const product = db.produits.find(p => p.id === productId);
+    if(!product) return;
+    
+    const existingIndex = selectedProformaProducts.findIndex(p => p.id === productId);
+    
+    if(existingIndex >= 0) {
+        selectedProformaProducts.splice(existingIndex, 1);
+    } else {
+        selectedProformaProducts.push({
+            id: product.id,
+            nom: product.nom,
+            vente: product.vente,
+            category: product.category,
+            stock: product.stock,
+            quantity: 1
+        });
+    }
+    
+    renderProformaProducts();
+}
+
+function addSelectedProductsToProforma() {
+    if(selectedProformaProducts.length === 0) {
+        showToast("Veuillez sélectionner au moins un produit", "error");
+        return;
+    }
+    
+    selectedProformaProducts.forEach(selectedProduct => {
+        const existingItem = proformaItems.find(item => 
+            item.description === selectedProduct.nom && item.unitPrice === selectedProduct.vente
+        );
+        
+        if(existingItem) {
+            existingItem.quantity += 1;
+            existingItem.total = existingItem.quantity * existingItem.unitPrice;
+        } else {
+            proformaItems.push({
+                id: Date.now() + Math.random(),
+                description: selectedProduct.nom,
+                quantity: 1,
+                unitPrice: selectedProduct.vente,
+                total: selectedProduct.vente,
+                productId: selectedProduct.id,
+                stockInfo: `${selectedProduct.stock} en stock`
+            });
+        }
+    });
+    
+    renderProformaItems();
+    updateProformaTotal();
+    closeModal('modal-proforma-products');
+    
+    showToast(`${selectedProformaProducts.length} produit(s) ajouté(s) à la facture`, "success");
+}
+
+// === PROFORMAS LIST FUNCTIONS ===
+function renderProformasList() {
+    const searchTerm = document.getElementById('proforma-search').value.toLowerCase();
+    const statusFilter = document.getElementById('proforma-filter-status').value;
+    const dateFilter = document.getElementById('proforma-filter-date').value;
+    const tbody = document.getElementById('proformas-list');
+    const emptyState = document.getElementById('proformas-empty');
+    
+    if(!db.proformas || db.proformas.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    
+    let filteredProformas = db.proformas.filter(proforma => {
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            proforma.client.name.toLowerCase().includes(searchTerm) ||
+            proforma.number.toLowerCase().includes(searchTerm);
+        
+        // Status filter
+        let status = getProformaStatus(proforma);
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        // Date filter
+        const matchesDate = !dateFilter || proforma.date === dateFilter;
+        
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+    
+    if(filteredProformas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-slate-400">
+                    <i data-lucide="search" class="w-8 h-8 mx-auto mb-2 opacity-30"></i>
+                    <p class="text-sm">Aucune facture correspondante trouvée</p>
+                </td>
+            </tr>
+        `;
+        lucide?.createIcons();
+        return;
+    }
+    
+    let html = '';
+    filteredProformas.forEach(proforma => {
+        const status = getProformaStatus(proforma);
+        console.log(`Proforma ${proforma.number} - Statut: ${status}`);
+        const statusBadge = getStatusBadge(status);
+        const expiryDate = new Date(proforma.date);
+        expiryDate.setDate(expiryDate.getDate() + proforma.validity);
+        
+        html += `
+            <tr class="hover:bg-slate-50">
+                <td class="px-4 py-3 text-sm font-medium">${escapeHtml(proforma.number)}</td>
+                <td class="px-4 py-3 text-sm">${escapeHtml(proforma.client.name)}</td>
+                <td class="px-4 py-3 text-sm">${formatDate(proforma.date)}</td>
+                <td class="px-4 py-3 text-sm">${formatDate(expiryDate.toISOString().split('T')[0])}</td>
+                <td class="px-4 py-3 text-sm text-right font-medium">${formatMoney(proforma.total)}</td>
+                <td class="px-4 py-3 text-center">${statusBadge}</td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center justify-center gap-1">
+                        <button onclick="viewProforma('${proforma.id}')" class="p-1 text-blue-600 hover:bg-blue-50 rounded" title="Voir">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="editProforma('${proforma.id}')" class="p-1 text-amber-600 hover:bg-amber-50 rounded" title="Modifier">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        </button>
+                        ${status === 'valid' ? `
+                        <button onclick="convertProformaToSale('${proforma.id}')" class="p-1 text-green-600 hover:bg-green-50 rounded" title="Convertir en vente">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        </button>
+                        ` : ''}
+                        <button onclick="deleteProforma('${proforma.id}')" class="p-1 text-red-600 hover:bg-red-50 rounded" title="Supprimer">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    lucide?.createIcons();
+}
+
+function getProformaStatus(proforma) {
+    if(proforma.converted) return 'converted';
+    
+    const now = new Date();
+    const expiryDate = new Date(proforma.date);
+    expiryDate.setDate(expiryDate.getDate() + proforma.validity);
+    
+    return now > expiryDate ? 'expired' : 'valid';
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        valid: '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">Valide</span>',
+        expired: '<span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">Expirée</span>',
+        converted: '<span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">Convertie</span>'
+    };
+    return badges[status] || badges.valid;
+}
+
+function viewProforma(proformaId) {
+    const proforma = db.proformas.find(p => p.id === proformaId);
+    if(!proforma) return;
+    
+    generateProformaPDFContent(proforma);
+}
+
+function editProforma(proformaId) {
+    const proforma = db.proformas.find(p => p.id === proformaId);
+    if(!proforma) return;
+    
+    // Populate form with proforma data
+    document.getElementById('proforma-client-name').value = proforma.client.name;
+    document.getElementById('proforma-client-phone').value = proforma.client.phone || '';
+    document.getElementById('proforma-client-email').value = proforma.client.email || '';
+    document.getElementById('proforma-client-address').value = proforma.client.address || '';
+    document.getElementById('proforma-number').value = proforma.number;
+    document.getElementById('proforma-date').value = proforma.date;
+    document.getElementById('proforma-validity').value = proforma.validity;
+    document.getElementById('proforma-terms').value = proforma.terms || '';
+    
+    // Populate items
+    proformaItems = [...proforma.items];
+    renderProformaItems();
+    updateProformaTotal();
+    
+    // Store editing state
+    window.editingProformaId = proformaId;
+    
+    openModal('modal-proforma');
+}
+
+function convertProformaToSale(proformaId) {
+    console.log('Conversion appelée pour proforma ID:', proformaId);
+    
+    const proforma = db.proformas.find(p => p.id === proformaId);
+    if(!proforma) {
+        console.error('Proforma non trouvée:', proformaId);
+        return;
+    }
+    
+    console.log('Proforma trouvée:', proforma);
+    
+    // Store current proforma for conversion
+    window.currentProformaToConvert = proforma;
+    
+    // Check stock availability (exclude services)
+    let stockIssues = [];
+    let stockInfo = [];
+    proforma.items.forEach(item => {
+        if(item.productId) {
+            const product = db.produits.find(p => p.id === item.productId);
+            if(product) {
+                // Vérification explicite que c'est un service
+                const isService = product.category === 'Service' || 
+                                product.category?.toLowerCase() === 'service' ||
+                                product.nom.toLowerCase().includes('photocopie') ||
+                                product.nom.toLowerCase().includes('impression') ||
+                                product.nom.toLowerCase().includes('scan') ||
+                                product.nom.toLowerCase().includes('service') ||
+                                product.nom.toLowerCase().includes('reparation') ||
+                                product.nom.toLowerCase().includes('installation');
+                
+                console.log(`Produit: ${product.nom}, Catégorie: ${product.category}, Est service: ${isService}`);
+                
+                if(isService) {
+                    // Les services vont toujours dans stockInfo, jamais dans stockIssues
+                    stockInfo.push(`${product.nom}: ${item.quantity} service(s) (illimité)`);
+                } else {
+                    // Produits physiques seulement
+                    if(product.stock < item.quantity) {
+                        stockIssues.push(`${product.nom}: ${product.stock} en stock, besoin de ${item.quantity}`);
+                    } else {
+                        stockInfo.push(`${product.nom}: ${item.quantity} vendu(s) (${product.stock - item.quantity} restant)`);
+                    }
+                }
+            } else {
+                // Article sans produit correspondant (custom item)
+                stockInfo.push(`${item.description}: ${item.quantity} unité(s) (article personnalisé)`);
+            }
+        } else {
+            // Article sans productId (custom item)
+            stockInfo.push(`${item.description}: ${item.quantity} unité(s) (article personnalisé)`);
+        }
+    });
+    
+    // Build modal content
+    let modalContent = `
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 class="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Détails de la facture proforma
+            </h4>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Numéro:</span>
+                    <span class="font-medium">${proforma.number}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Client:</span>
+                    <span class="font-medium">${proforma.client.name}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Date:</span>
+                    <span class="font-medium">${new Date(proforma.date).toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Montant:</span>
+                    <span class="font-bold text-blue-600">${formatMoney(proforma.total)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Articles:</span>
+                    <span class="font-medium">${proforma.items.length} produit(s)/service(s)</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    if(stockInfo.length > 0) {
+        modalContent += `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <h4 class="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    Impact sur le stock (${stockInfo.length} article(s))
+                </h4>
+                <div class="max-h-48 overflow-y-auto space-y-1 text-sm">
+        `;
+        stockInfo.forEach(info => {
+            modalContent += `<div class="text-slate-700 py-1 border-b border-green-100 last:border-0">• ${info}</div>`;
+        });
+        modalContent += `</div></div>`;
+    }
+    
+    if(stockIssues.length > 0) {
+        modalContent += `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h4 class="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    Attention ! Stock insuffisant (${stockIssues.length} article(s))
+                </h4>
+                <div class="max-h-48 overflow-y-auto space-y-1 text-sm">
+        `;
+        stockIssues.forEach(issue => {
+            modalContent += `<div class="text-red-700 py-1 border-b border-red-100 last:border-0">• ${issue}</div>`;
+        });
+        modalContent += `
+                </div>
+                <p class="mt-3 text-sm text-red-600">Voulez-vous continuer malgré le stock insuffisant ?</p>
+            </div>
+        `;
+    } else {
+        modalContent += `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-emerald-700">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span class="text-sm font-medium">Stock disponible pour tous les produits</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Update modal content and show it
+    document.getElementById('convert-proforma-details').innerHTML = modalContent;
+    openModal('modal-proforma-convert');
+    
+    // Reinitialize icons
+    setTimeout(() => lucide?.createIcons(), 100);
+}
+
+function confirmProformaConversion() {
+    const proforma = window.currentProformaToConvert;
+    if(!proforma) return;
+    
+    // Calculate profit
+    let profit = 0;
+    proforma.items.forEach(item => {
+        if(item.productId) {
+            const product = db.produits.find(p => p.id === item.productId);
+            if(product) {
+                profit += (item.unitPrice - product.achat) * item.quantity;
+            }
+        }
+    });
+    
+    console.log('Profit calculé:', profit);
+    
+    // Create sale from proforma
+    const sale = {
+        id: 'VTE-' + Date.now(),
+        number: `FV-${String(db.config.invoiceCounter || 1).padStart(6, '0')}`,
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        client: proforma.client.name, // String pour compatibilité avec l'affichage existant
+        clientName: proforma.client.name, // Pour compatibilité
+        clientPhone: proforma.client.phone,
+        clientEmail: proforma.client.email,
+        clientAddress: proforma.client.address,
+        clientObject: { // Garder l'objet complet pour référence
+            name: proforma.client.name,
+            phone: proforma.client.phone,
+            email: proforma.client.email,
+            address: proforma.client.address
+        },
+        items: proforma.items.map(item => ({
+            id: Date.now() + Math.random(),
+            name: item.description, // Pour compatibilité avec l'affichage existant
+            description: item.description, // Garder aussi description
+            productName: item.description, // Pour l'affichage dans la facture
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            price: item.unitPrice, // Pour compatibilité
+            total: item.total,
+            productId: item.productId
+        })),
+        total: proforma.total,
+        paymentMethod: 'cash',
+        status: 'paid',
+        paidAmount: proforma.total,
+        currency: proforma.currency || (db.config.currency || "Ar"),
+        profit: profit,
+        createdAt: new Date().toISOString()
+    };
+    
+    console.log('Vente créée:', sale);
+    
+    // Update stock (exclude services)
+    proforma.items.forEach(item => {
+        if(item.productId) {
+            const product = db.produits.find(p => p.id === item.productId);
+            if(product && product.category !== 'Service') {
+                const oldStock = product.stock;
+                product.stock = Math.max(0, product.stock - item.quantity);
+                addStockMovement(product.id, 'vente', item.quantity, `Vente: ${sale.number}`);
+            }
+        }
+    });
+    
+    // Save sale
+    db.ventes.unshift(sale);
+    db.config.invoiceCounter = (db.config.invoiceCounter || 1) + 1;
+    
+    // Mark proforma as converted
+    proforma.converted = true;
+    proforma.convertedAt = new Date().toISOString();
+    proforma.convertedToSaleId = sale.id;
+    
+    console.log('Proforma marquée comme convertie');
+    
+    saveDB();
+    addLog(`Facture proforma ${proforma.number} convertie en vente ${sale.number}`, "success");
+    
+    // Close modal and show success
+    closeModal('modal-proforma-convert');
+    showToast(`Facture proforma convertie avec succès`, "success");
+    
+    // Refresh lists
+    renderProformasList();
+    renderSales();
+    renderStock();
+    updateUI();
+    
+    console.log('Conversion terminée');
+    
+    // Clear stored proforma
+    window.currentProformaToConvert = null;
+}
+
+function deleteProforma(proformaId) {
+    const proforma = db.proformas.find(p => p.id === proformaId);
+    if(!proforma) return;
+    
+    // Store current proforma for deletion
+    window.currentProformaToDelete = proforma;
+    
+    // Build modal content
+    let modalContent = `
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 class="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                Attention - Action irréversible
+            </h4>
+            <p class="text-sm text-red-700 mb-3">
+                Vous êtes sur le point de supprimer définitivement cette facture proforma. Cette action ne peut pas être annulée.
+            </p>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 class="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Détails de la facture proforma
+            </h4>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Numéro:</span>
+                    <span class="font-medium">${proforma.number}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Client:</span>
+                    <span class="font-medium">${proforma.client.name}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Date:</span>
+                    <span class="font-medium">${new Date(proforma.date).toLocaleDateString('fr-FR')}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Montant:</span>
+                    <span class="font-bold text-blue-600">${formatMoney(proforma.total)}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Articles:</span>
+                    <span class="font-medium">${proforma.items.length} produit(s)/service(s)</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Statut:</span>
+                    <span class="font-medium">${proforma.converted ? 'Déjà convertie' : 'Non convertie'}</span>
+                </div>
+            </div>
+        </div>
+        
+        ${proforma.converted ? `
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 class="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4"></i>
+                Information importante
+            </h4>
+            <p class="text-sm text-amber-700">
+                Cette facture proforma a déjà été convertie en vente. La suppression n'affectera pas la vente correspondante.
+            </p>
+        </div>
+        ` : ''}
+    `;
+    
+    // Update modal content and show it
+    document.getElementById('delete-proforma-details').innerHTML = modalContent;
+    openModal('modal-proforma-delete');
+    
+    // Reinitialize icons
+    setTimeout(() => lucide?.createIcons(), 100);
+}
+
+function confirmProformaDeletion() {
+    const proforma = window.currentProformaToDelete;
+    if(!proforma) return;
+    
+    // Remove from database
+    db.proformas = db.proformas.filter(p => p.id !== proforma.id);
+    
+    saveDB();
+    addLog(`Facture proforma supprimée: ${proforma.number}`, "warning");
+    
+    // Close modal and show success
+    closeModal('modal-proforma-delete');
+    showToast(`Facture proforma supprimée`, "success");
+    
+    // Refresh list
+    renderProformasList();
+    
+    // Clear stored proforma
+    window.currentProformaToDelete = null;
+}
+
+// Modify generateProformaPDF to handle editing
+function generateProformaPDF() {
+    if(proformaItems.length === 0) {
+        showToast("Veuillez ajouter au moins un article", "error");
+        return;
+    }
+    
+    const clientName = document.getElementById('proforma-client-name').value.trim();
+    const clientPhone = document.getElementById('proforma-client-phone').value.trim();
+    const clientEmail = document.getElementById('proforma-client-email').value.trim();
+    const clientAddress = document.getElementById('proforma-client-address').value.trim();
+    const proformaNumber = document.getElementById('proforma-number').value.trim();
+    const proformaDate = document.getElementById('proforma-date').value;
+    const validity = document.getElementById('proforma-validity').value;
+    const terms = document.getElementById('proforma-terms').value.trim();
+    
+    if(!clientName) {
+        showToast("Veuillez renseigner le nom du client", "error");
+        return;
+    }
+    
+    const total = proformaItems.reduce((sum, item) => sum + item.total, 0);
+    
+    // Check if editing
+    const isEditing = window.editingProformaId;
+    let proforma;
+    
+    if(isEditing) {
+        // Update existing proforma
+        proforma = db.proformas.find(p => p.id === window.editingProformaId);
+        if(proforma) {
+            proforma.number = proformaNumber;
+            proforma.date = proformaDate;
+            proforma.validity = parseInt(validity);
+            proforma.terms = terms;
+            proforma.client = {
+                name: clientName,
+                phone: clientPhone,
+                email: clientEmail,
+                address: clientAddress
+            };
+            proforma.items = [...proformaItems];
+            proforma.total = total;
+            proforma.updatedAt = new Date().toISOString();
+        }
+    } else {
+        // Create new proforma
+        proforma = {
+            id: 'PRO-' + Date.now(),
+            number: proformaNumber,
+            date: proformaDate,
+            validity: parseInt(validity),
+            terms: terms,
+            client: {
+                name: clientName,
+                phone: clientPhone,
+                email: clientEmail,
+                address: clientAddress
+            },
+            items: [...proformaItems],
+            total: total,
+            currency: db.config.currency || "Ar",
+            createdAt: new Date().toISOString()
+        };
+        
+        // Initialize proformas array if it doesn't exist
+        if(!db.proformas) {
+            db.proformas = [];
+        }
+        
+        db.proformas.unshift(proforma);
+        db.config.proformaCounter = (db.config.proformaCounter || 1) + 1;
+    }
+    
+    saveDB();
+    addLog(`Facture proforma ${isEditing ? 'mise à jour' : 'créée'}: ${proformaNumber} - ${clientName}`, "info");
+    
+    // Reset editing state
+    window.editingProformaId = null;
+    
+    // Generate PDF
+    generateProformaPDFContent(proforma);
+    
+    // Close modal and refresh list
+    closeModal('modal-proforma');
+    renderProformasList();
+}
+
+// === FONCTIONS D'AMÉLIORATION POUR LA GESTION DES DÉLAIS DE CRÉDIT ===
+
+// Fonction pour calculer les statistiques des crédits en retard
+function getOverdueCreditsStats() {
+    const now = new Date();
+    const overdueCredits = db.credits.filter(c => 
+        c.status === 'pending' && new Date(c.dueDate) < now
+    );
+    
+    const totalOverdue = overdueCredits.reduce((sum, c) => sum + c.balance, 0);
+    const averageDelay = overdueCredits.length > 0 ? 
+        overdueCredits.reduce((sum, c) => {
+            const daysOverdue = Math.floor((now - new Date(c.dueDate)) / (1000 * 60 * 60 * 24));
+            return sum + daysOverdue;
+        }, 0) / overdueCredits.length : 0;
+    
+    return {
+        count: overdueCredits.length,
+        total: totalOverdue,
+        averageDelay: Math.round(averageDelay),
+        credits: overdueCredits
+    };
+}
+
+// Fonction pour envoyer des rappels de crédits (simulation)
+function sendCreditReminders() {
+    const now = new Date();
+    const reminderCredits = db.credits.filter(c => {
+        if (c.status !== 'pending') return false;
+        
+        const dueDate = new Date(c.dueDate);
+        const daysUntilDue = Math.floor((dueDate - now) / (1000 * 60 * 60 * 24));
+        
+        // Rappeler 3 jours avant et le jour de l'échéance
+        return daysUntilDue <= 3 && daysUntilDue >= 0;
+    });
+    
+    reminderCredits.forEach(credit => {
+        const daysUntilDue = Math.floor((new Date(credit.dueDate) - now) / (1000 * 60 * 60 * 24));
+        let message = '';
+        
+        if (daysUntilDue === 0) {
+            message = `Rappel: Le crédit de ${credit.clientName} arrive à échéance aujourd'hui (${formatMoney(credit.balance)})`;
+        } else if (daysUntilDue === 1) {
+            message = `Rappel: Le crédit de ${credit.clientName} arrive à échéance demain (${formatMoney(credit.balance)})`;
+        } else {
+            message = `Rappel: Le crédit de ${credit.clientName} arrive à échéance dans ${daysUntilDue} jours (${formatMoney(credit.balance)})`;
+        }
+        
+        addLog("info", message);
+    });
+    
+    if (reminderCredits.length > 0) {
+        showToast(`${reminderCredits.length} rappel(s) de crédit généré(s)`, "info");
+    }
+}
+
+// Fonction pour étendre un délai de crédit
+function extendCreditDelay(creditId, additionalDays) {
+    const credit = db.credits.find(c => c.id === creditId);
+    if (!credit) {
+        showToast("Crédit introuvable", "error");
+        return;
+    }
+    
+    const currentDueDate = new Date(credit.dueDate);
+    currentDueDate.setDate(currentDueDate.getDate() + additionalDays);
+    
+    credit.dueDate = currentDueDate.toISOString();
+    credit.creditDelay = (credit.creditDelay || 0) + additionalDays;
+    
+    saveDB();
+    renderCredits();
+    showToast(`Délai de crédit étendu de ${additionalDays} jours`, "success");
+    addLog(`Délai étendu pour ${credit.clientName}: +${additionalDays} jours`, "info");
+}
+
+// Fonction pour générer un rapport des crédits
+function generateCreditsReport() {
+    const stats = getOverdueCreditsStats();
+    const pendingCredits = db.credits.filter(c => c.status === 'pending');
+    const totalPending = pendingCredits.reduce((sum, c) => sum + c.balance, 0);
+    
+    let report = `=== RAPPORT DES CRÉDITS ===\n`;
+    report += `Généré le: ${new Date().toLocaleDateString('fr-FR')}\n\n`;
+    
+    report += `=== STATISTIQUES GÉNÉRALES ===\n`;
+    report += `Total des crédits en attente: ${pendingCredits.length}\n`;
+    report += `Montant total en attente: ${formatMoney(totalPending)}\n`;
+    report += `Crédits en retard: ${stats.count}\n`;
+    report += `Montant en retard: ${formatMoney(stats.total)}\n`;
+    report += `Retard moyen: ${stats.averageDelay} jours\n\n`;
+    
+    if (stats.credits.length > 0) {
+        report += `=== CRÉDITS EN RETARD ===\n`;
+        stats.credits.forEach(credit => {
+            const daysOverdue = Math.floor((new Date() - new Date(credit.dueDate)) / (1000 * 60 * 60 * 24));
+            report += `- ${credit.clientName}: ${formatMoney(credit.balance)} (${daysOverdue} jours de retard)\n`;
+        });
+        report += '\n';
+    }
+    
+    // Afficher le rapport dans une modal ou le copier dans le presse-papiers
+    navigator.clipboard.writeText(report).then(() => {
+        showToast("Rapport copié dans le presse-papiers", "success");
+    }).catch(() => {
+        showToast("Erreur lors de la copie du rapport", "error");
+    });
+    
+    addLog("info", "Rapport des crédits généré");
+}
+
+// Fonction pour vérifier automatiquement les échéances (appelée périodiquement)
+function checkCreditDueDates() {
+    const stats = getOverdueCreditsStats();
+    
+    if (stats.count > 0) {
+        // Afficher une notification sur le tableau de bord
+        const dashboardAlert = document.getElementById('dashboard-alert');
+        if (dashboardAlert) {
+            dashboardAlert.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+                        <div>
+                            <h4 class="font-semibold text-red-800">Alerte: Crédits en retard</h4>
+                            <p class="text-sm text-red-600">${stats.count} crédit(s) en retard pour un total de ${formatMoney(stats.total)}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            initLucide();
+        }
+    }
+}
+
+// Initialiser les vérifications périodiques
+setInterval(() => {
+    checkCreditDueDates();
+    sendCreditReminders();
+}, 3600000); // Vérifier toutes les heures
 
 // Lancement automatique du test de sécurité
 runSecurityCheck();
