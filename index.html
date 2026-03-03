@@ -261,6 +261,13 @@
                                 <i data-lucide="smartphone" class="w-3 h-3"></i> Mobile Money
                             </div>
                         </div>
+                        <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500" data-widget="ventes-card">
+                            <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Ventes Carte</p>
+                            <h3 id="stat-ventes-card" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
+                            <div class="mt-1 md:mt-2 text-xs text-purple-600 flex items-center gap-1">
+                                <i data-lucide="credit-card" class="w-3 h-3"></i> Carte bancaire
+                            </div>
+                        </div>
                         <div class="glass-card p-4 md:p-5 rounded-xl md:rounded-2xl shadow-sm border-l-4 border-purple-500" data-widget="total-ventes">
                             <p class="text-slate-500 text-xs md:text-sm font-medium truncate">Total Ventes</p>
                             <h3 id="stat-total-ventes" class="text-lg md:text-2xl font-bold mt-1 text-slate-800 truncate">0 Ar</h3>
@@ -355,6 +362,20 @@
                                         <span class="font-medium text-slate-700 text-sm md:text-base">Nouvelle facture</span>
                                     </div>
                                     <i data-lucide="chevron-right" class="w-4 h-4 text-purple-300 group-hover:text-purple-500"></i>
+                                </button>
+                                <button onclick="openProformaModal()" class="w-full flex items-center justify-between p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg md:rounded-xl transition-all group touch-target">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="file-text" class="w-4 h-4 md:w-5 md:h-5 text-indigo-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Facture Proforma</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-indigo-300 group-hover:text-indigo-500"></i>
+                                </button>
+                                <button onclick="switchTab('proformas')" class="w-full flex items-center justify-between p-3 bg-indigo-50 hover:bg-indigo-100 rounded-lg md:rounded-xl transition-all group touch-target">
+                                    <div class="flex items-center gap-3">
+                                        <i data-lucide="list" class="w-4 h-4 md:w-5 md:h-5 text-indigo-600"></i>
+                                        <span class="font-medium text-slate-700 text-sm md:text-base">Liste Proformas</span>
+                                    </div>
+                                    <i data-lucide="chevron-right" class="w-4 h-4 text-indigo-300 group-hover:text-indigo-500"></i>
                                 </button>
                                 <button onclick="requirePostePermission('expensesAdd', function(){openModal('modal-expense')})" class="w-full flex items-center justify-between p-3 bg-amber-50 hover:bg-amber-100 rounded-lg md:rounded-xl transition-all group touch-target">
                                     <div class="flex items-center gap-3">
@@ -568,7 +589,7 @@
                                     <div class="space-y-3 md:space-y-4">
                                         <div class="p-3 md:p-4 bg-slate-50 rounded-xl">
                                             <h6 class="font-bold text-xs md:text-sm mb-2">Paiement</h6>
-                                            <div class="grid grid-cols-3 gap-1 md:gap-2 md:space-y-2">
+                                            <div class="grid grid-cols-4 gap-1 md:gap-2 md:space-y-2">
                                                 <label class="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border">
                                                     <input type="radio" name="payment-method" value="cash" checked class="rounded">
                                                     <span class="text-xs text-center">Espèces</span>
@@ -581,6 +602,29 @@
                                                     <input type="radio" name="payment-method" value="mobile" class="rounded">
                                                     <span class="text-xs text-center">Mobile</span>
                                                 </label>
+                                                <label class="flex flex-col items-center gap-1 cursor-pointer p-2 rounded-lg border">
+                                                    <input type="radio" name="payment-method" value="card" class="rounded">
+                                                    <span class="text-xs text-center">Carte</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="p-3 md:p-4 bg-amber-50 rounded-xl">
+                                            <h6 class="font-bold text-xs md:text-sm mb-2">Réduction</h6>
+                                            <div class="space-y-2">
+                                                <div class="flex gap-2">
+                                                    <input type="number" id="discount-amount" placeholder="0" min="0" 
+                                                        class="flex-1 px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                                                        oninput="updateInvoiceTotal()">
+                                                    <select id="discount-type" onchange="updateInvoiceTotal()" 
+                                                        class="px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none text-sm">
+                                                        <option value="percentage">%</option>
+                                                        <option value="fixed">Devise</option>
+                                                    </select>
+                                                </div>
+                                                <div class="text-xs text-slate-500">
+                                                    <span id="discount-display">Aucune réduction</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -591,6 +635,10 @@
                                             <div class="flex justify-between">
                                                 <span class="text-slate-600">Sous-total :</span>
                                                 <span id="invoice-subtotal" class="font-bold">0 Ar</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-slate-600">Réduction :</span>
+                                                <span id="invoice-discount" class="font-bold text-amber-600">0 Ar</span>
                                             </div>
                                             <div class="flex justify-between">
                                                 <span class="text-slate-600">Total :</span>
@@ -720,6 +768,8 @@
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Client</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Facture</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Échéance</th>
+                                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Délai</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Total</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Payé</th>
                                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Reste</th>
@@ -969,6 +1019,65 @@
                     </div>
                 </div>
 
+                <!-- PROFORMAS TAB - LISTE DES FACTURES PROFORMA -->
+                <div id="tab-proformas" class="tab-content space-y-4 md:space-y-6">
+                    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                        <h4 class="font-bold flex items-center gap-2 text-sm md:text-base">
+                            <i data-lucide="list" class="w-4 h-4 md:w-5 md:h-5 text-indigo-600"></i> Factures Proforma
+                        </h4>
+                        <div class="flex gap-2">
+                            <button onclick="openProformaModal()" class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Nouvelle
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="glass-card p-4 rounded-xl shadow-sm">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="relative">
+                                <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                                <input type="text" id="proforma-search" placeholder="Rechercher par client ou numéro..." 
+                                    class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none text-sm"
+                                    oninput="renderProformasList()">
+                            </div>
+                            <select id="proforma-filter-status" onchange="renderProformasList()" class="px-4 py-3 rounded-lg border border-slate-200 outline-none text-sm">
+                                <option value="">Tous les statuts</option>
+                                <option value="valid">Valides</option>
+                                <option value="expired">Expirées</option>
+                                <option value="converted">Converties</option>
+                            </select>
+                            <input type="date" id="proforma-filter-date" onchange="renderProformasList()" class="px-4 py-3 rounded-lg border border-slate-200 outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Proformas List -->
+                    <div class="glass-card rounded-xl shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-50 border-b">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Numéro</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Client</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Validité</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-slate-500 uppercase">Total</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase">Statut</th>
+                                        <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="proformas-list" class="divide-y divide-slate-200">
+                                    <!-- JS Injection -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="proformas-empty" class="p-8 text-center text-slate-400 hidden">
+                            <i data-lucide="file-text" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                            <p class="text-sm">Aucune facture proforma trouvée</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SETTINGS TAB - OPTIMIZED FOR MOBILE -->
                 <div id="tab-settings" class="tab-content">
     <!-- Settings Header -->
@@ -1048,6 +1157,83 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Signature documents</label>
                         <input type="text" id="company-signature" placeholder="Le Gérant" 
                             class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                    
+                    <!-- Nouveaux champs pour le modèle proforma -->
+                    <div class="border-t pt-4 mt-4">
+                        <h5 class="font-semibold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-4 h-4 text-indigo-500"></i>
+                            Informations pour Factures Proforma
+                        </h5>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Banque</label>
+                                <input type="text" id="company-rib-bank" placeholder="Ex: BFV, BNI, BOA" 
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Numéro RIB</label>
+                                <input type="text" id="company-rib-account" placeholder="Ex: 00005/00001/13988760100/30" 
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Titulaire du compte</label>
+                                <input type="text" id="company-cheque-name" placeholder="Ex: BAOLAI SARL" 
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Délai livraison (chèque)</label>
+                            <input type="text" id="company-delivery-delay-cheque" placeholder="Ex: 07 jours ouvrables après réception de chèque" 
+                                class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        
+                        <div class="mt-3">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Délai livraison général</label>
+                            <input type="text" id="company-delivery-delay-general" placeholder="Ex: 07 jours ouvrables" 
+                                class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                    </div>
+                    
+                    <!-- Configuration du délai de crédit -->
+                    <div class="border-t pt-4 mt-4">
+                        <h5 class="font-semibold text-sm text-slate-700 mb-3 flex items-center gap-2">
+                            <i data-lucide="credit-card" class="w-4 h-4 text-rose-500"></i>
+                            Configuration des Crédits
+                        </h5>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Délai de crédit par défaut</label>
+                                <input type="number" id="company-default-credit-delay" placeholder="30" min="1" 
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                <p class="text-xs text-slate-500 mt-1">Nombre de jours par défaut pour les crédits</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 md:mb-2">Unité de délai</label>
+                                <select id="company-credit-delay-unit" 
+                                    class="w-full px-3 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                    <option value="jours">Jours</option>
+                                    <option value="mois">Mois</option>
+                                </select>
+                                <p class="text-xs text-slate-500 mt-1">Unité utilisée pour les délais</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <div class="flex items-start gap-2">
+                                <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 mt-0.5"></i>
+                                <div class="text-xs text-amber-700">
+                                    <strong>Note:</strong> Ces paramètres s'appliqueront aux nouveaux crédits uniquement. 
+                                    Les crédits existants conserveront leur délai d'origine.
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <button onclick="updateCompanyInfo()" class="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all">
@@ -1131,6 +1317,13 @@
                             <div class="flex-1">
                                 <div class="font-medium text-slate-700 text-sm">Ventes Mobile</div>
                                 <div class="text-xs text-slate-500">Mobile Money</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-all group">
+                            <input type="checkbox" id="widget-ventes-card" onchange="updateDashboardWidgets()" class="w-4 h-4 rounded text-purple-600">
+                            <div class="flex-1">
+                                <div class="font-medium text-slate-700 text-sm">Ventes Carte</div>
+                                <div class="text-xs text-slate-500">Carte bancaire</div>
                             </div>
                         </label>
                         <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-all group">
@@ -1517,11 +1710,11 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Stock *</label>
-                        <input type="number" id="prod-stock" required min="0" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <input type="number" id="prod-stock" required min="0" step="0.01" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alerte Mini</label>
-                        <input type="number" id="prod-min" value="5" min="0" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                        <input type="number" id="prod-min" value="5" min="0" step="0.01" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                     </div>
                 </div>
                 <div class="text-xs text-slate-400 italic">* Champs obligatoires</div>
@@ -1648,7 +1841,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantité</label>
-                    <input type="number" id="adjust-qty" required min="1" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
+                    <input type="number" id="adjust-qty" required min="0.01" step="0.01" class="w-full px-3 md:px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Raison</label>
@@ -1799,6 +1992,224 @@
         </div>
     </div>
 </div>
+
+    <!-- Modal Facture Proforma -->
+    <div id="modal-proforma" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[120] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[80vh]">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800">Facture Proforma</h3>
+                <button onclick="closeModal('modal-proforma')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Client Information -->
+                    <div class="space-y-4">
+                        <div class="glass-card p-4 rounded-xl">
+                            <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                                <i data-lucide="user" class="w-4 h-4 text-indigo-500"></i> Client
+                            </h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nom Complet</label>
+                                    <input type="text" id="proforma-client-name" placeholder="Nom du client" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Téléphone</label>
+                                    <input type="text" id="proforma-client-phone" placeholder="+261 XX XX XXX XX" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                                    <input type="email" id="proforma-client-email" placeholder="email@exemple.com" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Adresse</label>
+                                    <textarea id="proforma-client-address" placeholder="Adresse complète" rows="2"
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Proforma Details -->
+                    <div class="space-y-4">
+                        <div class="glass-card p-4 rounded-xl">
+                            <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
+                                <i data-lucide="file-text" class="w-4 h-4 text-indigo-500"></i> Détails
+                            </h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Numéro Proforma</label>
+                                    <input type="text" id="proforma-number" placeholder="PRO-001" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
+                                    <input type="date" id="proforma-date" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Validité (jours)</label>
+                                    <input type="number" id="proforma-validity" value="30" min="1" 
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Conditions</label>
+                                    <textarea id="proforma-terms" placeholder="Conditions de paiement..." rows="2"
+                                        class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Items Section -->
+                <div class="mt-6">
+                    <div class="glass-card p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-bold text-sm flex items-center gap-2">
+                                <i data-lucide="shopping-cart" class="w-4 h-4 text-indigo-500"></i> Articles
+                            </h4>
+                            <div class="flex gap-2">
+                                <button onclick="openProformaProductModal()" class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                    <i data-lucide="package" class="w-4 h-4 mr-1"></i> Stock
+                                </button>
+                                <button onclick="addProformaItem()" class="px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Ajouter
+                                </button>
+                            </div>
+                        </div>
+                        <div id="proforma-items" class="space-y-2 max-h-[300px] overflow-y-auto">
+                            <!-- Items will be added here -->
+                        </div>
+                        <div class="mt-4 pt-4 border-t">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-slate-700">Total :</span>
+                                <span id="proforma-total" class="font-bold text-xl text-indigo-600">0 Ar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Actions -->
+            <div class="p-4 md:p-6 border-t bg-slate-50 flex gap-3">
+                <button onclick="closeModal('modal-proforma')" class="px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Annuler
+                </button>
+                <button onclick="generateProformaPDF()" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exporter PDF
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proforma Conversion Confirmation Modal -->
+    <div id="modal-proforma-convert" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[125] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] flex flex-col">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center flex-shrink-0">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                    Confirmation de Conversion
+                </h3>
+                <button onclick="closeModal('modal-proforma-convert')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 md:p-6">
+                <div id="convert-proforma-details" class="space-y-4">
+                    <!-- Details will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="p-4 md:p-6 border-t bg-slate-50 flex gap-3 flex-shrink-0">
+                <button onclick="closeModal('modal-proforma-convert')" class="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Annuler
+                </button>
+                <button onclick="confirmProformaConversion()" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                    Confirmer la conversion
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Proforma Delete Confirmation Modal -->
+    <div id="modal-proforma-delete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[125] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn max-h-[90vh] flex flex-col">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center flex-shrink-0">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="trash-2" class="w-5 h-5 text-red-600"></i>
+                    Confirmation de Suppression
+                </h3>
+                <button onclick="closeModal('modal-proforma-delete')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 md:p-6">
+                <div id="delete-proforma-details" class="space-y-4">
+                    <!-- Details will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="p-4 md:p-6 border-t bg-slate-50 flex gap-3 flex-shrink-0">
+                <button onclick="closeModal('modal-proforma-delete')" class="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium">
+                    Annuler
+                </button>
+                <button onclick="confirmProformaDeletion()" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                    Supprimer définitivement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sélection Produits pour Proforma -->
+    <div id="modal-proforma-products" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[125] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[80vh]">
+            <div class="p-4 md:p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 class="text-lg md:text-xl font-bold text-slate-800">Sélectionner des produits du stock</h3>
+                <button onclick="closeModal('modal-proforma-products')" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6">
+                <!-- Search and Filter -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3 top-3 w-4 h-4 text-slate-400"></i>
+                        <input type="text" id="proforma-product-search" placeholder="Rechercher un produit..." 
+                            class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                            oninput="renderProformaProducts()">
+                    </div>
+                    <select id="proforma-product-category" onchange="renderProformaProducts()" class="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none text-sm">
+                        <option value="">Toutes catégories</option>
+                        <!-- JS Injection -->
+                    </select>
+                </div>
+                
+                <!-- Products Grid -->
+                <div id="proforma-products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto">
+                    <!-- Products will be rendered here -->
+                </div>
+            </div>
+            
+            <!-- Footer Actions -->
+            <div class="p-4 md:p-6 border-t bg-slate-50 flex gap-3">
+                <button onclick="closeModal('modal-proforma-products')" class="px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                    Annuler
+                </button>
+                <button onclick="addSelectedProductsToProforma()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> Ajouter les produits
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT SECTION -->
     <script src="app.js"></script>
 </body>
