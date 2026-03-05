@@ -425,6 +425,7 @@ function loadDB() {
             }
 
             db = parsed;
+            currentInvoiceNumber = db.config.invoiceCounter || 1;
             addLog("Base de données chargée", "success");
         } else {
             addLog("Initialisation du système", "info");
@@ -3147,6 +3148,12 @@ function updateUI() {
     checkAlerts();
     updateDiscountDisplay();
     initLucide();
+    
+    // Mettre à jour l'affichage du numéro de facture
+    const invoiceNumberElement = document.getElementById('invoice-number');
+    if (invoiceNumberElement) {
+        invoiceNumberElement.innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
+    }
     
     // Update mobile-specific displays
     if(document.getElementById('tab-stock')?.classList.contains('active')) {
