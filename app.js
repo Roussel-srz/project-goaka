@@ -29,6 +29,7 @@ let db = {
     credits: [],
     stockMovements: [],
     logs: [],
+    amortizedExpenses: [],
     config: {
         version: "1.0.0",
         currency: "Ar",
@@ -402,6 +403,7 @@ function loadDB() {
             if(!parsed.config) parsed.config = db.config;
             if(!parsed.credits) parsed.credits = [];
             if(!parsed.stockMovements) parsed.stockMovements = [];
+            if(!parsed.amortizedExpenses) parsed.amortizedExpenses = [];
             if(!parsed.config.adminPassword) parsed.config.adminPassword = ADMIN_PASSWORD;
             if(!parsed.config.authEnabled) parsed.config.authEnabled = true;
             if(!parsed.config.invoiceCounter) parsed.config.invoiceCounter = 1;
@@ -1805,10 +1807,13 @@ function clearCart() {
     });
     
     // Create invoice
+    const saleDateInput = document.getElementById('sale-date');
+    const saleDate = saleDateInput && saleDateInput.value ? saleDateInput.value : new Date().toISOString().split('T')[0];
+    
     const invoice = {
         id: invoiceId,
         number: currentInvoiceNumber,
-        date: new Date().toISOString(),
+        date: saleDate + 'T00:00:00.000Z',
         client: clientName || 'Client Passager', // Utiliser Client Passager si pas de nom
         clientPhone: clientPhone,
         items: [...cart],
@@ -2861,6 +2866,237 @@ function resetSaleForm() {
     document.getElementById('invoice-number').innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
 }
 
+// === AMORTIZED EXPENSES MANAGEMENT ===
+function calculateNextDueDate(startDate, frequency, periodsPaid) {
+    const start = new Date(startDate);
+    let nextDate = new Date(start);
+    
+    switch(frequency) {
+        case 'daily':
+            nextDate.setDate(nextDate.getDate() + periodsPaid + 1);
+            break;
+        case 'weekly':
+            nextDate.setDate(nextDate.getDate() + (periodsPaid + 1) * 7);
+            break;
+        case 'monthly':
+            nextDate.setMonth(nextDate.getMonth() + periodsPaid + 1);
+            break;
+        default:
+            nextDate.setMonth(nextDate.getMonth() + periodsPaid + 1);
+    }
+    
+    return nextDate.toISOString().split('T')[0];
+}
+
+function generateAmortizedExpensePayments() {
+    const today = new Date().toISOString().split('T')[0];
+    let newPayments = [];
+    
+    db.amortizedExpenses.forEach(amortized => {
+        if(amortized.status !== 'active') return;
+        
+        // Vérifier si des échéances sont dues
+        let currentDate = new Date(amortized.startDate);
+        let periodsToPay = amortized.paidPeriods;
+        
+        while(periodsToPay < amortized.totalPeriods) {
+            const dueDate = calculateNextDueDate(amortized.startDate, amortized.frequency, periodsToPay);
+            
+            if(dueDate <= today) {
+                // Générer la dépense pour cette échéance
+                const payment = {
+                    id: 'AMORT-PAY-' + amortized.id + '-' + periodsToPay,
+                    category: amortized.category,
+                    motif: `${amortized.description} (${periodsToPay + 1}/${amortized.totalPeriods})`,
+                    amount: amortized.amountPerPeriod,
+                    date: dueDate,
+                    time: new Date().toISOString(),
+                    amortizedId: amortized.id
+                };
+                
+                newPayments.push(payment);
+                periodsToPay++;
+            } else {
+                break;
+            }
+        }
+        
+        // Mettre à jour le nombre de périodes payées
+        amortized.paidPeriods = periodsToPay;
+        
+        // Mettre à jour la prochaine date d'échéance
+        if(periodsToPay < amortized.totalPeriods) {
+            amortized.nextDueDate = calculateNextDueDate(amortized.startDate, amortized.frequency, periodsToPay);
+        } else {
+            amortized.status = 'completed';
+            amortized.nextDueDate = null;
+        }
+    });
+    
+    // Ajouter les nouveaux paiements aux dépenses
+    if(newPayments.length > 0) {
+        db.depenses.push(...newPayments);
+        addLog(`${newPayments.length} échéance(s) d'amortissement générée(s) automatiquement`, "info");
+    }
+    
+    return newPayments.length;
+}
+
+function renderAmortizedExpenses() {
+    const container = document.getElementById('amortized-expenses-list');
+    if(!container) return;
+    
+    const activeAmortized = db.amortizedExpenses.filter(a => a.status === 'active');
+    
+    // Mettre à jour les statistiques
+    const statsContainer = document.getElementById('amortizations-stats');
+    if(statsContainer) {
+        const totalAmount = activeAmortized.reduce((sum, a) => sum + a.totalAmount, 0);
+        const monthlyCost = activeAmortized.reduce((sum, a) => sum + a.amountPerPeriod, 0);
+        const completedCount = db.amortizedExpenses.filter(a => a.status === 'completed').length;
+        const pausedCount = db.amortizedExpenses.filter(a => a.status === 'paused').length;
+        
+        statsContainer.innerHTML = `
+            <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                <span class="text-slate-600">Total actif:</span>
+                <span class="font-semibold text-slate-800">${formatMoney(totalAmount)}</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
+                <span class="text-slate-600">Coût mensuel:</span>
+                <span class="font-semibold text-slate-800">${formatMoney(monthlyCost)}</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                <span class="text-green-600">Actifs:</span>
+                <span class="font-semibold text-green-800">${activeAmortized.length}</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-amber-50 rounded-lg">
+                <span class="text-amber-600">En pause:</span>
+                <span class="font-semibold text-amber-800">${pausedCount}</span>
+            </div>
+            <div class="flex justify-between items-center p-2 bg-blue-50 rounded-lg">
+                <span class="text-blue-600">Terminés:</span>
+                <span class="font-semibold text-blue-800">${completedCount}</span>
+            </div>
+        `;
+    }
+    
+    if(activeAmortized.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-500 py-8">Aucun amortissement actif</div>';
+        return;
+    }
+    
+    let html = '<div class="space-y-4">';
+    
+    activeAmortized.forEach(amortized => {
+        const progress = (amortized.paidPeriods / amortized.totalPeriods) * 100;
+        const remaining = amortized.totalPeriods - amortized.paidPeriods;
+        const frequencyText = amortized.frequency === 'daily' ? 'Quotidien' : 
+                             amortized.frequency === 'weekly' ? 'Hebdomadaire' : 'Mensuel';
+        
+        html += `
+            <div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h4 class="font-semibold text-slate-800">${amortized.description}</h4>
+                        <p class="text-sm text-slate-500">${amortized.motif}</p>
+                    </div>
+                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Actif</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                    <div>
+                        <span class="text-slate-500">Montant total:</span>
+                        <span class="font-medium ml-1">${formatMoney(amortized.totalAmount)}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">Par période:</span>
+                        <span class="font-medium ml-1">${formatMoney(amortized.amountPerPeriod)}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">Progression:</span>
+                        <span class="font-medium ml-1">${amortized.paidPeriods}/${amortized.totalPeriods}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">Reste:</span>
+                        <span class="font-medium ml-1">${remaining} ${frequencyText.toLowerCase()}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm">
+                    <div class="text-slate-500">
+                        Prochaine échéance: <span class="font-medium text-slate-700">${amortized.nextDueDate || 'N/A'}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="pauseAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 text-xs">Suspendre</button>
+                        <button onclick="stopAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs">Arrêter</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function pauseAmortizedExpense(id) {
+    const amortized = db.amortizedExpenses.find(a => a.id === id);
+    if(amortized) {
+        amortized.status = 'paused';
+        saveDB();
+        updateUI();
+        showToast("Amortissement suspendu", "success");
+        addLog(`Amortissement suspendu: ${amortized.description}`, "warning");
+    }
+}
+
+function stopAmortizedExpense(id) {
+    const amortized = db.amortizedExpenses.find(a => a.id === id);
+    if(amortized) {
+        amortized.status = 'stopped';
+        saveDB();
+        updateUI();
+        showToast("Amortissement arrêté", "success");
+        addLog(`Amortissement arrêté: ${amortized.description}`, "warning");
+    }
+}
+
+function resetExpenseForm() {
+    const form = document.getElementById('form-expense-modal');
+    form.reset();
+    document.getElementById('amortized-fields').classList.add('hidden');
+    delete form.dataset.editId;
+    document.getElementById('expense-modal-title').innerText = "Nouvelle Dépense";
+}
+
+function openAmortizationsModal() {
+    renderAmortizedExpenses();
+    openModal('modal-amortizations');
+}
+
+function openNewAmortizationModal() {
+    // Fermer d'abord le modal des amortissements
+    closeModal('modal-amortizations');
+    
+    // Ouvrir le modal expense après une petite pause pour permettre la transition
+    setTimeout(() => {
+        openModal('modal-expense');
+        // Pré-sélectionner le type "Amortie"
+        const expenseTypeSelect = document.getElementById('expense-type');
+        if(expenseTypeSelect) {
+            expenseTypeSelect.value = 'amortized';
+            // Déclencher l'événement change pour afficher les champs
+            expenseTypeSelect.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+}
+
         // === CREDIT MANAGEMENT ===
         document.getElementById('form-credit-payment').onsubmit = function(e) {
             e.preventDefault();
@@ -3000,10 +3236,24 @@ function openCreditPayment(creditId) {
 };
 
         // Expense modal form
+        // Gérer l'affichage des champs d'amortissement
+        document.getElementById('expense-type').addEventListener('change', function() {
+            const amortizedFields = document.getElementById('amortized-fields');
+            if(this.value === 'amortized') {
+                amortizedFields.classList.remove('hidden');
+                // Définir la date de début par défaut à aujourd'hui
+                document.getElementById('amortized-start-date').value = new Date().toISOString().split('T')[0];
+            } else {
+                amortizedFields.classList.add('hidden');
+            }
+        });
+        
         document.getElementById('form-expense-modal').onsubmit = function(e) {
             e.preventDefault();
             if(!canAccess('expensesAdd') && !this.dataset.editId) { showToast("Action non autorisée", "error"); return; }
             if(!canAccess('expensesEdit') && this.dataset.editId) { showToast("Action non autorisée", "error"); return; }
+    
+    const expenseType = document.getElementById('expense-type').value;
     const category = document.getElementById('expense-modal-category').value;
     const motif = document.getElementById('expense-modal-motif').value.trim();
     const amount = parseFloat(document.getElementById('expense-modal-amount').value);
@@ -3011,7 +3261,7 @@ function openCreditPayment(creditId) {
     const editId = this.dataset.editId;
     
     if(editId) {
-        // Mode édition
+        // Mode édition (uniquement pour dépenses normales)
         const expense = db.depenses.find(e => e.id === editId);
         if(expense) {
             expense.category = category;
@@ -3024,23 +3274,57 @@ function openCreditPayment(creditId) {
         }
         delete this.dataset.editId;
     } else {
-        // Mode création
-        const expense = {
-            id: 'EXP' + Date.now(),
-            category,
-            motif,
-            amount,
-            date,
-            time: new Date().toISOString()
-        };
-        
-        db.depenses.push(expense);
-        addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
-        showToast("Dépense enregistrée", "success");
+        if(expenseType === 'amortized') {
+            // Créer une dépense amortie
+            const periods = parseInt(document.getElementById('amortized-periods').value);
+            const frequency = document.getElementById('amortized-frequency').value;
+            const startDate = document.getElementById('amortized-start-date').value;
+            const description = document.getElementById('amortized-description').value.trim();
+            
+            if(!periods || !startDate) {
+                showToast("Veuillez remplir les champs obligatoires d'amortissement", "error");
+                return;
+            }
+            
+            const amortizedExpense = {
+                id: 'AMORT' + Date.now(),
+                totalAmount: amount,
+                amountPerPeriod: amount / periods,
+                totalPeriods: periods,
+                paidPeriods: 0,
+                frequency: frequency,
+                startDate: startDate,
+                category: category,
+                description: description,
+                motif: motif,
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                nextDueDate: calculateNextDueDate(startDate, frequency, 0)
+            };
+            
+            db.amortizedExpenses.push(amortizedExpense);
+            addLog(`Dépense amortie créée: ${description} (${periods} ${frequency})`, "info");
+            showToast(`Dépense amortie créée - ${amount/periods} Ar par ${frequency}`, "success");
+        } else {
+            // Créer une dépense normale
+            const expense = {
+                id: 'EXP' + Date.now(),
+                category,
+                motif,
+                amount,
+                date,
+                time: new Date().toISOString()
+            };
+            
+            db.depenses.push(expense);
+            addLog(`Sortie Caisse: ${motif} (-${formatMoney(amount)})`, "warning");
+            showToast("Dépense enregistrée", "success");
+        }
     }
     
     saveDB();
     closeModal('modal-expense');
+    resetExpenseForm();
     updateUI();
 };
 
@@ -3135,11 +3419,18 @@ function resetExpenseForm() {
 
 // === UI UPDATERS ===
 function updateUI() {
+    // Générer automatiquement les échéances d'amortissement dues
+    const generatedPayments = generateAmortizedExpensePayments();
+    if(generatedPayments > 0) {
+        showToast(`${generatedPayments} échéance(s) d'amortissement générée(s) automatiquement`, "info");
+    }
+    
     updateDashboard();
     renderStock();
     renderSales();
     renderCredits();
     renderExpenses();
+    renderAmortizedExpenses();
     renderLogs();
     updateReports();
     updateSelects();
@@ -3148,6 +3439,21 @@ function updateUI() {
     checkAlerts();
     updateDiscountDisplay();
     initLucide();
+    
+    // Gérer l'affichage du champ date de vente (admin uniquement)
+    const saleDateField = document.getElementById('sale-date-field');
+    const saleDateInput = document.getElementById('sale-date');
+    if (saleDateField && saleDateInput) {
+        if (canAccess('configAdmin')) {
+            saleDateField.classList.remove('hidden');
+            // Initialiser avec la date du jour si vide
+            if (!saleDateInput.value) {
+                saleDateInput.value = new Date().toISOString().split('T')[0];
+            }
+        } else {
+            saleDateField.classList.add('hidden');
+        }
+    }
     
     // Mettre à jour l'affichage du numéro de facture
     const invoiceNumberElement = document.getElementById('invoice-number');
@@ -3964,7 +4270,7 @@ function removeExpenseCategory(categoryName) {
 }
 
 function updateExpenseCategoriesSelect() {
-    const selects = ['expense-category', 'expense-filter-category'];
+    const selects = ['expense-category', 'expense-filter-category', 'expense-modal-category'];
     
     selects.forEach(selectId => {
         const select = document.getElementById(selectId);
@@ -5512,16 +5818,24 @@ function updateReports() {
     const ventesFiltered = db.ventes.filter(v => dateInRange(v.date, range.start, range.end));
     const depensesFiltered = db.depenses.filter(e => dateInRange(e.date, range.start, range.end));
     const creditsFiltered = db.credits.filter(c => dateInRange(c.date, range.start, range.end));
+    
+    // Filtrer les amortissements actifs créés dans la période
+    const amortizedFiltered = db.amortizedExpenses.filter(a => 
+        a.status === 'active' && dateInRange(a.createdAt, range.start, range.end)
+    );
 
     // Debug: Afficher les nombres de résultats
     console.log('Rapport - Ventes filtrées:', ventesFiltered.length, 'sur', db.ventes.length);
     console.log('Rapport - Dépenses filtrées:', depensesFiltered.length, 'sur', db.depenses.length);
     console.log('Rapport - Crédits filtrés:', creditsFiltered.length, 'sur', db.credits.length);
+    console.log('Rapport - Amortissements filtrés:', amortizedFiltered.length, 'sur', db.amortizedExpenses.length);
 
     const totalVentes = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.total||0), 0);
     const totalDepenses = depensesFiltered.reduce((sum, e) => sum + (e.amount||0), 0);
     const totalProfit = ventesFiltered.filter(v => v.status === 'paid').reduce((sum, s) => sum + (s.profit||0), 0) - totalDepenses;
     const totalCredits = creditsFiltered.reduce((sum, c) => sum + (c.balance||0), 0);
+    const totalAmortized = amortizedFiltered.reduce((sum, a) => sum + (a.totalAmount||0), 0);
+    const monthlyAmortizedCost = amortizedFiltered.reduce((sum, a) => sum + (a.amountPerPeriod||0), 0);
 
     // Debug: Afficher les totaux calculés
     console.log('Rapport - Totaux:', { totalVentes, totalDepenses, totalProfit, totalCredits });
@@ -5529,6 +5843,7 @@ function updateReports() {
     // Update summary cards
     document.getElementById('report-total-sales').innerText = formatMoney(totalVentes);
     document.getElementById('report-total-expenses').innerText = formatMoney(totalDepenses);
+    document.getElementById('report-total-amortized').innerText = formatMoney(totalAmortized);
     document.getElementById('report-net-profit').innerText = formatMoney(totalProfit);
     document.getElementById('report-credits').innerText = formatMoney(totalCredits);
 
