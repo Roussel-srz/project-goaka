@@ -1062,6 +1062,9 @@ function renderMobileStockList() {
             </div>
             
             <div class="flex gap-2">
+                <button onclick="showProductTransactionHistory('${p.id}')" class="flex-1 px-3 py-2 bg-purple-50 text-purple-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1">
+                    <i data-lucide="history" class="w-3 h-3"></i> Historique
+                </button>
                 <button onclick="openStockAdjust('${p.id}', 10, 'add')" class="flex-1 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-medium flex items-center justify-center gap-1">
                     <i data-lucide="plus" class="w-3 h-3"></i> Ajouter
                 </button>
@@ -1387,8 +1390,8 @@ function executeAuth() {
         nom: document.getElementById('prod-nom').value.trim(),
         category: document.getElementById('prod-category').value.trim() || "Non catégorisé",
         fournisseur: document.getElementById('prod-fournisseur').value.trim() || 'Inconnu',
-        achat: parseFloat(document.getElementById('prod-achat').value),
-        vente: parseFloat(document.getElementById('prod-vente').value),
+        achat: parseFloat(document.getElementById('prod-achat').value) || 0,
+        vente: parseFloat(document.getElementById('prod-vente').value) || 0,
         stock: parseStock(document.getElementById('prod-stock').value),
         min: parseStock(document.getElementById('prod-min').value) || 5,
         createdAt: editId ? db.produits.find(p => p.id === editId)?.createdAt || new Date().toISOString() : new Date().toISOString(),
@@ -1430,9 +1433,18 @@ function executeAuth() {
 
 function validateProduct(data) {
     if(!data.nom || data.nom.length < 2) return "Le nom doit contenir au moins 2 caractères";
-    if(isNaN(data.achat) || data.achat <= 0) return "Le prix d'achat doit être supérieur à 0";
-    if(isNaN(data.vente) || data.vente <= 0) return "Le prix de vente doit être supérieur à 0";
-    if(data.vente < data.achat) return "Le prix de vente doit être supérieur au prix d'achat";
+    if(isNaN(data.achat) || data.achat < 0) return "Le prix d'achat doit être supérieur ou égal à 0";
+    if(isNaN(data.vente) || data.vente < 0) return "Le prix de vente doit être supérieur ou égal à 0";
+    
+    // Ne vérifier la relation prix vente > prix achat que si les deux sont > 0
+    if(data.vente > 0 && data.achat > 0 && data.vente < data.achat) {
+        return "Le prix de vente doit être supérieur au prix d'achat lorsque les deux sont supérieurs à 0";
+    }
+    
+    // Si les deux prix sont à 0, accepter (service offert)
+    if(data.vente === 0 && data.achat === 0) {
+        return null; // Valide pour un service offert
+    }
     
     // Utiliser la nouvelle validation de stock
     const stockError = validateStock(data.stock);
@@ -1514,6 +1526,378 @@ function validateProduct(data) {
         try { showToast('Erreur interne (voir console)', 'error'); } catch(e){}
     }
     openModal('modal-stock-adjust');
+}
+
+// === TABLE SCROLL FUNCTIONS ===
+function scrollTransactionModal(direction) {
+    const container = document.getElementById('transaction-modal-content');
+    if (!container) return;
+    
+    const scrollAmount = 300; // pixels per scroll
+    if (direction === 'up') {
+        container.scrollBy({
+            top: -scrollAmount,
+            behavior: 'smooth'
+        });
+    } else if (direction === 'down') {
+        container.scrollBy({
+            top: scrollAmount,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// === PRODUCT TRANSACTION HISTORY ===
+function showProductTransactionHistory(productId) {
+    const product = db.produits.find(p => p.id === productId);
+    if(!product) return;
+    
+    // Get all transactions for this product
+    const transactions = [];
+    
+    // Add sales transactions
+    db.ventes.forEach(sale => {
+        if(sale.items) {
+            sale.items.forEach(item => {
+                if(item.productId === productId) {
+                    transactions.push({
+                        id: sale.id,
+                        date: sale.date,
+                        type: 'vente',
+                        description: `Vente - ${sale.client || 'Client divers'}`,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        total: item.quantity * item.unitPrice,
+                        paymentMethod: sale.paymentMethod,
+                        status: sale.status,
+                        invoiceNumber: sale.invoiceNumber
+                    });
+                }
+            });
+        }
+    });
+    
+    // Add stock movements
+    db.stockMovements.forEach(movement => {
+        if(movement.productId === productId) {
+            transactions.push({
+                id: movement.id,
+                date: movement.date,
+                type: 'mouvement_stock',
+                description: `Mouvement stock - ${movement.reason}`,
+                quantity: movement.type === 'achat' ? movement.quantity : -movement.quantity,
+                unitPrice: movement.type === 'achat' ? movement.cost / movement.quantity : 0,
+                total: movement.cost,
+                movementType: movement.type,
+                oldStock: movement.oldStock,
+                newStock: movement.newStock
+            });
+        }
+    });
+    
+    // Add stock purchase expenses
+    db.depenses.forEach(expense => {
+        if(expense.productId === productId && expense.category === 'achat_stock') {
+            transactions.push({
+                id: expense.id,
+                date: expense.date,
+                type: 'achat_stock',
+                description: expense.motif,
+                quantity: expense.quantity,
+                unitPrice: expense.unitPrice,
+                total: expense.amount
+            });
+        }
+    });
+    
+    // Sort by date (most recent first)
+    transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Display modal
+    displayTransactionHistoryModal(product, transactions);
+}
+
+function displayTransactionHistoryModal(product, transactions) {
+    // Create modal HTML
+    const modalHtml = `
+        <div id="transaction-history-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex-shrink-0">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-2">Historique des Transactions</h2>
+                            <h3 class="text-xl opacity-90">${product.nom}</h3>
+                            <p class="text-sm opacity-75 mt-1">Catégorie: ${product.category || 'Non catégorisé'}</p>
+                        </div>
+                        <button onclick="closeTransactionHistoryModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Scroll controls -->
+                <div class="flex justify-between items-center p-3 bg-gray-50 border-b flex-shrink-0">
+                    <div class="text-sm font-medium text-gray-600">Navigation</div>
+                    <div class="flex gap-2">
+                        <button onclick="scrollTransactionModal('up')" class="p-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" title="Défiler vers le haut">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                            </svg>
+                        </button>
+                        <button onclick="scrollTransactionModal('down')" class="p-1.5 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors" title="Défiler vers le bas">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Scrollable content -->
+                <div id="transaction-modal-content" class="flex-1 overflow-y-auto p-6">
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="text-sm text-blue-600 font-medium">Stock Actuel</div>
+                            <div class="text-2xl font-bold text-blue-900">${formatStock(product.stock)}</div>
+                        </div>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="text-sm text-green-600 font-medium">Total Ventes</div>
+                            <div class="text-2xl font-bold text-green-900">${transactions.filter(t => t.type === 'vente').reduce((sum, t) => sum + t.quantity, 0)}</div>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div class="text-sm text-amber-600 font-medium">Total Achats</div>
+                            <div class="text-2xl font-bold text-amber-900">${transactions.filter(t => t.type === 'achat_stock' || (t.type === 'mouvement_stock' && t.movementType === 'achat')).reduce((sum, t) => sum + t.quantity, 0)}</div>
+                        </div>
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <div class="text-sm text-purple-600 font-medium">Total Transactions</div>
+                            <div class="text-2xl font-bold text-purple-900">${transactions.length}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap gap-4 mb-6">
+                        <select id="transaction-type-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Tous les types</option>
+                            <option value="vente">Ventes</option>
+                            <option value="mouvement_stock">Mouvements de stock</option>
+                            <option value="achat_stock">Achats de stock</option>
+                        </select>
+                        <input type="date" id="transaction-date-from" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <input type="date" id="transaction-date-to" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="filterTransactionHistory('${product.id}')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Filtrer
+                        </button>
+                    </div>
+                    
+                    <!-- Transactions List -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 border-b">
+                                <tr>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-700">Date</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-700">Type</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-700">Description</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-700">Quantité</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-700">Prix Unit.</th>
+                                    <th class="px-4 py-3 text-right font-medium text-gray-700">Total</th>
+                                    <th class="px-4 py-3 text-left font-medium text-gray-700">Détails</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-history-list" class="divide-y divide-gray-200">
+                                ${renderTransactionRows(transactions)}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    ${transactions.length === 0 ? `
+                        <div class="text-center py-8 text-gray-400">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-30"></i>
+                            <p>Aucune transaction trouvée pour ce produit</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer);
+    
+    // Initialize lucide icons
+    if(typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function renderTransactionRows(transactions) {
+    return transactions.map(transaction => {
+        const date = new Date(transaction.date).toLocaleDateString('fr-FR');
+        const time = new Date(transaction.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        
+        let typeBadge = '';
+        let quantityClass = '';
+        let details = '';
+        
+        switch(transaction.type) {
+            case 'vente':
+                typeBadge = '<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Vente</span>';
+                quantityClass = 'text-green-600';
+                details = `
+                    <div class="text-xs text-gray-500">
+                        Facture: ${transaction.invoiceNumber || 'N/A'}<br>
+                        Paiement: ${transaction.paymentMethod || 'N/A'}<br>
+                        Statut: ${transaction.status === 'paid' ? 'Payé' : 'Crédit'}
+                    </div>
+                `;
+                break;
+            case 'mouvement_stock':
+                typeBadge = '<span class="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">Mouvement</span>';
+                quantityClass = transaction.movementType === 'achat' ? 'text-blue-600' : 'text-red-600';
+                details = `
+                    <div class="text-xs text-gray-500">
+                        Type: ${transaction.movementType === 'achat' ? 'Ajout' : 'Retrait'}<br>
+                        Stock avant: ${formatStock(transaction.oldStock)}<br>
+                        Stock après: ${formatStock(transaction.newStock)}
+                    </div>
+                `;
+                break;
+            case 'achat_stock':
+                typeBadge = '<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">Achat</span>';
+                quantityClass = 'text-blue-600';
+                details = '<div class="text-xs text-gray-500">Achat de stock</div>';
+                break;
+        }
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-3">
+                    <div class="text-sm">${date}</div>
+                    <div class="text-xs text-gray-500">${time}</div>
+                </td>
+                <td class="px-4 py-3">${typeBadge}</td>
+                <td class="px-4 py-3">
+                    <div class="text-sm font-medium">${transaction.description}</div>
+                    ${details}
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <span class="${quantityClass} font-medium">
+                        ${transaction.quantity > 0 ? '+' : ''}${formatStock(transaction.quantity)}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-right">${formatMoney(transaction.unitPrice)}</td>
+                <td class="px-4 py-3 text-right font-medium">${formatMoney(transaction.total)}</td>
+                <td class="px-4 py-3">
+                    <button onclick="viewTransactionDetails('${transaction.id}', '${transaction.type}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                        Voir détails
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterTransactionHistory(productId) {
+    const typeFilter = document.getElementById('transaction-type-filter').value;
+    const dateFrom = document.getElementById('transaction-date-from').value;
+    const dateTo = document.getElementById('transaction-date-to').value;
+    
+    const product = db.produits.find(p => p.id === productId);
+    if(!product) return;
+    
+    // Get all transactions (same logic as showProductTransactionHistory)
+    const transactions = [];
+    
+    db.ventes.forEach(sale => {
+        if(sale.items) {
+            sale.items.forEach(item => {
+                if(item.productId === productId) {
+                    transactions.push({
+                        id: sale.id,
+                        date: sale.date,
+                        type: 'vente',
+                        description: `Vente - ${sale.client || 'Client divers'}`,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        total: item.quantity * item.unitPrice,
+                        paymentMethod: sale.paymentMethod,
+                        status: sale.status,
+                        invoiceNumber: sale.invoiceNumber
+                    });
+                }
+            });
+        }
+    });
+    
+    db.stockMovements.forEach(movement => {
+        if(movement.productId === productId) {
+            transactions.push({
+                id: movement.id,
+                date: movement.date,
+                type: 'mouvement_stock',
+                description: `Mouvement stock - ${movement.reason}`,
+                quantity: movement.type === 'achat' ? movement.quantity : -movement.quantity,
+                unitPrice: movement.type === 'achat' ? movement.cost / movement.quantity : 0,
+                total: movement.cost,
+                movementType: movement.type,
+                oldStock: movement.oldStock,
+                newStock: movement.newStock
+            });
+        }
+    });
+    
+    db.depenses.forEach(expense => {
+        if(expense.productId === productId && expense.category === 'achat_stock') {
+            transactions.push({
+                id: expense.id,
+                date: expense.date,
+                type: 'achat_stock',
+                description: expense.motif,
+                quantity: expense.quantity,
+                unitPrice: expense.unitPrice,
+                total: expense.amount
+            });
+        }
+    });
+    
+    // Apply filters
+    let filtered = transactions;
+    
+    if(typeFilter) {
+        filtered = filtered.filter(t => t.type === typeFilter);
+    }
+    
+    if(dateFrom) {
+        filtered = filtered.filter(t => new Date(t.date) >= new Date(dateFrom));
+    }
+    
+    if(dateTo) {
+        filtered = filtered.filter(t => new Date(t.date) <= new Date(dateTo + 'T23:59:59'));
+    }
+    
+    // Sort by date
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Update the table
+    const tbody = document.getElementById('transaction-history-list');
+    if(tbody) {
+        tbody.innerHTML = renderTransactionRows(filtered);
+    }
+}
+
+function viewTransactionDetails(transactionId, type) {
+    // This function can be expanded to show detailed information about a specific transaction
+    showToast(`Détails de la transaction ${transactionId} (${type})`, "info");
+}
+
+function closeTransactionHistoryModal() {
+    const modal = document.getElementById('transaction-history-modal');
+    if(modal) {
+        modal.remove();
+    }
 }
 
 // === STOCK MOVEMENT FUNCTION ===
@@ -3714,6 +4098,12 @@ function renderStock() {
             </td>
             <td class="px-6 py-4">
                 <div class="flex items-center justify-center gap-2">
+                    <!-- Transaction History -->
+                    <button onclick="showProductTransactionHistory('${p.id}')" class="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300 rounded-lg transition-colors" title="Historique des transactions">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </button>
                     <!-- Stock actions -->
                     <button onclick="openStockAdjust('${p.id}', 1, 'add')" class="p-2 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition-colors" title="Ajouter stock">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -5322,14 +5712,21 @@ function importStockCSV(event) {
                             continue;
                         }
                         
-                        if (isNaN(productData.achat) || productData.achat <= 0) {
+                        if (isNaN(productData.achat) || productData.achat < 0) {
                             console.log(`Validation échoucée pour ligne ${i + 1}: prix achat invalide (${productData.achat})`);
                             errorCount++;
                             continue;
                         }
                         
-                        if (isNaN(productData.vente) || productData.vente <= 0) {
+                        if (isNaN(productData.vente) || productData.vente < 0) {
                             console.log(`Validation échoucée pour ligne ${i + 1}: prix vente invalide (${productData.vente})`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Ne vérifier la relation prix vente > prix achat que si les deux sont > 0
+                        if (productData.vente > 0 && productData.achat > 0 && productData.vente < productData.achat) {
+                            console.log(`Validation échoucée pour ligne ${i + 1}: prix vente inférieur au prix achat`);
                             errorCount++;
                             continue;
                         }
