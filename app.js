@@ -30,6 +30,7 @@ let db = {
     stockMovements: [],
     logs: [],
     amortizedExpenses: [],
+    clients: [], // Nouvelle collection pour les clients
     config: {
         version: "1.0.0",
         currency: "Ar",
@@ -404,6 +405,7 @@ function loadDB() {
             if(!parsed.credits) parsed.credits = [];
             if(!parsed.stockMovements) parsed.stockMovements = [];
             if(!parsed.amortizedExpenses) parsed.amortizedExpenses = [];
+            if(!parsed.clients) parsed.clients = []; // Migration pour les clients
             if(!parsed.config.adminPassword) parsed.config.adminPassword = ADMIN_PASSWORD;
             if(!parsed.config.authEnabled) parsed.config.authEnabled = true;
             if(!parsed.config.invoiceCounter) parsed.config.invoiceCounter = 1;
@@ -585,7 +587,6 @@ function showAdminLoginModal() {
     // Debug info
     const dbReady = !!db && !!db.config;
     const storedLen = dbReady ? String(db.config.adminPassword || '').length : '?';
-    console.log("[DEBUG Admin] Ouverture modal admin | db prêt:", dbReady, "| Mdp stocké (long.):", storedLen);
     addLog("[DEBUG Admin] Ouverture modal connexion admin", "info");
     
     // Ouvrir le modal
@@ -617,8 +618,6 @@ function executeAdminLogin() {
     const password = document.getElementById('admin-login-password').value;
     const errorDiv = document.getElementById('admin-login-error');
     
-    console.log('[executeAdminLogin] Tentative de connexion, longueur saisie:', password ? password.length : 0);
-    
     if (!password) {
         errorDiv.innerText = "Veuillez entrer le mot de passe administrateur";
         errorDiv.classList.remove('hidden');
@@ -631,7 +630,6 @@ function executeAdminLogin() {
     const match = entered === stored;
     
     const msg = `[DEBUG Admin] Entré: ${entered.length} car. | Stocké: ${stored.length} car. | Match: ${match}`;
-    console.log(msg);
     addLog(msg, "info");
     
     if (!match) {
@@ -908,10 +906,19 @@ function switchTab(tabId) {
         showToast("Accès non autorisé à cette section", "error");
         return;
     }
-    // Hide all
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(t => {
+        t.classList.remove('active');
+        t.classList.add('hidden');
+    });
     // Show target
-    document.getElementById('tab-' + tabId).classList.add('active');
+    const targetTab = document.getElementById('tab-' + tabId);
+    if(targetTab) {
+        targetTab.classList.add('active');
+        targetTab.classList.remove('hidden');
+    } else {
+        console.log('Tab non trouvé:', 'tab-' + tabId);
+    }
     
     // Sidebar buttons
     document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
@@ -932,6 +939,7 @@ function switchTab(tabId) {
         dashboard: 'Tableau de bord',
         stock: 'Gestion du Stock',
         sales: 'Ventes & Facturation',
+        clients: 'Gestion des Clients',
         credits: 'Crédits Clients',
         expenses: 'Dépenses / Caisse',
         logs: 'Journal du Système',
@@ -1570,7 +1578,7 @@ function showProductTransactionHistory(productId) {
                         total: item.quantity * item.unitPrice,
                         paymentMethod: sale.paymentMethod,
                         status: sale.status,
-                        invoiceNumber: sale.invoiceNumber
+                        invoiceNumber: sale.number
                     });
                 }
             });
@@ -1825,7 +1833,7 @@ function filterTransactionHistory(productId) {
                         total: item.quantity * item.unitPrice,
                         paymentMethod: sale.paymentMethod,
                         status: sale.status,
-                        invoiceNumber: sale.invoiceNumber
+                        invoiceNumber: sale.number
                     });
                 }
             });
@@ -2365,6 +2373,14 @@ function showInvoice(invoice) {
                     </tr>
                 </tfoot>
             </table>
+            
+            <!-- Montant en lettres -->
+            <div class="mb-2 md:mb-3 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <div class="text-xs md:text-sm text-blue-800">
+                    <span class="font-semibold">Arrêté la présente facture à la somme de :</span>
+                    <span class="font-bold text-blue-900 capitalize">${numberToWords(Math.round(invoice.total))} ariarys</span>
+                </div>
+            </div>
             
             <!-- Payment Info -->
             <div class="mb-2 md:mb-3 p-2 md:p-3 bg-slate-50 rounded-lg">
@@ -3233,10 +3249,19 @@ function updateInvoiceTotal() {
     document.getElementById('invoice-total').innerText = formatMoney(total);
 }
 
+// Set today's date as default for sale date
+function setDefaultSaleDate() {
+    const saleDateInput = document.getElementById('sale-date');
+    if(saleDateInput && !saleDateInput.value) {
+        saleDateInput.value = new Date().toISOString().split('T')[0];
+    }
+}
+
 function resetSaleForm() {
     cart = [];
     document.getElementById('client-name').value = '';
     document.getElementById('client-phone').value = '';
+    document.getElementById('client-select').value = '';
     document.querySelector('input[name="payment-method"][value="cash"]').checked = true;
     document.getElementById('credit-info').classList.add('hidden');
     document.getElementById('discount-amount').value = '';
@@ -3331,14 +3356,68 @@ function renderAmortizedExpenses() {
     if(!container) return;
     
     const activeAmortized = db.amortizedExpenses.filter(a => a.status === 'active');
+    const pausedAmortized = db.amortizedExpenses.filter(a => a.status === 'paused');
     
     // Mettre à jour les statistiques
     const statsContainer = document.getElementById('amortizations-stats');
     if(statsContainer) {
         const totalAmount = activeAmortized.reduce((sum, a) => sum + a.totalAmount, 0);
-        const monthlyCost = activeAmortized.reduce((sum, a) => sum + a.amountPerPeriod, 0);
+        
+        // Calculer le coût mensuel réel en fonction de la fréquence et de la durée
+        const monthlyCost = activeAmortized.reduce((sum, a) => {
+            let monthlyAmount = a.amountPerPeriod;
+            if (a.frequency === 'daily') {
+                // Calculer combien de jours par mois en fonction de la durée totale
+                const daysInMonthFromDuration = 30; // Base mensuelle
+                const totalDays = a.totalPeriods; // Pour quotidien, totalPeriods = nombre de jours
+                
+                // Si l'amortissement est court (moins de 30 jours), le coût mensuel = montant total
+                if (totalDays <= 30) {
+                    monthlyAmount = a.totalAmount;
+                } else {
+                    // Si c'est sur plusieurs mois, calculer proportionnellement
+                    monthlyAmount = a.amountPerPeriod * daysInMonthFromDuration;
+                }
+            } else if (a.frequency === 'weekly') {
+                // Logique similaire pour hebdomadaire
+                const totalWeeks = a.totalPeriods;
+                if (totalWeeks <= 4) { // Moins d'un mois
+                    monthlyAmount = a.totalAmount;
+                } else {
+                    monthlyAmount = a.amountPerPeriod * 4.33;
+                }
+            }
+            // Si mensuel, garder le montant tel quel
+            return sum + monthlyAmount;
+        }, 0);
+        
         const completedCount = db.amortizedExpenses.filter(a => a.status === 'completed').length;
         const pausedCount = db.amortizedExpenses.filter(a => a.status === 'paused').length;
+        
+        // Déterminer le label approprié pour le coût
+        let costLabel = "Coût mensuel:";
+        const hasDaily = activeAmortized.some(a => a.frequency === 'daily');
+        const hasWeekly = activeAmortized.some(a => a.frequency === 'weekly');
+        const hasMonthly = activeAmortized.some(a => a.frequency === 'monthly');
+        
+        // Vérifier si tous les amortissements sont court terme (moins d'un mois)
+        const allShortTerm = activeAmortized.every(a => {
+            if (a.frequency === 'daily') return a.totalPeriods <= 30;
+            if (a.frequency === 'weekly') return a.totalPeriods <= 4;
+            return false;
+        });
+        
+        if (allShortTerm) {
+            costLabel = "Coût du mois:";
+        } else if (hasDaily && !hasWeekly && !hasMonthly) {
+            costLabel = "Coût mensuel (quotidien):";
+        } else if (hasWeekly && !hasDaily && !hasMonthly) {
+            costLabel = "Coût mensuel (hebdomadaire):";
+        } else if (hasMonthly && !hasDaily && !hasWeekly) {
+            costLabel = "Coût mensuel:";
+        } else if (hasDaily || hasWeekly) {
+            costLabel = "Coût mensuel estimé:";
+        }
         
         statsContainer.innerHTML = `
             <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
@@ -3346,7 +3425,7 @@ function renderAmortizedExpenses() {
                 <span class="font-semibold text-slate-800">${formatMoney(totalAmount)}</span>
             </div>
             <div class="flex justify-between items-center p-2 bg-slate-50 rounded-lg">
-                <span class="text-slate-600">Coût mensuel:</span>
+                <span class="text-slate-600">${costLabel}</span>
                 <span class="font-semibold text-slate-800">${formatMoney(monthlyCost)}</span>
             </div>
             <div class="flex justify-between items-center p-2 bg-green-50 rounded-lg">
@@ -3364,66 +3443,131 @@ function renderAmortizedExpenses() {
         `;
     }
     
-    if(activeAmortized.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-500 py-8">Aucun amortissement actif</div>';
+    if(activeAmortized.length === 0 && pausedAmortized.length === 0) {
+        container.innerHTML = '<div class="text-center text-slate-500 py-8">Aucun amortissement actif ou en pause</div>';
         return;
     }
     
     let html = '<div class="space-y-4">';
     
-    activeAmortized.forEach(amortized => {
-        const progress = (amortized.paidPeriods / amortized.totalPeriods) * 100;
-        const remaining = amortized.totalPeriods - amortized.paidPeriods;
-        const frequencyText = amortized.frequency === 'daily' ? 'Quotidien' : 
-                             amortized.frequency === 'weekly' ? 'Hebdomadaire' : 'Mensuel';
-        
-        html += `
-            <div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-slate-800">${amortized.description}</h4>
-                        <p class="text-sm text-slate-500">${amortized.motif}</p>
+    // Afficher les amortissements actifs
+    if (activeAmortized.length > 0) {
+        html += '<h4 class="font-semibold text-slate-700 mb-2">Amortissements Actifs</h4>';
+        activeAmortized.forEach(amortized => {
+            const progress = (amortized.paidPeriods / amortized.totalPeriods) * 100;
+            const remaining = amortized.totalPeriods - amortized.paidPeriods;
+            const frequencyText = amortized.frequency === 'daily' ? 'Quotidien' : 
+                                 amortized.frequency === 'weekly' ? 'Hebdomadaire' : 'Mensuel';
+            
+            html += `
+                <div class="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-slate-800">${amortized.description}</h4>
+                            <p class="text-sm text-slate-500">${amortized.motif}</p>
+                        </div>
+                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Actif</span>
                     </div>
-                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Actif</span>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div>
+                            <span class="text-slate-500">Montant total:</span>
+                            <span class="font-medium ml-1">${formatMoney(amortized.totalAmount)}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Par période:</span>
+                            <span class="font-medium ml-1">${formatMoney(amortized.amountPerPeriod)}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Progression:</span>
+                            <span class="font-medium ml-1">${amortized.paidPeriods}/${amortized.totalPeriods}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Reste:</span>
+                            <span class="font-medium ml-1">${remaining} ${frequencyText.toLowerCase()}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="text-slate-500">
+                            Prochaine échéance: <span class="font-medium text-slate-700">${amortized.nextDueDate || 'N/A'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="pauseAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 text-xs">Suspendre</button>
+                            <button onclick="stopAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs">Arrêter</button>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                    <div>
-                        <span class="text-slate-500">Montant total:</span>
-                        <span class="font-medium ml-1">${formatMoney(amortized.totalAmount)}</span>
+            `;
+        });
+    }
+    
+    // Afficher les amortissements en pause
+    if (pausedAmortized.length > 0) {
+        if (activeAmortized.length > 0) {
+            html += '<div class="border-t border-slate-200 my-4"></div>';
+        }
+        html += '<h4 class="font-semibold text-slate-700 mb-2">Amortissements en Pause</h4>';
+        pausedAmortized.forEach(amortized => {
+            const progress = (amortized.paidPeriods / amortized.totalPeriods) * 100;
+            const remaining = amortized.totalPeriods - amortized.paidPeriods;
+            const frequencyText = amortized.frequency === 'daily' ? 'Quotidien' : 
+                                 amortized.frequency === 'weekly' ? 'Hebdomadaire' : 'Mensuel';
+            
+            html += `
+                <div class="bg-white rounded-xl border border-amber-200 p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-slate-800">${amortized.description}</h4>
+                            <p class="text-sm text-slate-500">${amortized.motif}</p>
+                        </div>
+                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">En pause</span>
                     </div>
-                    <div>
-                        <span class="text-slate-500">Par période:</span>
-                        <span class="font-medium ml-1">${formatMoney(amortized.amountPerPeriod)}</span>
+                    
+                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
+                        <div>
+                            <span class="text-slate-500">Montant total:</span>
+                            <span class="font-medium ml-1">${formatMoney(amortized.totalAmount)}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Par période:</span>
+                            <span class="font-medium ml-1">${formatMoney(amortized.amountPerPeriod)}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Progression:</span>
+                            <span class="font-medium ml-1">${amortized.paidPeriods}/${amortized.totalPeriods}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500">Reste:</span>
+                            <span class="font-medium ml-1">${remaining} ${frequencyText.toLowerCase()}</span>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-slate-500">Progression:</span>
-                        <span class="font-medium ml-1">${amortized.paidPeriods}/${amortized.totalPeriods}</span>
+                    
+                    <div class="mb-3">
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div class="bg-amber-500 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-slate-500">Reste:</span>
-                        <span class="font-medium ml-1">${remaining} ${frequencyText.toLowerCase()}</span>
+                    
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="text-amber-600">
+                            Amortissement suspendu
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="resumeAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs">Reprendre</button>
+                            <button onclick="stopAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs">Arrêter</button>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="mb-3">
-                    <div class="w-full bg-slate-200 rounded-full h-2">
-                        <div class="bg-green-500 h-2 rounded-full transition-all" style="width: ${progress}%"></div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between items-center text-sm">
-                    <div class="text-slate-500">
-                        Prochaine échéance: <span class="font-medium text-slate-700">${amortized.nextDueDate || 'N/A'}</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="pauseAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 text-xs">Suspendre</button>
-                        <button onclick="stopAmortizedExpense('${amortized.id}')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs">Arrêter</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
+            `;
+        });
+    }
     
     html += '</div>';
     container.innerHTML = html;
@@ -3437,6 +3581,17 @@ function pauseAmortizedExpense(id) {
         updateUI();
         showToast("Amortissement suspendu", "success");
         addLog(`Amortissement suspendu: ${amortized.description}`, "warning");
+    }
+}
+
+function resumeAmortizedExpense(id) {
+    const amortized = db.amortizedExpenses.find(a => a.id === id);
+    if(amortized) {
+        amortized.status = 'active';
+        saveDB();
+        updateUI();
+        showToast("Amortissement repris", "success");
+        addLog(`Amortissement repris: ${amortized.description}`, "info");
     }
 }
 
@@ -3822,30 +3977,23 @@ function updateUI() {
     updateStorageSize();
     checkAlerts();
     updateDiscountDisplay();
+    renderClients();
+    setDefaultSaleDate(); // Définir la date par défaut
+    updateInvoiceNumber(); // Mettre à jour le numéro de facture
+    updateMobileDisplays(); // Mettre à jour les affichages mobiles
     initLucide();
-    
-    // Gérer l'affichage du champ date de vente (admin uniquement)
-    const saleDateField = document.getElementById('sale-date-field');
-    const saleDateInput = document.getElementById('sale-date');
-    if (saleDateField && saleDateInput) {
-        if (canAccess('configAdmin')) {
-            saleDateField.classList.remove('hidden');
-            // Initialiser avec la date du jour si vide
-            if (!saleDateInput.value) {
-                saleDateInput.value = new Date().toISOString().split('T')[0];
-            }
-        } else {
-            saleDateField.classList.add('hidden');
-        }
-    }
-    
-    // Mettre à jour l'affichage du numéro de facture
+}
+
+// Mettre à jour l'affichage du numéro de facture
+function updateInvoiceNumber() {
     const invoiceNumberElement = document.getElementById('invoice-number');
     if (invoiceNumberElement) {
         invoiceNumberElement.innerText = `Facture #${String(currentInvoiceNumber).padStart(3, '0')}`;
     }
-    
-    // Update mobile-specific displays
+}
+
+// Update mobile-specific displays
+function updateMobileDisplays() {
     if(document.getElementById('tab-stock')?.classList.contains('active')) {
         renderMobileStockList();
     }
@@ -4557,13 +4705,23 @@ function renderDashboardWidgets() {
         }
     });
     
-    // Adjust grid columns based on visible widgets
-    if (visibleCount <= 2) {
+    // Adjust grid columns based on visible widgets - Improved mobile layout
+    if (visibleCount === 0) {
+        container.className = 'grid grid-cols-1 gap-3 md:gap-4';
+        container.innerHTML = '<div class="col-span-full text-center text-slate-500 py-8">Aucun widget sélectionné. Allez dans Paramètres pour configurer les widgets.</div>';
+    } else if (visibleCount === 1) {
+        container.className = 'grid grid-cols-1 md:grid-cols-1 gap-3 md:gap-4';
+    } else if (visibleCount === 2) {
         container.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4';
-    } else if (visibleCount <= 4) {
-        container.className = 'grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4';
+    } else if (visibleCount === 3) {
+        container.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4';
+    } else if (visibleCount === 4) {
+        container.className = 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4';
+    } else if (visibleCount === 5) {
+        container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4';
     } else {
-        container.className = 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4';
+        // 6+ widgets
+        container.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4';
     }
 }
 
@@ -4990,6 +5148,17 @@ function updateSelects() {
         availableProducts
             .map(p => `<option value="${p.id}">${p.nom} (Stock: ${p.stock}) - ${formatMoney(p.vente)}</option>`)
             .join('');
+    
+    // Client select update
+    const clientSelect = document.getElementById('client-select');
+    if(clientSelect) {
+        clientSelect.innerHTML = '<option value="">-- Choisir un client --</option>' +
+            '<option value="new">+ Nouveau client</option>' +
+            db.clients
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(c => `<option value="${c.id}">${c.name} - ${c.phone || 'No téléphone'}</option>`)
+                .join('');
+    }
 }
 
 function filterProducts(searchTerm) {
@@ -5092,6 +5261,83 @@ function updateSalePrice() {
     } else {
         priceInput.value = '';
     }
+}
+
+function numberToWords(n) {
+    if(isNaN(n)) n = 0;
+    if(n === 0) return "zéro";
+    
+    const units = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
+    const teens = ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"];
+    const tens = ["", "dix", "vingt", "trente", "quarante", "cinquante", "soixante", "soixante-dix", "quatre-vingt", "quatre-vingt-dix"];
+    const thousands = ["", "mille", "million", "milliard"];
+    
+    let words = "";
+    let i = 0;
+    
+    while (n > 0) {
+        let chunk = n % 1000;
+        if (chunk > 0) {
+            let chunkWords = "";
+            
+            if (chunk >= 100) {
+                const hundreds = Math.floor(chunk / 100);
+                if (hundreds === 1) {
+                    chunkWords += "cent";
+                } else {
+                    chunkWords += units[hundreds] + " cent";
+                }
+                chunk = chunk % 100;
+                if (chunk > 0) chunkWords += " ";
+            }
+            
+            if (chunk >= 20) {
+                const tenIndex = Math.floor(chunk / 10);
+                const remainder = chunk % 10;
+                
+                if (tenIndex === 7 || tenIndex === 9) {
+                    chunkWords += tens[tenIndex - 1];
+                    if (remainder === 1) {
+                        chunkWords += " et " + teens[remainder];
+                    } else if (remainder > 0) {
+                        chunkWords += "-" + teens[remainder];
+                    }
+                } else {
+                    chunkWords += tens[tenIndex];
+                    if (remainder === 1) {
+                        chunkWords += " et " + units[remainder];
+                    } else if (remainder > 0) {
+                        chunkWords += "-" + units[remainder];
+                    }
+                }
+            } else if (chunk >= 10) {
+                chunkWords += teens[chunk - 10];
+            } else if (chunk > 0) {
+                chunkWords += units[chunk];
+            }
+            
+            if (i === 1 && chunk === 1) {
+                words = "mille " + words;
+            } else if (i === 1 && chunk > 1) {
+                words = chunkWords + " mille " + words;
+            } else if (i === 2 && chunk === 1) {
+                words = "million " + words;
+            } else if (i === 2) {
+                words = chunkWords + " millions " + words;
+            } else if (i === 3 && chunk === 1) {
+                words = "milliard " + words;
+            } else if (i === 3) {
+                words = chunkWords + " milliards " + words;
+            } else {
+                words = chunkWords + " " + words;
+            }
+        }
+        
+        n = Math.floor(n / 1000);
+        i++;
+    }
+    
+    return words.trim();
 }
 
 function formatMoney(n, short = false) {
@@ -6244,6 +6490,9 @@ function updateReports() {
     document.getElementById('report-net-profit').innerText = formatMoney(totalProfit);
     document.getElementById('report-credits').innerText = formatMoney(totalCredits);
 
+    // Apply responsive layout for reports
+    renderReportsLayout();
+
     // Calculate best customer (excluding Client Passager)
     const customerStats = {};
     ventesFiltered.forEach(sale => {
@@ -6385,6 +6634,78 @@ topProductsQuantityDiv.innerHTML = topProductsQuantity.map(([name, data], index)
 `).join('');
     }
 }
+
+// === REPORTS LAYOUT MANAGEMENT ===
+function renderReportsLayout() {
+    // Find the main reports grid containers (now 4 cols desktop, 2 cols mobile)
+    const mainReportsGrid = document.querySelector('#tab-reports .grid.grid-cols-2.md\\:grid-cols-4');
+    const secondaryReportsGrid = document.querySelector('#tab-reports .grid.grid-cols-2.md\\:grid-cols-4:nth-of-type(2)');
+    
+    if (!mainReportsGrid) return;
+    
+    // Apply same logic as renderDashboardWidgets() but for 4-column layout
+    let visibleCount = 0;
+    const reportWidgets = mainReportsGrid.children;
+    
+    // Count visible widgets (all are visible by default in reports)
+    for (let i = 0; i < reportWidgets.length; i++) {
+        if (reportWidgets[i].style.display !== 'none') {
+            visibleCount++;
+        }
+    }
+    
+    // Apply responsive logic for 4-column layout
+    if (visibleCount === 0) {
+        mainReportsGrid.className = 'grid grid-cols-1 gap-3 md:gap-4';
+    } else if (visibleCount === 1) {
+        mainReportsGrid.className = 'grid grid-cols-1 md:grid-cols-1 gap-3 md:gap-4';
+    } else if (visibleCount === 2) {
+        mainReportsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4';
+    } else if (visibleCount === 3) {
+        mainReportsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4';
+    } else if (visibleCount === 4) {
+        mainReportsGrid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4';
+    } else {
+        // 5+ widgets - use flexible layout
+        mainReportsGrid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4';
+    }
+    
+    // Handle secondary grid (credits and best customer cards)
+    if (secondaryReportsGrid) {
+        const secondaryVisibleCount = secondaryReportsGrid.children.length;
+        if (secondaryVisibleCount === 1) {
+            secondaryReportsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4';
+        } else if (secondaryVisibleCount === 2) {
+            secondaryReportsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4';
+        } else {
+            secondaryReportsGrid.className = 'grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4';
+        }
+    }
+    
+    // Apply responsive layout for detailed reports (unchanged)
+    const detailGrids = document.querySelectorAll('#tab-reports .grid.grid-cols-1.md\\:grid-cols-2');
+    detailGrids.forEach(grid => {
+        if (grid !== mainReportsGrid && grid !== secondaryReportsGrid) {
+            if (window.innerWidth < 640) {
+                grid.className = 'grid grid-cols-1 gap-4 md:gap-6';
+            } else {
+                grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6';
+            }
+        }
+    });
+}
+
+// Add window resize listener for reports layout
+window.addEventListener('resize', () => {
+    // Debounce resize events
+    clearTimeout(window.reportsResizeTimeout);
+    window.reportsResizeTimeout = setTimeout(() => {
+        const currentTab = document.querySelector('.tab-content:not(.hidden)');
+        if (currentTab && currentTab.id === 'tab-reports') {
+            renderReportsLayout();
+        }
+    }, 250);
+});
 
 function generatePDFReport() {
     const { jsPDF } = window.jspdf;
@@ -7231,6 +7552,18 @@ function generateProformaPDFContent(proforma) {
     doc.setTextColor(0, 0, 0);
     doc.text('TOTAL:', pageWidth - margin - 75, y + 8);
     doc.text(formatMoneyPDF(proforma.total), pageWidth - margin - 20, y + 8);
+    
+    // Montant en lettres
+    y += 15;
+    doc.setFont(undefined, 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 150);
+    const amountInWords = `Arrêté la présente facture à la somme de : ${numberToWords(Math.round(proforma.total))} ariarys`;
+    const amountWordsLines = doc.splitTextToSize(amountInWords, pageWidth - 2 * margin);
+    amountWordsLines.forEach((line, index) => {
+        doc.text(line, margin, y + (index * 5));
+    });
+    y += 5 + (amountWordsLines.length * 5);
     
     // Reset text color
     doc.setTextColor(0, 0, 0);
